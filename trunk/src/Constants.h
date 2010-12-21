@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_Constants_h_
-#define _lister_MyTool002_Constants_h_
+#ifndef _Constants_h_
+#define _Constants_h_
 
 //==========================================================================================	
 #define KEY_DECLAREDUNKNOWN  -1       // User must physically select this, attesting that we do not know

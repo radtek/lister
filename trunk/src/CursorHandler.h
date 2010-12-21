@@ -1,5 +1,5 @@
-#ifndef _MyTool001_CursorHandler_h_
-#define _MyTool001_CursorHandler_h_
+#ifndef _CursorHandler_h_
+#define _CursorHandler_h_
 
 #include "shared.h"
 #include <Oracle/Oracle8.h>

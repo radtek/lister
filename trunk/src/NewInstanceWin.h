@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_NewInstanceWin_h_
-#define _lister_MyTool002_NewInstanceWin_h_
+#ifndef _NewInstanceWin_h_
+#define _NewInstanceWin_h_
 
 #include "shared.h"
 

@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_SearchWeb_h_
-#define _lister_MyTool002_SearchWeb_h_
+#ifndef _SearchWeb_h_
+#define _SearchWeb_h_
 
 //HttpClient::Execute
 //	socket host = something:80

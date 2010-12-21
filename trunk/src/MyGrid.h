@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_MyGrid_h_
-#define _lister_MyTool002_MyGrid_h_
+#ifndef _MyGrid_h_
+#define _MyGrid_h_
 
 #include "shared.h"
 

@@ -1,5 +1,5 @@
-#ifndef _MyTool001_ConnStatus_h_
-#define _MyTool001_ConnStatus_h_
+#ifndef _ConnStatus_h_
+#define _ConnStatus_h_
 
 #include "shared.h"
 #include <CtrlLib/DlgColor.h>

@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_MiscUtilities_h_
-#define _lister_MyTool002_MiscUtilities_h_
+#ifndef _MiscUtilities_h_
+#define _MiscUtilities_h_
 
 //==========================================================================================	
 bool MyEditText(String& s, const char *title, const char *label) {

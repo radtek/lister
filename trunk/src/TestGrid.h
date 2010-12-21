@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_TestGrid_h_
-#define _lister_MyTool002_TestGrid_h_
+#ifndef _TestGrid_h_
+#define _TestGrid_h_
 
 #include "shared.h"
 #include "TestState.h"

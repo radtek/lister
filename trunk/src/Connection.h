@@ -1,5 +1,5 @@
-#ifndef _MyTool002_Connection_h_
-#define _MyTool002_Connection_h_
+#ifndef _Connection_h_
+#define _Connection_h_
 
 #include "shared.h"
 #include "ConnState.h"

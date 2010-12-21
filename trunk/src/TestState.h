@@ -1,5 +1,6 @@
-#ifndef _lister_MyTool002_TestState_h_
-#define _lister_MyTool002_TestState_h_
+#ifndef _TestState_h_
+#define _TestState_h_
+
 #include <CtrlLib/DlgColor.h>
 
 	enum EnumTestState {

@@ -1,5 +1,5 @@
-#ifndef _MyTool002_SqlUtil_h_
-#define _MyTool002_SqlUtil_h_
+#ifndef _SqlUtil_h_
+#define _SqlUtil_h_
 
 #include "shared.h"
 #include "Err.h"

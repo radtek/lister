@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_StringHandler_h_
-#define _lister_MyTool002_StringHandler_h_
+#ifndef _StringHandler_h_
+#define _StringHandler_h_
 
 //==========================================================================================	
 String ReplaceStr(const String& s1, const String& find, const String replace) {

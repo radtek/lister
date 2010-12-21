@@ -1,5 +1,5 @@
-#ifndef _MyTool001_ConnButton_h_
-#define _MyTool001_ConnButton_h_
+#ifndef _ConnButton_h_
+#define _ConnButton_h_
 
 #include "shared.h"
 
