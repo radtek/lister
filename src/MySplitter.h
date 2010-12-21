@@ -1,9 +1,7 @@
-#ifndef _lister_MyTool002_MySplitter_h_
-#define _lister_MyTool002_MySplitter_h_
+#ifndef _MySplitter_h_
+#define _MySplitter_h_
 
 #include "shared.h"
-
-#pragma warning(disable: 4355)
 
 //==========================================================================================	
 class MySplitter: public Splitter {
@@ -30,6 +28,5 @@ class MySplitter: public Splitter {
 	
 	//==========================================================================================	
 };
-
 
 #endif

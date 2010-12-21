@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_SoundHandler_h_
-#define _lister_MyTool002_SoundHandler_h_
+#ifndef _SoundHandler_h_
+#define _SoundHandler_h_
 /*
 					MessageBeep(MB_ICONINFORMATION); // 40
 					MessageBeep(MB_ICONASTERISK); //40

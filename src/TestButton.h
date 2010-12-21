@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_TestButton_h_
-#define _lister_MyTool002_TestButton_h_
+#ifndef _TestButton_h_
+#define _TestButton_h_
 
 #include "shared.h"
 

@@ -1,5 +1,5 @@
-#ifndef _MyTool001_ConnGrid_h_
-#define _MyTool001_ConnGrid_h_
+#ifndef _ConnGrid_h_
+#define _ConnGrid_h_
 
 #include "shared.h"
 #include "MyGrid.h"

@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_MyDropGrid_h_
-#define _lister_MyTool002_MyDropGrid_h_
+#ifndef _MyDropGrid_h_
+#define _MyDropGrid_h_
 
 #include "shared.h"
 

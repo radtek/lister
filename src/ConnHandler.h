@@ -1,9 +1,7 @@
-#ifndef _MyTool002_ConnHandler_h_
-#define _MyTool002_ConnHandler_h_
+#ifndef _ConnHandler_h_
+#define _ConnHandler_h_
 
 #include "shared.h"
-#include "ConnHandler.h"
-class ConnButton;
 #include "ConnState.h"
 #include "ConnGrid.h"
 #include "Connection.h"

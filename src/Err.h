@@ -1,5 +1,5 @@
-#ifndef _lister_MyTool002_Err_h_
-#define _lister_MyTool002_Err_h_
+#ifndef _Err_h_
+#define _Err_h_
 
 /*
 Oracle:

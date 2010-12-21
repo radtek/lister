@@ -1,4 +1,4 @@
-LAYOUT(MyTool002Layout, 740, 340)
+LAYOUT(ListerLayout, 740, 340)
 END_LAYOUT
 
 LAYOUT(MyEditStringLayout, 612, 84)

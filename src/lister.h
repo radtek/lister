@@ -1,5 +1,5 @@
-#ifndef _MyTool002_MyTool002_h
-#define _MyTool002_MyTool002_h
+#ifndef _Lister_h
+#define _Lister_h
 
 #include "shared.h"
 #include "CursorHandler.h"
@@ -22,7 +22,7 @@
 typedef VectorMap<String,Connection *> ConnVector;
 
 //==========================================================================================	
-class MyTool002 : public WithMyTool002Layout<TopWindow> {
+class Lister : public WithListerLayout<TopWindow> {
 public:
 	ConnVector connVector;
 	PostgreSQLSession controlDb;
@@ -38,19 +38,19 @@ public:
 	Connection *activeConn;
 	ConnHandler connHandler; // Set from ConnButton->ConnHandler when grid changes so sql execution will know source
 	Button executeSQL;
-	typedef MyTool002 CLASSNAME;
+	typedef Lister CLASSNAME;
 	enum EnumScreenZoom { ZOOM_NORMALSCREEN, ZOOM_FULLSCREEN, ZOOM_ALLSCREENS };
 	EnumScreenZoom enumScreenZoom;
 	String configFile;
 	
 	//==========================================================================================	
-	MyTool002() {
+	Lister() {
 		
 		activeConn = NULL;
 		
 		// Main screen
 		
-		CtrlLayout(*this, "MyTool for SQL Execution");
+		CtrlLayout(*this, "Lister - A SQL Connection Execution Tool");
 		Sizeable().Zoomable();
 
 		enumScreenZoom = ZOOM_NORMALSCREEN; // Should take from config
@@ -149,7 +149,7 @@ public:
 	}
 
 	//==========================================================================================	
-	~MyTool002() {
+	~Lister() {
 		
 		// Release all the connection objects to prevent a memory leak
 		for (int i = 0; i < connVector.GetCount(); i++) {

@@ -1,8 +1,9 @@
-#ifndef _lister_MyTool002_MyRichEdit_h_
-#define _lister_MyTool002_MyRichEdit_h_
+#ifndef _MyRichEdit_h_
+#define _MyRichEdit_h_
 
 #include "shared.h"
 #include "SqlUtil.h"
+
 #include <RichEdit/RichEdit.h>
 #include <Web/Web.h>
 

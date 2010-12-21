@@ -1,5 +1,5 @@
-#ifndef _MyTool002_shared_h_
-#define _MyTool002_shared_h_
+#ifndef _shared_h_
+#define _shared_h_
 
 #define CAT String().Cat()
 
@@ -9,7 +9,7 @@
 
 using namespace Upp;
 
-#define LAYOUTFILE <lister/MyTool002/MyTool002.lay>
+#define LAYOUTFILE <lister/lister.lay>
 #include <CtrlCore/lay.h>
 
 #include "image_shared.h"
