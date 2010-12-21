@@ -1,0 +1,55 @@
+description "Manage all kinds of connections, SQL, FTP, telnet, http, https and output\377";
+
+uses
+	CtrlLib,
+	GridCtrl,
+	PostgreSQL,
+	Oracle,
+	RichEdit,
+	MSSQL,
+	plugin\ftp,
+	ODBC,
+	plugin\bmp,
+	plugin\png,
+	DropGrid,
+	ODBC,
+	MSSQL,
+	plugin\sqlite3,
+	plugin\dbf,
+	Ole,
+	OleDB,
+	Web;
+
+file
+	main.cpp,
+	MyTool002.h,
+	StringHandler.h,
+	MySplitter.h,
+	SearchWeb.h,
+	MyRichEdit.h,
+	MyDropGrid.h,
+	ConnButton.h,
+	Connection.h,
+	ConnState.h,
+	CursorHandler.h,
+	ConnHandler.h,
+	MyGrid.h,
+	ConnGrid.h,
+	MiscUtilities.h,
+	SqlUtil.h,
+	TestState.h,
+	TestButton.h,
+	NewInstanceWin.h,
+	TestGrid.h,
+	SoundHandler.h,
+	Constants.h,
+	Err.h,
+	shared.h,
+	project_shared.cpp,
+	image_shared.h,
+	MyTool002.lay,
+	MyTool002.iml;
+
+mainconfig
+	"" = "GUI MT";
+
