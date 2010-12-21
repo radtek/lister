@@ -22,7 +22,7 @@ uses
 
 file
 	main.cpp,
-	MyTool002.h,
+	lister.h,
 	StringHandler.h,
 	MySplitter.h,
 	SearchWeb.h,
@@ -47,8 +47,8 @@ file
 	shared.h,
 	project_shared.cpp,
 	image_shared.h,
-	MyTool002.lay,
-	MyTool002.iml;
+	lister.lay,
+	lister.iml;
 
 mainconfig
 	"" = "GUI MT";
