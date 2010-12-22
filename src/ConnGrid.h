@@ -42,7 +42,7 @@ void MakeConnState(One<Ctrl>& ctrl) {
 }
 
 //==========================================================================================	
-class ConnGrid : public GridCtrl {
+class ConnGrid : public MyGrid {
 public:
 	PostgreSQLSession *connDb;
 	
@@ -128,8 +128,7 @@ public:
 			AddColumn(IDConnNote, "Note").Edit(fldConnNote);
 			AddColumn(IDCONNECT, "").Ctrls(MakeButton).Fixed(20).SetImage(CtrlImg::go_forward());
 			AddColumn(IDDUMMY, "").Fixed(1); // This is required due to bug in GridCtrl where image clones across all downstream cells if at end of visible chain.
-			Absolute(); // Warning: Hiding/moving columns will cause blackout drawing issues, but only way to get user sizing to retain across sessions (see xmlize)
-			
+			//Absolute(); // Warning: Hiding/moving columns will cause blackout drawing issues, but only way to get user sizing to retain across sessions (see xmlize)
 	}
 	
 	//==========================================================================================	
