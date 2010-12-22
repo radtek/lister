@@ -342,6 +342,13 @@ struct MyRichEdit : public RichEdit {
 	}
 	
 	//==========================================================================================	
+	void ProcessPaste() {
+		String pasteData = ReadClipboardText();
+		ClearClipboard();
+		WriteClipboardText(pasteData);
+		Paste();
+	}
+	//==========================================================================================	
 	bool Key(dword key, int count) {
 		static dword style;
 		static Rect normalwindowrect;
@@ -349,6 +356,10 @@ struct MyRichEdit : public RichEdit {
 		RichEdit::Key(key, count);
 
 		switch (key) {
+			case K_CTRL_V:
+				ProcessPaste();
+				return true; // Eat keystroke
+				break;
 			case '.': {
 				// We are now pointing to the character following the period
 				int c = GetCursor();
