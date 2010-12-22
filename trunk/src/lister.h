@@ -139,11 +139,6 @@ public:
 		connGrid.outputGrid = &mainGrid;
 		connGrid.SizePos();
 
-		configFile = GetHomeDirFile("scriptsure.xml");
-		
-		// Call all Xmlize functions
-		LoadFromXMLFile(*this, configFile);
-
 		// By spinning this off as a callback, we get the screen displayed while autoconnecting, and plus the cursor on conn grid is properly set to center
 		//SetTimeCallback(100, THISBACK(AutoConnect));		
 	}
@@ -156,8 +151,6 @@ public:
 			Connection *conn = connVector[i];
 			delete conn;
 		}
-		
-		StoreAsXMLFile(*this, NULL, configFile);
 	}
 
 	//==========================================================================================	
@@ -315,11 +308,12 @@ public:
 	virtual void Run(bool appmodal = false) {
 		ToolBarRefresh();
 		ConnectionStatusRefresh();
-//		connGrid.HidePrivateColumns();
 		String a = connGrid.GetColumnWidths();
 		TopWindow::Run(appmodal);
 		
-		// These are post-create/instantiate tasks, also done after serialization
+		// Make the interface seem to close faster, let destructor run invisibly
+		Hide();
+		ProcessEvents();
 	}
 
 	//==========================================================================================	
