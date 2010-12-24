@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE lister>
+<lister>
+	<vertsplit>
+		<pos value="6470"/>
+	</vertsplit>
+	<horzsplit>
+		<pos value="4125"/>
+	</horzsplit>
+	<grid>
+		<columnwidths>
+			<key>ConnState</key>
+			<value value="16"/>
+			<key>ConnId</key>
+			<value value="-2"/>
+			<key>ConnName</key>
+			<value value="112"/>
+			<key>LoginId</key>
+			<value value="-2"/>
+			<key>LoginStr</key>
+			<value value="101"/>
+			<key>LoginPwd</key>
+			<value value="54"/>
+			<key>InstId</key>
+			<value value="104"/>
+			<key>InstanceName</key>
+			<value value="-2"/>
+			<key>InstTypID</key>
+			<value value="56"/>
+			<key>InstTypName</key>
+			<value value="-2"/>
+			<key>InstanceAddress</key>
+			<value value="-2"/>
+			<key>EnvId</key>
+			<value value="41"/>
+			<key>ConnNote</key>
+			<value value="50"/>
+			<key>CONNECT</key>
+			<value value="20"/>
+			<key>Dummy</key>
+			<value value="1"/>
+		</columnwidths>
+	</grid>
+	<cmdScript type="String">[ $$0,0#00000000000000000000000000000000:Default]
+[{_} 
+[s0; select `* from cdw1`_user.vw`_trade t where td`_fd`_src`_nm 
+`= `&apos;STRAW`&apos; and tdor`_src`_nm `= `&apos;BLOOMBERGBACNY`&apos; and cob`_dt 
+`= `&apos;03`-DEC`-10`&apos;&amp;]
+[s0; ]</cmdScript>
+</lister>
