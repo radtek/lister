@@ -1,0 +1,1667 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 9.0.1
+-- Dumped by pg_dump version 9.0.1
+-- Started on 2010-12-24 09:03:05
+
+SET statement_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = off;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET escape_string_warning = off;
+
+SET search_path = public, pg_catalog;
+
+SET default_with_oids = false;
+
+--
+-- TOC entry 1721 (class 1259 OID 17054)
+-- Dependencies: 7
+-- Name: actionlog; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE actionlog (
+    actionid integer NOT NULL,
+    note text NOT NULL,
+    whenadded timestamp with time zone
+);
+
+
+--
+-- TOC entry 1720 (class 1259 OID 17052)
+-- Dependencies: 7 1721
+-- Name: actionlog_actionid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE actionlog_actionid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2089 (class 0 OID 0)
+-- Dependencies: 1720
+-- Name: actionlog_actionid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE actionlog_actionid_seq OWNED BY actionlog.actionid;
+
+
+--
+-- TOC entry 1732 (class 1259 OID 17153)
+-- Dependencies: 7
+-- Name: comptyps; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE comptyps (
+    comptypid integer NOT NULL,
+    comptypname character varying(100) NOT NULL,
+    note text
+);
+
+
+--
+-- TOC entry 2090 (class 0 OID 0)
+-- Dependencies: 1732
+-- Name: TABLE comptyps; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE comptyps IS 'Comparison Operation type in testing.
+Each test has a test type, and each type involves invoking some code, which performs the Comparison Op listed here.
+
+Comp Ops: (Not is a bit flag in the test table)
+- Equals
+- In List
+- Between
+- Series (Odds, Evens, Prime?, Evenly divisible by x)
+- > than x
+- < than x
+- >= than x
+- <= than x
+- between x and y (inclusive)
+- starts with
+- starts with after trim
+- ends with
+- ends with after trim
+- contains
+- regex PCE
+- integer
+- digit
+- letter
+- all uppercase
+- all lowercase
+';
+
+
+--
+-- TOC entry 1731 (class 1259 OID 17151)
+-- Dependencies: 7 1732
+-- Name: comptyp_compid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE comptyp_compid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2092 (class 0 OID 0)
+-- Dependencies: 1731
+-- Name: comptyp_compid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE comptyp_compid_seq OWNED BY comptyps.comptypid;
+
+
+--
+-- TOC entry 1686 (class 1259 OID 16683)
+-- Dependencies: 7
+-- Name: connections; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE connections (
+    connid integer NOT NULL,
+    loginid integer NOT NULL,
+    instanceid integer NOT NULL,
+    note text,
+    lastsucceeddatetime timestamp with time zone,
+    lastfaildatetime timestamp with time zone,
+    connname character varying(100),
+    dbname character varying(200)
+);
+
+
+--
+-- TOC entry 2093 (class 0 OID 0)
+-- Dependencies: 1686
+-- Name: TABLE connections; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE connections IS 'Join logins to instances.  I can login (using TOAD) to D426 wth several logins, each one goes here.
+Some work some don''t anymore.  They each have a last fail and last succeed date.
+';
+
+
+--
+-- TOC entry 2094 (class 0 OID 0)
+-- Dependencies: 1686
+-- Name: COLUMN connections.connid; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN connections.connid IS 'Note that GetLastInsertedID function in code will try to build pk serial sequence name from table name and this field name, so be careful when changing.';
+
+
+--
+-- TOC entry 2095 (class 0 OID 0)
+-- Dependencies: 1686
+-- Name: COLUMN connections.loginid; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN connections.loginid IS 'login string and password pair are stored in separate table.';
+
+
+--
+-- TOC entry 2096 (class 0 OID 0)
+-- Dependencies: 1686
+-- Name: COLUMN connections.instanceid; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN connections.instanceid IS 'What instance this connection is to. Multiple instances can sit on the same server.  In DB, this may be the actual database name, as in BACKOFF400, though I believe there is only one per server.';
+
+
+--
+-- TOC entry 2097 (class 0 OID 0)
+-- Dependencies: 1686
+-- Name: COLUMN connections.connname; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN connections.connname IS 'Unique name of the connection.  I always lead with the connection environment chain or system name so its easier to read, for example, CSDR-Dev.  Or CSDR-Power, to show a powerful connection with maybe alter and drop table capabilities, not to be used lightly.';
+
+
+--
+-- TOC entry 2098 (class 0 OID 0)
+-- Dependencies: 1686
+-- Name: COLUMN connections.dbname; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN connections.dbname IS 'Connections to PostgreSQL provide the database name.  SQL server supports a default database to connect, which will greatly affect SQL that expects this and does not name the database in a 3-part query format.  Tests would break.
+Should possibly be linking to the dbs table, but U++ dropgrid object may not support dynamic filtering when used in GridCtrl for an embedded Object Ctrl.  Another words, it would show all dbs across all instances!  Difficult to use.';
+
+
+--
+-- TOC entry 1685 (class 1259 OID 16681)
+-- Dependencies: 1686 7
+-- Name: connections_connid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE connections_connid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2100 (class 0 OID 0)
+-- Dependencies: 1685
+-- Name: connections_connid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE connections_connid_seq OWNED BY connections.connid;
+
+
+--
+-- TOC entry 1688 (class 1259 OID 16692)
+-- Dependencies: 7
+-- Name: dbs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE dbs (
+    dbid integer NOT NULL,
+    dbname character varying(100) NOT NULL,
+    note text,
+    dbaddress character varying(200)
+);
+
+
+--
+-- TOC entry 2101 (class 0 OID 0)
+-- Dependencies: 1688
+-- Name: TABLE dbs; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE dbs IS 'Mostly for sql server where perms are per database.  In Oracle, there is no schema level perm, but you can logically access a schema.';
+
+
+--
+-- TOC entry 1687 (class 1259 OID 16690)
+-- Dependencies: 7 1688
+-- Name: dbs_dbid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE dbs_dbid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2103 (class 0 OID 0)
+-- Dependencies: 1687
+-- Name: dbs_dbid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE dbs_dbid_seq OWNED BY dbs.dbid;
+
+
+--
+-- TOC entry 1726 (class 1259 OID 17095)
+-- Dependencies: 7
+-- Name: dual; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE dual (
+    dummy character(1) NOT NULL
+);
+
+
+--
+-- TOC entry 2104 (class 0 OID 0)
+-- Dependencies: 1726
+-- Name: TABLE dual; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE dual IS 'dummy one-row table for uses.';
+
+
+--
+-- TOC entry 1690 (class 1259 OID 16701)
+-- Dependencies: 7
+-- Name: environments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE environments (
+    envid integer NOT NULL,
+    envstdname character varying(100) NOT NULL,
+    note text,
+    envlngname character varying(100),
+    envshrtname character varying(40),
+    envletter character(1)
+);
+
+
+--
+-- TOC entry 2105 (class 0 OID 0)
+-- Dependencies: 1690
+-- Name: TABLE environments; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE environments IS 'environments that an instance or a database or server supports.
+
+-3 = supports several environments, you need to look at the hosted objects.  Could be a bit map?  But then linking....
+';
+
+
+--
+-- TOC entry 2106 (class 0 OID 0)
+-- Dependencies: 1690
+-- Name: COLUMN environments.envstdname; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN environments.envstdname IS 'Standard name that people say on a phone, like "Is it in dev?", not is it in Development.';
+
+
+--
+-- TOC entry 1689 (class 1259 OID 16699)
+-- Dependencies: 7 1690
+-- Name: environments_envid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE environments_envid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2108 (class 0 OID 0)
+-- Dependencies: 1689
+-- Name: environments_envid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE environments_envid_seq OWNED BY environments.envid;
+
+
+--
+-- TOC entry 1692 (class 1259 OID 16710)
+-- Dependencies: 7
+-- Name: instances; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE instances (
+    instanceid integer NOT NULL,
+    instancename character varying(100) NOT NULL,
+    instanceaddress character varying(100) NOT NULL,
+    note text,
+    insttypid integer,
+    envid integer,
+    port integer
+);
+
+
+--
+-- TOC entry 2109 (class 0 OID 0)
+-- Dependencies: 1692
+-- Name: TABLE instances; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE instances IS 'On oracle, D426, U426, the SID.
+On SQL Server XXXX/DB, port';
+
+
+--
+-- TOC entry 2110 (class 0 OID 0)
+-- Dependencies: 1692
+-- Name: COLUMN instances.instancename; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN instances.instancename IS 'For oracle, can be the SID or global name.';
+
+
+--
+-- TOC entry 2111 (class 0 OID 0)
+-- Dependencies: 1692
+-- Name: COLUMN instances.instanceaddress; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN instances.instanceaddress IS 'computer address either an IP or a DNS resolvable name.  This is what would be TNSPING''d for Oracle.';
+
+
+--
+-- TOC entry 2112 (class 0 OID 0)
+-- Dependencies: 1692
+-- Name: COLUMN instances.insttypid; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN instances.insttypid IS 'What some call the database type or vendor, the brand.  SQL Server, Oracle, etc.  NOT the version, as in Oracle7, SQL Server 2000.  This is used in the Connection creation, and generally the same client connection code can be used across versions.  If not, another attribute in the instance row must dictate that specifically for this instance.';
+
+
+--
+-- TOC entry 2113 (class 0 OID 0)
+-- Dependencies: 1692
+-- Name: COLUMN instances.envid; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN instances.envid IS 'What business environment does this instance support?  There is -2 for when this is multiple environments, or -1 when not known.  The concept of a "devprod" may be created, since I develop in and use for real productive work connections from the same database (shock!)';
+
+
+--
+-- TOC entry 2114 (class 0 OID 0)
+-- Dependencies: 1692
+-- Name: COLUMN instances.port; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN instances.port IS 'For cases when the port is not the default and is necessary for the connection, or for documentation.  If not necessary for connecting, there should be an attribute to say so, because these often are changed by production support, and if forcibly passed when not necessary, you create an unnecessary breakage point in the future.';
+
+
+--
+-- TOC entry 1691 (class 1259 OID 16708)
+-- Dependencies: 7 1692
+-- Name: instances_instanceid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE instances_instanceid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2116 (class 0 OID 0)
+-- Dependencies: 1691
+-- Name: instances_instanceid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE instances_instanceid_seq OWNED BY instances.instanceid;
+
+
+--
+-- TOC entry 1694 (class 1259 OID 16719)
+-- Dependencies: 7
+-- Name: insttyps; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE insttyps (
+    insttypid integer NOT NULL,
+    insttypname character varying(40) NOT NULL,
+    note text
+);
+
+
+--
+-- TOC entry 2117 (class 0 OID 0)
+-- Dependencies: 1694
+-- Name: TABLE insttyps; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE insttyps IS 'instances of server databases, what type they are?
+SQL Server?
+Not version.';
+
+
+--
+-- TOC entry 1693 (class 1259 OID 16717)
+-- Dependencies: 1694 7
+-- Name: insttyps_insttypid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE insttyps_insttypid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2119 (class 0 OID 0)
+-- Dependencies: 1693
+-- Name: insttyps_insttypid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE insttyps_insttypid_seq OWNED BY insttyps.insttypid;
+
+
+--
+-- TOC entry 1696 (class 1259 OID 16728)
+-- Dependencies: 7
+-- Name: logins; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE logins (
+    loginid integer NOT NULL,
+    loginstr character varying(40) NOT NULL,
+    loginpwd character varying(100),
+    islegit boolean
+);
+
+
+--
+-- TOC entry 2120 (class 0 OID 0)
+-- Dependencies: 1696
+-- Name: TABLE logins; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE logins IS 'just a login paired with a password.';
+
+
+--
+-- TOC entry 2121 (class 0 OID 0)
+-- Dependencies: 1696
+-- Name: COLUMN logins.loginstr; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN logins.loginstr IS 'actual string entered into interface';
+
+
+--
+-- TOC entry 2122 (class 0 OID 0)
+-- Dependencies: 1696
+-- Name: COLUMN logins.islegit; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN logins.islegit IS 'gained officially and available for safe, open use.';
+
+
+--
+-- TOC entry 1695 (class 1259 OID 16726)
+-- Dependencies: 7 1696
+-- Name: logins_loginid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE logins_loginid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2124 (class 0 OID 0)
+-- Dependencies: 1695
+-- Name: logins_loginid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE logins_loginid_seq OWNED BY logins.loginid;
+
+
+--
+-- TOC entry 1725 (class 1259 OID 17082)
+-- Dependencies: 7
+-- Name: macros; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE macros (
+    macid integer NOT NULL,
+    macname character varying(200) NOT NULL,
+    iftext character varying(400) NOT NULL,
+    thentext character varying(400) NOT NULL
+);
+
+
+--
+-- TOC entry 2125 (class 0 OID 0)
+-- Dependencies: 1725
+-- Name: TABLE macros; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE macros IS 'macros that are actively applied to executed scripts whenever their connection is activated, or user, project, etc.';
+
+
+--
+-- TOC entry 1724 (class 1259 OID 17080)
+-- Dependencies: 7 1725
+-- Name: macros_macid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE macros_macid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2126 (class 0 OID 0)
+-- Dependencies: 1724
+-- Name: macros_macid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE macros_macid_seq OWNED BY macros.macid;
+
+
+--
+-- TOC entry 1698 (class 1259 OID 16734)
+-- Dependencies: 7
+-- Name: oses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE oses (
+    osid integer NOT NULL,
+    osname character varying(100),
+    note text
+);
+
+
+--
+-- TOC entry 2127 (class 0 OID 0)
+-- Dependencies: 1698
+-- Name: TABLE oses; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE oses IS 'Operating Systems that servers sit on';
+
+
+--
+-- TOC entry 1697 (class 1259 OID 16732)
+-- Dependencies: 1698 7
+-- Name: oses_osid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE oses_osid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2129 (class 0 OID 0)
+-- Dependencies: 1697
+-- Name: oses_osid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE oses_osid_seq OWNED BY oses.osid;
+
+
+--
+-- TOC entry 1734 (class 1259 OID 17205)
+-- Dependencies: 7
+-- Name: portable_executables; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE portable_executables (
+    libid integer NOT NULL,
+    libname character varying(200) NOT NULL,
+    libpath character varying(1000),
+    filesize integer,
+    version character varying(100),
+    note text,
+    filetimestamp timestamp without time zone
+);
+
+
+--
+-- TOC entry 2130 (class 0 OID 0)
+-- Dependencies: 1734
+-- Name: TABLE portable_executables; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE portable_executables IS 'dlls, sos so we can track what works.';
+
+
+--
+-- TOC entry 1733 (class 1259 OID 17203)
+-- Dependencies: 7 1734
+-- Name: portable_executables_libid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE portable_executables_libid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2131 (class 0 OID 0)
+-- Dependencies: 1733
+-- Name: portable_executables_libid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE portable_executables_libid_seq OWNED BY portable_executables.libid;
+
+
+--
+-- TOC entry 1723 (class 1259 OID 17069)
+-- Dependencies: 2029 7
+-- Name: scripts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE scripts (
+    scriptid integer NOT NULL,
+    script text NOT NULL,
+    scriptname character varying(200),
+    addtimestamp time with time zone DEFAULT now(),
+    richscript text
+);
+
+
+--
+-- TOC entry 2132 (class 0 OID 0)
+-- Dependencies: 1723
+-- Name: TABLE scripts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE scripts IS 'scripts to execute against connections.';
+
+
+--
+-- TOC entry 1722 (class 1259 OID 17067)
+-- Dependencies: 1723 7
+-- Name: scripts_scriptid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE scripts_scriptid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2134 (class 0 OID 0)
+-- Dependencies: 1722
+-- Name: scripts_scriptid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE scripts_scriptid_seq OWNED BY scripts.scriptid;
+
+
+--
+-- TOC entry 1700 (class 1259 OID 16743)
+-- Dependencies: 7
+-- Name: servers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE servers (
+    serverid integer NOT NULL,
+    serveraddress character varying(40) NOT NULL,
+    note text,
+    osid integer
+);
+
+
+--
+-- TOC entry 1699 (class 1259 OID 16741)
+-- Dependencies: 7 1700
+-- Name: servers_serverid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE servers_serverid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2136 (class 0 OID 0)
+-- Dependencies: 1699
+-- Name: servers_serverid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE servers_serverid_seq OWNED BY servers.serverid;
+
+
+--
+-- TOC entry 1702 (class 1259 OID 16752)
+-- Dependencies: 7
+-- Name: tables; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE tables (
+    tbid integer NOT NULL,
+    tbname character varying(100) NOT NULL,
+    tbaddress character varying(300),
+    note text
+);
+
+
+--
+-- TOC entry 2137 (class 0 OID 0)
+-- Dependencies: 1702
+-- Name: TABLE tables; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE tables IS 'or views, or mat views, or...';
+
+
+--
+-- TOC entry 1701 (class 1259 OID 16750)
+-- Dependencies: 7 1702
+-- Name: tables_tbid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE tables_tbid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2139 (class 0 OID 0)
+-- Dependencies: 1701
+-- Name: tables_tbid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE tables_tbid_seq OWNED BY tables.tbid;
+
+
+--
+-- TOC entry 1728 (class 1259 OID 17104)
+-- Dependencies: 2032 2033 2034 7
+-- Name: tests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE tests (
+    testid integer NOT NULL,
+    testname character varying(200),
+    note text,
+    scriptid integer NOT NULL,
+    whenadded timestamp with time zone DEFAULT now() NOT NULL,
+    connid integer,
+    desiredoutcome character(1) DEFAULT 'P'::bpchar NOT NULL,
+    actualoutcome character(1),
+    outputvalue character varying(400),
+    x character varying(400),
+    y character varying(400),
+    invertcomparison boolean DEFAULT false NOT NULL,
+    comptypid integer,
+    testtypid integer
+);
+
+
+--
+-- TOC entry 2140 (class 0 OID 0)
+-- Dependencies: 1728
+-- Name: TABLE tests; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE tests IS 'Single scripts that output a single (?) value at 0.
+The test is either positive or negative.  If 0 rows returned, pass/fail/indeterminate, plus if 1 row, the same
+and x or greater rows, pass/fail/indeterminate
+if 1 row back, then if = x pass/fail/indeterminate
+   if != pass/fail/indeterminate
+   if between, not between, starts with, starts with after trim,
+  ends with, ends with after trim, contains, not contains,
+  not starts with, not ends with,';
+
+
+--
+-- TOC entry 2141 (class 0 OID 0)
+-- Dependencies: 1728
+-- Name: COLUMN tests.connid; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN tests.connid IS 'Links to the connection object that this test is to be run against.  -3 may indicate multi-values?  For now, all tests are a single script against a single connection.';
+
+
+--
+-- TOC entry 2142 (class 0 OID 0)
+-- Dependencies: 1728
+-- Name: COLUMN tests.desiredoutcome; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN tests.desiredoutcome IS 'What we want the outcome of the test to be: Either P)ass or F)ail.';
+
+
+--
+-- TOC entry 2143 (class 0 OID 0)
+-- Dependencies: 1728
+-- Name: COLUMN tests.actualoutcome; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN tests.actualoutcome IS 'What was the actual output of the test?  Did it Pass or Fail or Indeterminate?
+Indeterminate (I) means not enough information was gleaned in order to complete the test type and comparison type.  For instance, Is Alphabetic can''t be determined if value is Null.';
+
+
+--
+-- TOC entry 2144 (class 0 OID 0)
+-- Dependencies: 1728
+-- Name: COLUMN tests.outputvalue; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN tests.outputvalue IS 'Value returned, somewhat mangled to fit  into a character column.';
+
+
+--
+-- TOC entry 2145 (class 0 OID 0)
+-- Dependencies: 1728
+-- Name: COLUMN tests.x; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN tests.x IS 'first comparison value if applicable to the comparison test.  A Capitalization test won''t need any values, but a Greater Than test will.';
+
+
+--
+-- TOC entry 2146 (class 0 OID 0)
+-- Dependencies: 1728
+-- Name: COLUMN tests.y; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN tests.y IS 'For between tests';
+
+
+--
+-- TOC entry 2147 (class 0 OID 0)
+-- Dependencies: 1728
+-- Name: COLUMN tests.invertcomparison; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN tests.invertcomparison IS 'If true, make this a NOT test,  Do not use this in leu of setting desired outcome as Fail instead of Pass.
+Pass should always be Green/Good.';
+
+
+--
+-- TOC entry 1727 (class 1259 OID 17102)
+-- Dependencies: 1728 7
+-- Name: tests_testid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE tests_testid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2149 (class 0 OID 0)
+-- Dependencies: 1727
+-- Name: tests_testid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE tests_testid_seq OWNED BY tests.testid;
+
+
+--
+-- TOC entry 1730 (class 1259 OID 17135)
+-- Dependencies: 7
+-- Name: testtyps; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE testtyps (
+    testtypid integer NOT NULL,
+    testtypname character varying(100) NOT NULL,
+    note text
+);
+
+
+--
+-- TOC entry 2150 (class 0 OID 0)
+-- Dependencies: 1730
+-- Name: TABLE testtyps; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE testtyps IS 'Types of tests, all singular, no combos, please.
+
+Types are:
+- returned row count
+- error code
+- col[0] value
+- col[0] data type
+- time to execute
+
+DO NOT add types that your not prepared to code for. Each has a segment of code dedicated to processing it.';
+
+
+--
+-- TOC entry 1729 (class 1259 OID 17133)
+-- Dependencies: 1730 7
+-- Name: testtyps_testtypid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE testtyps_testtypid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2152 (class 0 OID 0)
+-- Dependencies: 1729
+-- Name: testtyps_testtypid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE testtyps_testtypid_seq OWNED BY testtyps.testtypid;
+
+
+--
+-- TOC entry 1704 (class 1259 OID 16771)
+-- Dependencies: 7
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE users (
+    userid integer NOT NULL,
+    note text,
+    usersysid character varying(40) NOT NULL,
+    sysdomain character varying(40),
+    username character varying(100)
+);
+
+
+--
+-- TOC entry 2153 (class 0 OID 0)
+-- Dependencies: 1704
+-- Name: TABLE users; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE users IS 'unique people.  In our company, users CANNOT share logins at this level.  No appids here.';
+
+
+--
+-- TOC entry 1703 (class 1259 OID 16769)
+-- Dependencies: 7 1704
+-- Name: users_userid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE users_userid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2155 (class 0 OID 0)
+-- Dependencies: 1703
+-- Name: users_userid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE users_userid_seq OWNED BY users.userid;
+
+
+--
+-- TOC entry 2027 (class 2604 OID 17057)
+-- Dependencies: 1720 1721 1721
+-- Name: actionid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE actionlog ALTER COLUMN actionid SET DEFAULT nextval('actionlog_actionid_seq'::regclass);
+
+
+--
+-- TOC entry 2036 (class 2604 OID 17156)
+-- Dependencies: 1731 1732 1732
+-- Name: comptypid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE comptyps ALTER COLUMN comptypid SET DEFAULT nextval('comptyp_compid_seq'::regclass);
+
+
+--
+-- TOC entry 2017 (class 2604 OID 16686)
+-- Dependencies: 1686 1685 1686
+-- Name: connid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE connections ALTER COLUMN connid SET DEFAULT nextval('connections_connid_seq'::regclass);
+
+
+--
+-- TOC entry 2018 (class 2604 OID 16695)
+-- Dependencies: 1688 1687 1688
+-- Name: dbid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE dbs ALTER COLUMN dbid SET DEFAULT nextval('dbs_dbid_seq'::regclass);
+
+
+--
+-- TOC entry 2019 (class 2604 OID 16704)
+-- Dependencies: 1690 1689 1690
+-- Name: envid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE environments ALTER COLUMN envid SET DEFAULT nextval('environments_envid_seq'::regclass);
+
+
+--
+-- TOC entry 2020 (class 2604 OID 16713)
+-- Dependencies: 1691 1692 1692
+-- Name: instanceid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE instances ALTER COLUMN instanceid SET DEFAULT nextval('instances_instanceid_seq'::regclass);
+
+
+--
+-- TOC entry 2021 (class 2604 OID 16722)
+-- Dependencies: 1693 1694 1694
+-- Name: insttypid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE insttyps ALTER COLUMN insttypid SET DEFAULT nextval('insttyps_insttypid_seq'::regclass);
+
+
+--
+-- TOC entry 2022 (class 2604 OID 16731)
+-- Dependencies: 1695 1696 1696
+-- Name: loginid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE logins ALTER COLUMN loginid SET DEFAULT nextval('logins_loginid_seq'::regclass);
+
+
+--
+-- TOC entry 2030 (class 2604 OID 17085)
+-- Dependencies: 1725 1724 1725
+-- Name: macid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE macros ALTER COLUMN macid SET DEFAULT nextval('macros_macid_seq'::regclass);
+
+
+--
+-- TOC entry 2023 (class 2604 OID 16737)
+-- Dependencies: 1698 1697 1698
+-- Name: osid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE oses ALTER COLUMN osid SET DEFAULT nextval('oses_osid_seq'::regclass);
+
+
+--
+-- TOC entry 2037 (class 2604 OID 17208)
+-- Dependencies: 1733 1734 1734
+-- Name: libid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE portable_executables ALTER COLUMN libid SET DEFAULT nextval('portable_executables_libid_seq'::regclass);
+
+
+--
+-- TOC entry 2028 (class 2604 OID 17072)
+-- Dependencies: 1722 1723 1723
+-- Name: scriptid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE scripts ALTER COLUMN scriptid SET DEFAULT nextval('scripts_scriptid_seq'::regclass);
+
+
+--
+-- TOC entry 2024 (class 2604 OID 16746)
+-- Dependencies: 1700 1699 1700
+-- Name: serverid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE servers ALTER COLUMN serverid SET DEFAULT nextval('servers_serverid_seq'::regclass);
+
+
+--
+-- TOC entry 2025 (class 2604 OID 16755)
+-- Dependencies: 1701 1702 1702
+-- Name: tbid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE tables ALTER COLUMN tbid SET DEFAULT nextval('tables_tbid_seq'::regclass);
+
+
+--
+-- TOC entry 2031 (class 2604 OID 17107)
+-- Dependencies: 1728 1727 1728
+-- Name: testid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE tests ALTER COLUMN testid SET DEFAULT nextval('tests_testid_seq'::regclass);
+
+
+--
+-- TOC entry 2035 (class 2604 OID 17138)
+-- Dependencies: 1729 1730 1730
+-- Name: testtypid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE testtyps ALTER COLUMN testtypid SET DEFAULT nextval('testtyps_testtypid_seq'::regclass);
+
+
+--
+-- TOC entry 2026 (class 2604 OID 16774)
+-- Dependencies: 1704 1703 1704
+-- Name: userid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE users ALTER COLUMN userid SET DEFAULT nextval('users_userid_seq'::regclass);
+
+
+--
+-- TOC entry 2039 (class 2606 OID 17217)
+-- Dependencies: 1686 1686
+-- Name: akconn; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY connections
+    ADD CONSTRAINT akconn UNIQUE (connname);
+
+
+--
+-- TOC entry 2156 (class 0 OID 0)
+-- Dependencies: 2039
+-- Name: CONSTRAINT akconn ON connections; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON CONSTRAINT akconn ON connections IS 'Names must be unique since that is how the user browses in the ConnGrid.  Though I suppose the other attributes might give a clue.  Linkage and FKs are always on connid.';
+
+
+--
+-- TOC entry 2047 (class 2606 OID 17101)
+-- Dependencies: 1692 1692
+-- Name: akinstance; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY instances
+    ADD CONSTRAINT akinstance UNIQUE (instancename);
+
+
+--
+-- TOC entry 2068 (class 2606 OID 17092)
+-- Dependencies: 1725 1725
+-- Name: akmacro; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY macros
+    ADD CONSTRAINT akmacro UNIQUE (macname);
+
+
+--
+-- TOC entry 2076 (class 2606 OID 17145)
+-- Dependencies: 1730 1730
+-- Name: akpktesttyp; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY testtyps
+    ADD CONSTRAINT akpktesttyp UNIQUE (testtypname);
+
+
+--
+-- TOC entry 2045 (class 2606 OID 16786)
+-- Dependencies: 1690 1690
+-- Name: environments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY environments
+    ADD CONSTRAINT environments_pkey PRIMARY KEY (envid);
+
+
+--
+-- TOC entry 2063 (class 2606 OID 17062)
+-- Dependencies: 1721 1721
+-- Name: pkactionlog; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY actionlog
+    ADD CONSTRAINT pkactionlog PRIMARY KEY (actionid);
+
+
+--
+-- TOC entry 2080 (class 2606 OID 17187)
+-- Dependencies: 1732 1732
+-- Name: pkcomptyp; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY comptyps
+    ADD CONSTRAINT pkcomptyp PRIMARY KEY (comptypid);
+
+
+--
+-- TOC entry 2041 (class 2606 OID 16788)
+-- Dependencies: 1686 1686
+-- Name: pkconn; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY connections
+    ADD CONSTRAINT pkconn PRIMARY KEY (connid);
+
+
+--
+-- TOC entry 2157 (class 0 OID 0)
+-- Dependencies: 2041
+-- Name: CONSTRAINT pkconn ON connections; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON CONSTRAINT pkconn ON connections IS 'Name should be "pkconnections" but I worry about names getting too long.  What is pg max length?';
+
+
+--
+-- TOC entry 2043 (class 2606 OID 16790)
+-- Dependencies: 1688 1688
+-- Name: pkdb; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY dbs
+    ADD CONSTRAINT pkdb PRIMARY KEY (dbid);
+
+
+--
+-- TOC entry 2072 (class 2606 OID 17099)
+-- Dependencies: 1726 1726
+-- Name: pkdual; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY dual
+    ADD CONSTRAINT pkdual PRIMARY KEY (dummy);
+
+
+--
+-- TOC entry 2049 (class 2606 OID 16792)
+-- Dependencies: 1692 1692
+-- Name: pkinstance; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY instances
+    ADD CONSTRAINT pkinstance PRIMARY KEY (instanceid);
+
+
+--
+-- TOC entry 2051 (class 2606 OID 16794)
+-- Dependencies: 1694 1694
+-- Name: pkinsttyp; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY insttyps
+    ADD CONSTRAINT pkinsttyp PRIMARY KEY (insttypid);
+
+
+--
+-- TOC entry 2082 (class 2606 OID 17213)
+-- Dependencies: 1734 1734
+-- Name: pklib; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY portable_executables
+    ADD CONSTRAINT pklib PRIMARY KEY (libid);
+
+
+--
+-- TOC entry 2053 (class 2606 OID 16796)
+-- Dependencies: 1696 1696
+-- Name: pklogin; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY logins
+    ADD CONSTRAINT pklogin PRIMARY KEY (loginid);
+
+
+--
+-- TOC entry 2070 (class 2606 OID 17090)
+-- Dependencies: 1725 1725
+-- Name: pkmacro; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY macros
+    ADD CONSTRAINT pkmacro PRIMARY KEY (macid);
+
+
+--
+-- TOC entry 2055 (class 2606 OID 16798)
+-- Dependencies: 1698 1698
+-- Name: pkos; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY oses
+    ADD CONSTRAINT pkos PRIMARY KEY (osid);
+
+
+--
+-- TOC entry 2065 (class 2606 OID 17077)
+-- Dependencies: 1723 1723
+-- Name: pkscript; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY scripts
+    ADD CONSTRAINT pkscript PRIMARY KEY (scriptid);
+
+
+--
+-- TOC entry 2057 (class 2606 OID 16800)
+-- Dependencies: 1700 1700
+-- Name: pkserver; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY servers
+    ADD CONSTRAINT pkserver PRIMARY KEY (serverid);
+
+
+--
+-- TOC entry 2059 (class 2606 OID 16802)
+-- Dependencies: 1702 1702
+-- Name: pktb; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY tables
+    ADD CONSTRAINT pktb PRIMARY KEY (tbid);
+
+
+--
+-- TOC entry 2074 (class 2606 OID 17112)
+-- Dependencies: 1728 1728
+-- Name: pktest; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY tests
+    ADD CONSTRAINT pktest PRIMARY KEY (testid);
+
+
+--
+-- TOC entry 2078 (class 2606 OID 17143)
+-- Dependencies: 1730 1730
+-- Name: pktesttyp; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY testtyps
+    ADD CONSTRAINT pktesttyp PRIMARY KEY (testtypid);
+
+
+--
+-- TOC entry 2061 (class 2606 OID 16804)
+-- Dependencies: 1704 1704
+-- Name: pkuser; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY users
+    ADD CONSTRAINT pkuser PRIMARY KEY (userid);
+
+
+--
+-- TOC entry 2066 (class 1259 OID 17094)
+-- Dependencies: 1723
+-- Name: scripts_script_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX scripts_script_idx ON scripts USING btree (script);
+
+
+--
+-- TOC entry 2086 (class 2606 OID 17193)
+-- Dependencies: 1732 1728 2079
+-- Name: fktestcomptyp; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY tests
+    ADD CONSTRAINT fktestcomptyp FOREIGN KEY (comptypid) REFERENCES comptyps(comptypid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- TOC entry 2084 (class 2606 OID 17146)
+-- Dependencies: 2040 1728 1686
+-- Name: fktestconn; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY tests
+    ADD CONSTRAINT fktestconn FOREIGN KEY (connid) REFERENCES connections(connid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- TOC entry 2083 (class 2606 OID 17113)
+-- Dependencies: 1728 2064 1723
+-- Name: fktestscript; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY tests
+    ADD CONSTRAINT fktestscript FOREIGN KEY (scriptid) REFERENCES scripts(scriptid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- TOC entry 2085 (class 2606 OID 17188)
+-- Dependencies: 1728 1730 2077
+-- Name: fktesttesttyp; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY tests
+    ADD CONSTRAINT fktesttesttyp FOREIGN KEY (testtypid) REFERENCES testtyps(testtypid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- TOC entry 2091 (class 0 OID 0)
+-- Dependencies: 1732
+-- Name: comptyps; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE comptyps FROM PUBLIC;
+REVOKE ALL ON TABLE comptyps FROM postgres;
+GRANT ALL ON TABLE comptyps TO postgres;
+GRANT ALL ON TABLE comptyps TO PUBLIC;
+
+
+--
+-- TOC entry 2099 (class 0 OID 0)
+-- Dependencies: 1686
+-- Name: connections; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE connections FROM PUBLIC;
+REVOKE ALL ON TABLE connections FROM postgres;
+GRANT ALL ON TABLE connections TO postgres;
+GRANT ALL ON TABLE connections TO PUBLIC;
+
+
+--
+-- TOC entry 2102 (class 0 OID 0)
+-- Dependencies: 1688
+-- Name: dbs; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE dbs FROM PUBLIC;
+REVOKE ALL ON TABLE dbs FROM postgres;
+GRANT ALL ON TABLE dbs TO postgres;
+GRANT ALL ON TABLE dbs TO PUBLIC;
+
+
+--
+-- TOC entry 2107 (class 0 OID 0)
+-- Dependencies: 1690
+-- Name: environments; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE environments FROM PUBLIC;
+REVOKE ALL ON TABLE environments FROM postgres;
+GRANT ALL ON TABLE environments TO postgres;
+GRANT ALL ON TABLE environments TO PUBLIC;
+
+
+--
+-- TOC entry 2115 (class 0 OID 0)
+-- Dependencies: 1692
+-- Name: instances; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE instances FROM PUBLIC;
+REVOKE ALL ON TABLE instances FROM postgres;
+GRANT ALL ON TABLE instances TO postgres;
+GRANT ALL ON TABLE instances TO PUBLIC;
+
+
+--
+-- TOC entry 2118 (class 0 OID 0)
+-- Dependencies: 1694
+-- Name: insttyps; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE insttyps FROM PUBLIC;
+REVOKE ALL ON TABLE insttyps FROM postgres;
+GRANT ALL ON TABLE insttyps TO postgres;
+GRANT ALL ON TABLE insttyps TO PUBLIC;
+
+
+--
+-- TOC entry 2123 (class 0 OID 0)
+-- Dependencies: 1696
+-- Name: logins; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE logins FROM PUBLIC;
+REVOKE ALL ON TABLE logins FROM postgres;
+GRANT ALL ON TABLE logins TO postgres;
+GRANT ALL ON TABLE logins TO PUBLIC;
+
+
+--
+-- TOC entry 2128 (class 0 OID 0)
+-- Dependencies: 1698
+-- Name: oses; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE oses FROM PUBLIC;
+REVOKE ALL ON TABLE oses FROM postgres;
+GRANT ALL ON TABLE oses TO postgres;
+GRANT ALL ON TABLE oses TO PUBLIC;
+
+
+--
+-- TOC entry 2133 (class 0 OID 0)
+-- Dependencies: 1723
+-- Name: scripts; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE scripts FROM PUBLIC;
+REVOKE ALL ON TABLE scripts FROM postgres;
+GRANT ALL ON TABLE scripts TO postgres;
+GRANT ALL ON TABLE scripts TO PUBLIC;
+
+
+--
+-- TOC entry 2135 (class 0 OID 0)
+-- Dependencies: 1700
+-- Name: servers; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE servers FROM PUBLIC;
+REVOKE ALL ON TABLE servers FROM postgres;
+GRANT ALL ON TABLE servers TO postgres;
+GRANT ALL ON TABLE servers TO PUBLIC;
+
+
+--
+-- TOC entry 2138 (class 0 OID 0)
+-- Dependencies: 1702
+-- Name: tables; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE tables FROM PUBLIC;
+REVOKE ALL ON TABLE tables FROM postgres;
+GRANT ALL ON TABLE tables TO postgres;
+GRANT ALL ON TABLE tables TO PUBLIC;
+
+
+--
+-- TOC entry 2148 (class 0 OID 0)
+-- Dependencies: 1728
+-- Name: tests; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE tests FROM PUBLIC;
+REVOKE ALL ON TABLE tests FROM postgres;
+GRANT ALL ON TABLE tests TO postgres;
+GRANT ALL ON TABLE tests TO PUBLIC;
+
+
+--
+-- TOC entry 2151 (class 0 OID 0)
+-- Dependencies: 1730
+-- Name: testtyps; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE testtyps FROM PUBLIC;
+REVOKE ALL ON TABLE testtyps FROM postgres;
+GRANT ALL ON TABLE testtyps TO postgres;
+GRANT ALL ON TABLE testtyps TO PUBLIC;
+
+
+--
+-- TOC entry 2154 (class 0 OID 0)
+-- Dependencies: 1704
+-- Name: users; Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON TABLE users FROM PUBLIC;
+REVOKE ALL ON TABLE users FROM postgres;
+GRANT ALL ON TABLE users TO postgres;
+GRANT ALL ON TABLE users TO PUBLIC;
+
+
+-- Completed on 2010-12-24 09:03:07
+
+--
+-- PostgreSQL database dump complete
+--
+
