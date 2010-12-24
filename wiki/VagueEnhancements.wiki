@@ -1,0 +1,31 @@
+#summary Enhancement directions very likely to see work, but no specifics.
+
+= Introduction =
+
+I have a list of specific enhancements I included on the front page, which I'll migrate back here eventually.  But I was thinking about how I look at other projects and wonder where they are headed.  Often, other project owners resist discussing the future because they don't want to get anyone's hopes up, or they've really stopped using or improving the product, but they don't want to give up ownership, so they can't say much at all about the future.
+
+I use lister every day all day to get my work done, so I can clearly see what I need in the future to enhance my work.  I might discover that an enhancement is too much work for too little gain, and defund it, but otherwise they are for real likely directions.
+
+
+= Details =
+
+
+  * I need to manage my BRDs and DRFs and ETL specs and yada yada.  Tools I access are *SharePoint* and *Discovery*.  
+  * I prefer SharePoint but it has many bugs when paths exceed 256 characters and checkouts rapidly get corrupted and destroyed.
+  * Updating SharePoint pages with notes on BA status and test status, progress, etc would be great.  Latency is a big issue for me.  I need tools that can batch update, download, search, etc.
+  * Checking in/out/uploading to any doc server with high latency means I want it to run in the background and tell me when its done, and recover when (not if) it crashes.
+  * Discovery is hard to work with and paths are numbers and not meaningful strings, so management is critical to understand which is what.
+  * *Microsoft Project* is used to track deliverables and it is expected we use it daily, but it is slow, and changes are confusing and not tracked.  A deliverable may start as due Tuesday, then be changed magically to Friday.  If not tracked, the history is lost and you can't point out at the Quarterly meeting that Project deliverable estimates were initially off from final dates by 300% for 20 projects, etc.  The tools suck, the managers are idiots, so I have to make my own metrics.
+
+  * QCs are tickets that track micro-change and requests and status, and the tool, *Mercury QualityCenter* is anything BUT mercurial.  It crashes, times out quickly, bogs down, and even loses changes.  But the company loves it, so we are stuck with it.
+  * It supports a VB/OLE API of sorts so I need to hack that together and store tickets externally, so I can quickly review them and not deal with a crappy interface just to read a problem description that has not changed in years.  Plus the attributes used are already claimed by the QA team, without bothering to document or let us know which ones or what.  I need to document all the values expected for each attribute, just like any other database.  Plus workflow.  What status should move to what when and during what cycle?  We should be able to historically say "On Friday the 10th of May, this ticket was "Ready for Testing", but the Users were not ready for UAT, the QA team had no resources for QA, the database QA environment was locked down for UAT for project Y, so data from the source R's UAT environment could not be imported, and they had to flush their UAT environment in +8 days for our overriding commitment to bring in procurement L in +10 days"
+
+    See how bizarre it can get?  Use cases are required to see what can be done.
+Here are some of the objects I see:
+
+      * Document: in a stage and versioned, release stage, _this version_ reviewed by
+      * State: Each tool and team has the same name for a cycle or state, but different meaning and different flow from state to state, and different flow _back_ from states, plus hidden states, secret states, begrudged states, "lie" states...
+      * Sources: Where'd it come from
+      * Project: Business view
+      * Procurements: A project, but a source is always involved, the "Database" is always targeted, a user is involved, cycle involved, and a real Client project overrides it, in fact, multiple clients are linked to procurements, and want different attributes and cycles and stakeholding levels.
+      * Environment: Names are confused with "Cycles".  They are really just names for what I call instances.  But the names create political and legal requirements, like the SEC may require that all Production environments have certain access protocols, even specific vendors(!).  Shareholders view problems in certain environments as more serious.  So "what the fucks in a name" has serious implications.  Note  that people have shorthands for the same physical instance, which creates problems, too.  Joe may call it UAT, Steve calls it Pre-prod, Mary calls it QA or SIT.  And if you can find a corporation where you can refer to 3 people in the same sentence as Joe, Steve, and Mary, sign me up!
