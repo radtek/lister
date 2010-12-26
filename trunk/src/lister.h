@@ -3,11 +3,9 @@
 
 #include "shared.h"
 #include "CursorHandler.h"
-#include "ConnHandler.h"
 #include "ConnGrid.h"
 #include "ConnState.h"
 #include "Connection.h"
-#include "SqlUtil.h"
 #include "MiscUtilities.h"
 #include "Err.h"
 #include "SoundHandler.h"
@@ -16,16 +14,14 @@
 #include "MyDropGrid.h"
 #include "Constants.h"
 #include "MySplitter.h"
+#include "insttypnms.h"
 
-#include <PostgreSQL/PostgreSQL.h> // Need to move to Connection manager
-
-typedef VectorMap<String,Connection *> ConnVector;
+//typedef VectorMap<String,Connection *> ConnVector;
 
 //==========================================================================================	
 class Lister : public WithListerLayout<TopWindow> {
 public:
-	ConnVector connVector;
-	PostgreSQLSession controlDb;
+	//ConnVector connVector;
 	MyDropGrid sqlList;
 	MySplitter vertSplitter, horizSplitter;
 	StaticRect leftPane, rightPane, bottomPane;
@@ -35,21 +31,38 @@ public:
 	ConnGrid connGrid;
 	TestGrid testGrid;
 	MyRichEdit cmdScript;
-	Connection *activeConn;
-	ConnHandler connHandler; // Set from ConnButton->ConnHandler when grid changes so sql execution will know source
-	Button executeSQL;
+	//ControlSession controlSession;
+	Connection *controlConnection; // Connection to lister data
+	Connection *activeConnection;
+	ConnectionFactory connectionFactory;
+	Button sendScript;
 	typedef Lister CLASSNAME;
 	enum EnumScreenZoom { ZOOM_NORMALSCREEN, ZOOM_FULLSCREEN, ZOOM_ALLSCREENS };
 	EnumScreenZoom enumScreenZoom;
 	String configFile;
+	DropGrid userList;
+	String exeFilePath;
+	String configFileFolder; // Set from main.cpp
+	String connectAsUser;
 	
 	//==========================================================================================	
 	Lister() {
+	
+		activeConnection = NULL;
+		connectAsUser = GetUserName();	
+		exeFilePath = GetExeFilePath();
 		
-		activeConn = NULL;
+		// If we are nested in the Program Files directory, we must be a proper user install and we need to use the users's configuration files
+		if (exeFilePath.Find("Program Files") >= 0) {
+			configFileFolder = GetHomeDirectory();
+		} else {
+			// We are probably in the dev env and running from the ide, and so we pull from our current directory
+			configFileFolder = GetFileDirectory(__FILE__);
+		}
 		
 		// Main screen
 		
+		LargeIcon(MyImages::icon32());
 		CtrlLayout(*this, "Lister - A SQL Connection Execution Tool");
 		Sizeable().Zoomable();
 
@@ -76,23 +89,27 @@ public:
 		mainGrid.WhenCursor = THISBACK(ToolBarRefresh);
 		bottomPane.Add(mainGrid);
 
-		// Construct Execute SQL button
+		// Construct Send Script button
 
-		Add(executeSQL);
-		executeSQL.TopPos(2, 19).RightPos(18, 22).SetForeground();
-		executeSQL.SetImage(MyImages::lightning_icon16());
-		executeSQL.WhenPush = THISBACK(ExecuteSQLActiveConn);
+		Add(sendScript);
+		sendScript.TopPos(2, 19).RightPos(18, 22).SetForeground();
+		sendScript.SetImage(MyImages::lightning_icon16());
+		sendScript.WhenPush = THISBACK(ExecuteSQLActiveConn);
 
-		// Connect to our metadata control database
+		// Connect to our metadata control database using raw params
 
-		if(!controlDb.Open("host=localhost dbname=postgres user=postgres password=postgres")) {
-			Exclamation(Format("Error in controlDb open: %s", DeQtf(controlDb.GetLastError())));
+		if ((controlConnection = connectionFactory.Connect(this, "SESSIONCONTROL", INSTTYPNM_POSTGRESQL, "postgres", "postgres", "localhost", "postgres"))->enumConnState != CON_SUCCEED) {
 			exit(-1);
 		}
+		
+//		if(!controlSession.Open("host=localhost dbname=postgres user=postgres password=postgres")) {
+//			Exclamation(Format("Error opening control session: %s", DeQtf(controlSession.GetLastError())));
+//			exit(-1);
+//		}
 
 		// Build a statement object
 
-		Sql controlSql(controlDb);
+		Sql sql(controlConnection->GetSession());
 
 		// Construct Script List Drop Down Grid
 
@@ -114,11 +131,9 @@ public:
 		int ecy = EditField::GetStdHeight();
 		rightPane.Add(sqlList.BottomPos(0, ecy).HSizePos(0, 0)); // Cross entire pane
 
-		if (!controlSql.Execute("select scriptid, script, richscript from scripts order by addtimestamp")) {
-			Exclamation(Format("Error: %s", DeQtf(controlSql.GetLastError())));		
-		} else {
-			while(controlSql.Fetch()) {
-				sqlList.Add(controlSql[0], controlSql[1], controlSql[2]);
+		if (controlConnection->SendQueryDataScript(sql, "select scriptid, script, richscript from scripts order by addtimestamp")) {
+			while(sql.Fetch()) {
+				sqlList.Add(sql[0], sql[1], sql[2]);
 			}
 		}
 
@@ -135,7 +150,7 @@ public:
 		connGrid.WhenCtrlsAction = THISBACK(ClickedConnect);
 		leftPane.Add(connGrid);
 		connGrid.Build();
-		connGrid.Load(&controlDb, controlSql); // Grid can create connections
+		connGrid.Load(controlConnection); // Grid can create connections
 		connGrid.outputGrid = &mainGrid;
 		connGrid.SizePos();
 
@@ -146,89 +161,74 @@ public:
 	//==========================================================================================	
 	~Lister() {
 		
-		// Release all the connection objects to prevent a memory leak
-		for (int i = 0; i < connVector.GetCount(); i++) {
-			Connection *conn = connVector[i];
-			delete conn;
-		}
 	}
 
-	//==========================================================================================	
-	void AutoAddTest() {
-		
-	}
-	
 	//==========================================================================================	
 	void AutoConnect() {
 		// Force auto-connect
 		
 		if (connGrid.FindConnName("CSDR-UAT")) {
-			Connect();
+			activeConnection = ConnectUsingGrid();
 		}
 	}
 	
 	//==========================================================================================	
 	void ClickedConnect() {
 		if (connGrid.WasConnectionRequested()) {
-			Connect();
+			activeConnection = ConnectUsingGrid();
+		}
+	}
+
+	//==========================================================================================	
+	Connection *ConnectUsingGrid(String connName) {
+		if (connGrid.FindConnName(connName)) {
+			return ConnectUsingGrid();
+		} else {
+			return NULL;
 		}
 	}
 	
 	//==========================================================================================	
-	void Connect() {
-		String connName = connGrid.GetConnName();
-		if (connVector.Find(connName) >= 0) {
-			activeConn = (connVector.Get(connName));
-		} else {
-			connGrid.SetConnState(CONNECTING_START);
-			WaitCursor wc;
-			Connection *conn = new Connection(connGrid.GetConnId(), connGrid.GetConnName());
-			ProcessEvents(); // Necessary to display color change immediately
-			EnumConnState enumConnState = connHandler.Connect(connGrid.GetInstanceTypeName(), connGrid.GetLoginStr(), connGrid.GetLoginPwd(), connGrid.GetInstanceAddress()
-				, *conn);
-			
-			connGrid.SetConnState(enumConnState);
-			conn->enumConnState = enumConnState; // This is a bit unweildly
-			
-			if (enumConnState == CON_SUCCEED) {
-				Speak(EVS_CONNECT_SUCCESSFUL);
-				connVector.Add(connName, conn);
-				activeConn = conn;
-			} else {
-				Speak(EVS_CONNECT_FAILED);
-				activeConn = NULL;
-				// Leave old connection embedded in script??
-			}
-		}
-		
-		cmdScript.SetConn(activeConn);
-		ToolBarRefresh();
-		ConnectionStatusRefresh();
+	// Assume point at something on the grid.
+	Connection *ConnectUsingGrid() {
+		ASSERT(connGrid.IsCursor());
+		int row = connGrid.GetCursor(); // Have to save it since connection is asyncronous and user can move about!
+		connGrid.SetConnState(row, CONNECTING_START);
+		ProcessEvents(); // Necessary to display color change immediately
+		WaitCursor wc;
+		Connection *c = connectionFactory.Connect(this, connGrid.GetConnName(row), connGrid.GetInstanceTypeName(row), connGrid.GetLoginStr(row), connGrid.GetLoginPwd(row), connGrid.GetInstanceAddress(row));
+		c->connId = connGrid.GetConnId(row);
+		connGrid.SetConnState(row, c->enumConnState);
+		return c;
 	}
 
 	//==========================================================================================	
 	void AddScriptToHistory() {
 		String richscript = cmdScript.GetQTF();
 		String script = TrimBoth(cmdScript.Get().GetPlainText().ToString());
+
 		if (script.IsEmpty()) {
 			return;
 		}
 		
-		Sql controlSql(controlDb);
-		// A little trick to only insert into a table new scripts
-		String cmd = Format("insert into scripts(richscript, script) select '%s', '%s' from dual left join scripts on 1=1 where script <> '%s' or script is null limit 1"
-			, PGFormat(richscript), PGFormat(script), PGFormat(script));
+		Sql sql(controlConnection->GetSession());
 
-		if (!controlSql.Execute(cmd)) {
-			Exclamation(Format("Error: [* \1%s\1].", DeQtf(controlSql.GetLastError())));
-			cmdScript.Tip(DeQtf(controlSql.GetLastError()));
-			cmdScript.SetData(cmd);
+		// A little trick to only insert into a table new scripts
+		String controlScript = Format("insert into scripts(richscript, script) select '%s', '%s' from dual left join scripts on 1=1 where script <> '%s' or script is null limit 1"
+		    // Not sending these as scripts to run, but to insert as text
+			, controlConnection->PrepTextDataForSend(richscript)
+			, controlConnection->PrepTextDataForSend(script)
+			, controlConnection->PrepTextDataForSend(script)); 
+
+		if (!controlConnection->SendAddDataScript(sql, controlScript)) {
+			cmdScript.Tip(DeQtf(sql.GetLastError()));
+			cmdScript.SetData(controlScript);
 			return;
 		}
 
 		// Add to the list if not a dup
-		if (controlSql.GetRowsProcessed() > 0) {		
-			int scriptid = GetInsertedId(controlSql, "scripts", "scriptid");
+		if (sql.GetRowsProcessed() > 0) {		
+			int scriptid = controlConnection->GetInsertedId(sql, "scripts", "scriptid");
 			if (scriptid >= 0) {
 				sqlList.Add(scriptid, script, richscript);
 				cmdScript.scriptId = scriptid; // Link to script so that it can be uploaded to tests
@@ -250,24 +250,6 @@ public:
 		ToolBarRefresh();
 	}
 	
-	//==========================================================================================	
-	void ToolBarRefresh() {
-		toolbar.Set(THISBACK(MyToolBar));
-	}
-
-	//==========================================================================================	
-	void ConnectionStatusRefresh() {
-		if (activeConn) {
-			if (!In(activeConn->enumConnState, CON_SUCCEED, CON_STALE)) {
-				Title(CAT << "Scriptor - Not connected to " << activeConn->connName);	
-			} else {
-				Title(CAT << "Scriptor - Connected to " << activeConn->connName);	
-			}
-		} else {
-			Title("Scriptor - Not connected");
-		}
-	}
-	
 	//==========================================================================================
 	void CreateTestFromScript() {
 		if (!cmdScript.connection) return;
@@ -276,13 +258,49 @@ public:
 		if (!testGrid.IsOpen()) {
 			testGrid.Open();
 			testGrid.Build();
-			Sql controlSql(controlDb);
-			testGrid.Load(&controlDb, controlSql);
+			Sql sql(controlConnection->GetSession());
+			testGrid.Load(controlConnection);
 		}
 		
 		testGrid.AddTest(TrimBoth(cmdScript.Get().GetPlainText().ToString()), cmdScript.scriptId, cmdScript.connection->connId);
 	}
+
+	//==========================================================================================	
+	void ListUsers() {
+		if (userList.GetCount() == 0 && activeConnection && In(activeConnection->enumConnState, CON_SUCCEED, CON_STALE)) {
+			Vector<String> users = activeConnection->session->EnumUsers();
+			Sort(users);
+			
+			for (int i = 0; i < users.GetCount(); i++) {
+				String userName = users.At(i);
+				if (userName.StartsWith("NB")) {
+					users.Remove(i);
+					// Strip any users with no objects, or LDAP login (users)
+				} else {
+					userList.Add(userName);
+				}
+			}
+		}
+	}
 	
+	//==========================================================================================	
+	void ConnectionStatusRefresh() {
+		if (activeConnection) {
+			if (!In(activeConnection->enumConnState, CON_SUCCEED, CON_STALE)) {
+				Title(CAT << "Scriptor - Not connected to " << activeConnection->connName);	
+			} else {
+				Title(CAT << "Scriptor - Connected to " << activeConnection->connName);	
+			}
+		} else {
+			Title("Scriptor - Not connected");
+		}
+	}
+	
+	//==========================================================================================	
+	void ToolBarRefresh() {
+		toolbar.Set(THISBACK(MyToolBar));
+	}
+
 	//==========================================================================================	
 	void MyToolBar(Bar& bar) {
 		bar.Add(!(cmdScript.Get().GetPlainText().ToString().IsEmpty()), "File", CtrlImg::smalldown(), THISBACK(AddScriptToHistory)).Tip("Memorize Script");
@@ -291,7 +309,7 @@ public:
 		bar.Add(
 			(cmdScript.Get().GetPlainText().ToString().GetLength() > 0 
 			 && cmdScript.connection
-			 && cmdScript.scriptId >= 0), "File", MyImages::addtotest(), 
+			 && cmdScript.scriptId >= 0), "File", MyImages::addtotest16(), 
 			 THISBACK(CreateTestFromScript)).Tip("Create a Test around this Script");
 			 
 		// Only allow execution if there is a script and a connection
@@ -300,6 +318,13 @@ public:
 			 && cmdScript.connection), "File", MyImages::lightning_icon16(), 
 			 THISBACK(ExecuteSQLActiveConn)).Tip("Execute Script");
 		cmdScript.FindReplaceTool(bar);
+		
+		bar.Add(
+			(cmdScript.connection), "ListUsers", MyImages::user16(), 
+			 THISBACK(ListUsers)).Tip("List users/schemas for current connection");
+
+		bar.Add(userList, 100);
+		
 		//CtrlImg::exclamation(), CtrlImg::smallright(), CtrlImg::open(), CtrlImg::undo(), CtrlImg::remove
 		//smallcheck, spinup3, smallreporticon, save, Plus, Minus, Toggle, help
 	}
@@ -318,7 +343,6 @@ public:
 
 	//==========================================================================================	
 	void ExecuteSQLActiveConn() {
-		//String SQLText = cmdScript.GetSelectionData() // .GetPlainText()   WriteClipboardUnicodeText
 		String SQLText = cmdScript.Get().GetPlainText().ToString();
 		SQLText = TrimBoth(SQLText);
 		if (SQLText.IsEmpty()) {
@@ -326,17 +350,17 @@ public:
 			return;
 		}
 		
-		if (!activeConn) {
+		if (!activeConnection) {
 			Exclamation("No connection");
 			return;
 		}
 		
-		if (activeConn->enumConnState != CON_SUCCEED) {
+		if (activeConnection->enumConnState != CON_SUCCEED) {
 			Exclamation("Disconnected");
 			return;
 		}
 		
-		CursorHandler cursorHandler(*(activeConn->session));
+		CursorHandler cursorHandler(activeConnection);
 		bool ran = cursorHandler.Run(&mainGrid, SQLText);
 	}
 	
