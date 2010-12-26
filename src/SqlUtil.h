@@ -5,26 +5,21 @@
 #include "Err.h"
 #include "StringHandler.h"
 
-#include <PostgreSQL/PostgreSQL.h>
-
 //==========================================================================================	
-int GetInsertedId(Sql &sql, String tableName, String columnName) {
-	
-	// PostgreSQL constructs a default sequence for serial columns
-	String sequenceName = CAT << tableName << "_" << columnName << "_" << "seq";
-	String cmd = CAT << "select currval('" << sequenceName << "')";
-	if (!sql.Execute(cmd)) { // ERROR: currval of sequence "connections_connid_seq" is not yet defined in this session
-		HandleDbError(ACTNDB_EXECSEL, sql, &cmd);
-		return -1;
-	}
-	
-	sql.Fetch();
-	return atoi(sql[0].ToString());
-}
-
-//==========================================================================================	
-String PGFormat(const String &inStr) {
-	return ReplaceStr(ReplaceStr(inStr, "\\", "\\\\"), "'", "\\'");	
-}
+// Need to customize to include synonyms, views, selectable sps, tables, functions...
+//Vector<String> GetTableNamesForSchema(Sql &sql, String &schemaName) {
+//	if (conn.instanceTypeName == "Oracle") {
+//		String cmd = CAT << "select  from all_objects where owner = '" << schemaName << "' order by ";
+//		if (!SendQueryDataScript(sql, cmd)) { // ERROR: currval of sequence "connections_connid_seq" is not yet defined in this session
+//			return -1;
+//		}
+//	
+		Vector<String> list;
+//		while (sql.Fetch()) {
+//			list.Add(sql[0]);
+//		}
+//	}
+//	return list;
+//}
 
 #endif
