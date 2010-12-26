@@ -2,21 +2,22 @@
 #define _CursorHandler_h_
 
 #include "shared.h"
-#include <Oracle/Oracle8.h>
-#include <PostgreSQL/PostgreSQL.h>
 #include "Err.h"
 #include "SoundHandler.h"
+#include "Connection.h"
 
 //==========================================================================================	
 class CursorHandler : public TopWindow {
 public:
 	GridCtrl *outputGrid;
+	Connection *connection;
 	Vector<int> cw; // Column width calculator.  We add in heading widths and value widths as we load the data
 	Sql cursor;
 
 	//==========================================================================================	
-	CursorHandler::CursorHandler(SqlSession& session) : cursor(session) {
-		int x = 0;
+	CursorHandler(Connection *pconnection) {
+		connection = pconnection;
+		cursor = Sql(connection->GetSession());
 	}
 	
 	//==========================================================================================	
@@ -36,17 +37,14 @@ public:
 		WaitCursor wc;
 		outputGrid->Reset();
 		cursor.ClearError();
-		String configsql = "alter session set nls_date_format='DD-MON-RR'";
-		if (!cursor.Execute(configsql)) {
-			HandleDbError(ACTNDB_CONFIG, cursor, &configsql);
-		}
-		if (!cursor.Execute(sql)) {
-			HandleDbError(ACTNDB_EXECSEL, cursor, &sql);
+		connection->SendChangeEnvScript(cursor, "alter session set nls_date_format='DD-MON-RR'");
+
+		if (!connection->SendQueryDataScript(cursor, sql)) {
 			Speak(EVS_EXECUTE_FAILED);
 			return false;
 		}
 
-		Speak(EVS_EXECUTE_COMPLETED);
+		Speak(EVS_EXECUTE_SUCCEEDED);
 		int colCount = cursor.GetColumns();
 		
 		cw.Clear();
@@ -93,7 +91,7 @@ public:
 			// Measure the column widths of the first 10 values, should be representative?
 			if (rc < 10) {
 				for (int j = 0; j < cursor.GetColumns(); j++) {
-					cw[j] = max(cw[j], (int)(GetTextSize(StdFormat(row[j]), StdFont()).cx + 14));
+					cw[j] = Upp::max(cw[j], (int)(GetTextSize(StdFormat(row[j]), StdFont()).cx + 14));
 				}
 			}
 			outputGrid->Add(row);
