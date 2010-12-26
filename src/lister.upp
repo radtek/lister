@@ -4,7 +4,6 @@ uses
 	CtrlLib,
 	GridCtrl,
 	PostgreSQL,
-	Oracle,
 	RichEdit,
 	MSSQL,
 	plugin\ftp,
@@ -18,21 +17,23 @@ uses
 	plugin\dbf,
 	Ole,
 	OleDB,
-	Web;
+	Web,
+	Oracle;
 
 file
+	insttypnms.h,
 	main.cpp,
 	lister.h,
 	StringHandler.h,
 	MySplitter.h,
 	SearchWeb.h,
-	MyRichEdit.h,
 	MyDropGrid.h,
+	MyRichEdit.h,
+	ConnectedCtrl.h,
 	ConnButton.h,
 	Connection.h,
 	ConnState.h,
 	CursorHandler.h,
-	ConnHandler.h,
 	MyGrid.h,
 	ConnGrid.h,
 	MiscUtilities.h,
@@ -45,9 +46,15 @@ file
 	Constants.h,
 	Err.h,
 	shared.h,
-	project_shared.cpp,
 	image_shared.h,
 	lister.lay,
+	ocidefn.8.h,
+	lister.rc,
+	oratypes.7.h,
+	dbenhancementlist.h,
+	oratypes.8.h,
+	oci.8.h,
+	dllhell.h,
 	lister.iml;
 
 mainconfig
