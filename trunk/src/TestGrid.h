@@ -5,9 +5,7 @@
 #include "TestState.h"
 #include "TestButton.h"
 #include "Err.h"
-
-#include <PostgreSQL/PostgreSQL.h> // Need to move to Connection manager
-#include <DropGrid/DropGrid.h>
+#include "ConnectedCtrl.h"
 
 //==========================================================================================	
 Id IDTestState("State");
@@ -40,9 +38,8 @@ void MakeTestState(One<Ctrl>& ctrl) {
 }
 
 //==========================================================================================	
-class TestGrid : public TopWindow {
+class TestGrid : public TopWindow, ConnectedCtrl {
 public:
-	PostgreSQLSession *connDb;
 	EditInt fldTestId;
 	EditStringNotNull fldTestName;               // 0) A meaningful name; too many tests to track without a name
 	EditString fldTestNote;
@@ -62,7 +59,6 @@ public:
 	
 	//==========================================================================================	
 	TestGrid() {
-		connDb = NULL;
 	}
 	
 	//==========================================================================================	
@@ -115,43 +111,37 @@ public:
 	}
 	
 	//==========================================================================================	
-	void Load(PostgreSQLSession *pconnDb, Sql &connSql) {
-		connDb = pconnDb;
-		
+	virtual void Load(Connection *pconnection) {
+		ConnectedCtrl::Load(pconnection);
+
+		Sql sql(connection->GetSession());
+				
 		desiredOutcomeList.Add(0,"Pass");
 		desiredOutcomeList.Add(1, "Fail");
 		invertCompList.Add(0, "");
 		invertCompList.Add(1, "NOT");
 		
-		if (!connSql.Execute("select comptypid, comptypname from comptyps")) {
-			HandleDbError(ACTNDB_EXECSEL, connSql);
-		} else {
-			while(connSql.Fetch()) {
-				compTypList.Add(atoi(connSql[0].ToString()), connSql[1].ToString());
+		if (connection->SendQueryDataScript(sql, "select comptypid, comptypname from comptyps")) {
+			while(sql.Fetch()) {
+				compTypList.Add(atoi(sql[0].ToString()), sql[1].ToString());
 			}
 		}
 
-		if (!connSql.Execute("select testtypid, testtypname from testtyps")) {
-			HandleDbError(ACTNDB_EXECSEL, connSql);
-		} else {
-			while(connSql.Fetch()) {
-				testTypList.Add(atoi(connSql[0].ToString()), connSql[1].ToString());
+		if (connection->SendQueryDataScript(sql, "select testtypid, testtypname from testtyps")) {
+			while(sql.Fetch()) {
+				testTypList.Add(atoi(sql[0].ToString()), sql[1].ToString());
 			}
 		}
 
-		if (!connSql.Execute("select scriptid, script from scripts")) {
-			HandleDbError(ACTNDB_EXECSEL, connSql);
-		} else {
-			while(connSql.Fetch()) {
-				scriptList.Add(atoi(connSql[0].ToString()), connSql[1].ToString());
+		if (connection->SendQueryDataScript(sql, "select scriptid, script from scripts")) {
+			while(sql.Fetch()) {
+				scriptList.Add(atoi(sql[0].ToString()), sql[1].ToString());
 			}
 		}
 
-		if (!connSql.Execute("select connid, connname from connections order by connname")) {
-			HandleDbError(ACTNDB_EXECSEL, connSql);
-		} else {
-			while(connSql.Fetch()) {
-				connList.Add(atoi(connSql[0].ToString()), connSql[1].ToString());
+		if (connection->SendQueryDataScript(sql, "select connid, connname from connections order by connname")) {
+			while(sql.Fetch()) {
+				connList.Add(atoi(sql[0].ToString()), sql[1].ToString());
 			}
 		}
 	}
