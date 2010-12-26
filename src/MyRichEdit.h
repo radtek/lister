@@ -2,10 +2,58 @@
 #define _MyRichEdit_h_
 
 #include "shared.h"
-#include "SqlUtil.h"
 
 #include <RichEdit/RichEdit.h>
 #include <Web/Web.h>
+//#include <CtrlCore/Win32Keys.i>
+
+#define K_PERIOD 0xbe|K_DELTA
+
+//K_BACK       = VK_BACK + K_DELTA,
+//K_BACKSPACE  = VK_BACK + K_DELTA,
+//
+//K_TAB        = 9,
+//
+//K_SPACE      = 32,
+//
+//K_RETURN     = 13,
+//K_ENTER      = K_RETURN,
+//
+//K_SHIFT_KEY  = VK_SHIFT + K_DELTA,
+//K_CTRL_KEY   = VK_CONTROL + K_DELTA,
+//K_ALT_KEY    = VK_MENU + K_DELTA,
+//K_CAPSLOCK   = VK_CAPITAL + K_DELTA,
+//K_ESCAPE     = VK_ESCAPE + K_DELTA,
+//K_PRIOR      = VK_PRIOR + K_DELTA,
+//K_PAGEUP     = VK_PRIOR + K_DELTA,
+//K_NEXT       = VK_NEXT + K_DELTA,
+//K_PAGEDOWN   = VK_NEXT + K_DELTA,
+//K_END        = VK_END + K_DELTA,
+//K_HOME       = VK_HOME + K_DELTA,
+//K_LEFT       = VK_LEFT + K_DELTA,
+//K_UP         = VK_UP + K_DELTA,
+//K_RIGHT      = VK_RIGHT + K_DELTA,
+//K_DOWN       = VK_DOWN + K_DELTA,
+//K_INSERT     = VK_INSERT + K_DELTA,
+//K_DELETE     = VK_DELETE + K_DELTA,
+//
+//K_NUMPAD0    = VK_NUMPAD0 + K_DELTA,
+//K_NUMPAD1    = VK_NUMPAD1 + K_DELTA,
+//K_NUMPAD2    = VK_NUMPAD2 + K_DELTA,
+//K_NUMPAD3    = VK_NUMPAD3 + K_DELTA,
+//K_NUMPAD4    = VK_NUMPAD4 + K_DELTA,
+//K_NUMPAD5    = VK_NUMPAD5 + K_DELTA,
+//K_NUMPAD6    = VK_NUMPAD6 + K_DELTA,
+//K_NUMPAD7    = VK_NUMPAD7 + K_DELTA,
+//K_NUMPAD8    = VK_NUMPAD8 + K_DELTA,
+//K_NUMPAD9    = VK_NUMPAD9 + K_DELTA,
+//K_MULTIPLY   = VK_MULTIPLY + K_DELTA,
+//K_ADD        = VK_ADD + K_DELTA,
+//K_SEPARATOR  = VK_SEPARATOR + K_DELTA,
+//K_SUBTRACT   = VK_SUBTRACT + K_DELTA,
+//K_DECIMAL    = VK_DECIMAL + K_DELTA,
+//K_DIVIDE     = VK_DIVIDE + K_DELTA,
+//K_SCROLL     = VK_SCROLL + K_DELTA,
 
 //==========================================================================================	
 struct MyPopUpTable : public PopUpTable {
@@ -17,7 +65,7 @@ struct MyPopUpTable : public PopUpTable {
 };
 
 //==========================================================================================	
-struct WordTests {
+struct WordTests : public Moveable<WordTests> {
 	WordTests() {
 		Zap();
 	}
@@ -28,15 +76,15 @@ struct WordTests {
 		containsLetters = false;
 		containsDigits = false;
 		firstWord = false;
-		comesBefore = "";
-		comesAfter = "";
+		precededBy = "";
+		followedBy = "";
 	}
 	bool startsWithLetter;
 	bool containsLetters;
 	bool containsDigits;
 	bool firstWord;
-	String comesAfter; // Junk between last searched word and this one (depending on search direction
-	String comesBefore;
+	String followedBy; // Junk between last searched word and this one (depending on search direction
+	String precededBy;
 };
 
 static const String MACRO = "[[INPUT]]";
@@ -48,7 +96,14 @@ struct MyRichEdit : public RichEdit {
 	Connection *connection;
 	int scriptId; // If brought from sqllist, then this is set, until modified
 	double zoomlevel;
-
+	enum PopupInfoRequestType {
+			IR_NOMATCH
+			, IR_TABLESINSCHEMA
+			, IR_COLUMNSINTABLEALIAS
+			, IR_TABLESMRU
+			, IR_INSERTALLCOLUMNSATFROMPOS
+			};
+	
 	//==========================================================================================	
 	MyRichEdit() {
 		connection = NULL;
@@ -308,7 +363,7 @@ struct MyRichEdit : public RichEdit {
 		
 		// Skip back over non-words to first letter/number
 		while(c >= 0 && !IsLegalWordChar(Get()[c])) {
-			wordTests.comesAfter.Insert(0, Get()[c]);  // Save the separation string to identify schemas, etc.
+			wordTests.followedBy.Insert(0, Get()[c]);  // Save the separation string to identify schemas, etc.
 			c--;
 		}
 
@@ -324,7 +379,7 @@ struct MyRichEdit : public RichEdit {
 		}
 
 		if (c >= 0) {
-			wordTests.comesBefore.Cat(Get()[c]);
+			wordTests.precededBy.Cat(Get()[c]);
 		}
 		
 		c++; // Hit a space jump back onto the first letter, or hit the edge
@@ -348,82 +403,136 @@ struct MyRichEdit : public RichEdit {
 		WriteClipboardText(pasteData);
 		Paste();
 	}
-	//==========================================================================================	
-	bool Key(dword key, int count) {
-		static dword style;
-		static Rect normalwindowrect;
-		
-		RichEdit::Key(key, count);
-
-		switch (key) {
-			case K_CTRL_V:
-				ProcessPaste();
-				return true; // Eat keystroke
-				break;
-			case '.': {
-				// We are now pointing to the character following the period
-				int c = GetCursor();
-				char cc = Get()[c];
-				
-				// Only pop-up if at end of a line or a space follows
-				if (cc != 10 && cc != 32) return false;
-
-				WordTests wordTests;
-				
-				String keyWord = GetPreviousWord(c, wordTests);
-				if (!wordTests.startsWithLetter) return false; // Probably a decimal number or something.
-				
-				// Ok, have preceeding word
-				
-				if (TrimBoth(keyWord).GetLength() == 0) {
-					// Just a floating ".", so assume we want a list of all tables
-					
-					Rect caretR = GetCaret();
-					Rect editorR = GetScreenView();
-					tablelist.WhenSelect = THISBACK(SelectedPopUpTable);
-					tablelist.PopUp(this, editorR.left + caretR.left, editorR.top + caretR.bottom, editorR.top + caretR.bottom, editorR.top + caretR.bottom);
-					return true; // Absorb the dot, just put tablename
-				} else {
-					// Is the word an alias or what?
-					
-					// Lets go back to the first letter and start looking for previous word until 
-					// we find: from <x><alias> where keyword = <alias>, table name = <x> if . in front of <x> then grab schema
-					
-					bool foundFrom = false;
-					bool foundAlias = false;
-					String aliasName, wordBefore, schemaName, tableName, ownerName;
-					for (String prevWord = GetPreviousWord(c, wordTests); !prevWord.IsVoid(); prevWord = GetPreviousWord(c, wordTests)) {
-						if (prevWord == keyWord) {
-							// Found alias
-							aliasName = prevWord; // select * from cdw.account_dim a where a.
-							foundAlias = true;
-							if (wordTests.comesBefore == ".") { // select * from cdrfile.F641 where f641.rrriwo
-								tableName = aliasName;
-							}
-							
-							prevWord = GetPreviousWord(c, wordTests);
 	
-							if (prevWord == "from") { // select * from x where x.
-								foundFrom = true;
-								tableName = aliasName;
-							} else if (wordTests.comesBefore == ".") { // select * from cdw.account_dim a where a.
-								tableName = prevWord;
-								prevWord = GetPreviousWord(c, wordTests);
-								if (wordTests.comesBefore == ".") { // select * from STRAW.dbo.main x where 
-									ownerName = prevWord;
-									schemaName = GetPreviousWord(c, wordTests);
-								} else {
-									schemaName = prevWord;  // select * from cdrfile.account_dim a where a.xxxx
-								}
-								
-								// We are done, found it
-								break;
-							}
-						}
+	//==========================================================================================	
+	bool PopupRequested(bool ShowAllColumns) {
+		// We are now pointing to the character following the period
+		int c = GetCursor();
+		char cc = Get()[c];
+		int posToInsertAt = -1;
+		Vector<String> prevWords;
+		Vector<WordTests> prevWordTests;
+		
+		// Only pop-up if at end of a line or a space follows
+		if (cc != 10 && cc != 32) return false;
+
+		WordTests wordTests;
+		
+		String keyWord = GetPreviousWord(c, wordTests);
+		if (!wordTests.startsWithLetter) return false; // Probably a decimal number or something.
+		
+		// Ok, have preceeding word
+		
+		if (TrimBoth(keyWord).GetLength() == 0) {
+			// Just a floating ".", so assume we want a list of all tables
+			
+			Rect caretR = GetCaret();
+			Rect editorR = GetScreenView();
+			tablelist.WhenSelect = THISBACK(SelectedPopUpTable);
+			tablelist.PopUp(this, editorR.left + caretR.left, editorR.top + caretR.bottom, editorR.top + caretR.bottom, editorR.top + caretR.bottom);
+			return true; // Absorb the dot, just put tablename
+		} else {
+			// Is the word an alias or what?
+			
+			// Lets go back to the first letter and start looking for previous word until 
+			// we find: from <x><alias> where keyword = <alias>, table name = <x> if . in front of <x> then grab schema
+			
+			bool foundFrom = false;
+			bool foundAlias = false;
+			int wordsBackFromKeyWord = 0; // Count
+			PopupInfoRequestType popupInfoRequestType = IR_NOMATCH;
+			
+			String aliasName, wordBefore, schemaName, tableName, ownerName;
+			for (String prevWord = GetPreviousWord(c, wordTests); !prevWord.IsVoid(); prevWord = GetPreviousWord(c, wordTests)) {
+				
+				wordsBackFromKeyWord++;
+				prevWords.Add(prevWord);
+				prevWordTests.Add(wordTests); // Note: zero-index based
+				
+				if (prevWord == keyWord) {
+					// Found alias
+					aliasName = prevWord; // select * from cdw.account_dim a where a.
+					foundAlias = true;
+					if (wordTests.precededBy == ".") { // select * from cdrfile.F641 where f641.rrriwo
+						tableName = aliasName;
 					}
 					
-					if (foundAlias) {
-						WaitCursor();
+					prevWord = GetPreviousWord(c, wordTests);
+
+					if (prevWord == "from") { // select * from x where x.
+						foundFrom = true;
+						tableName = aliasName;
+					} else if (wordTests.precededBy == ".") { // select * from cdw.account_dim a where a.
+						tableName = prevWord;
+						prevWord = GetPreviousWord(c, wordTests);
+						if (wordTests.precededBy == ".") { // select * from STRAW.dbo.main x where 
+							ownerName = prevWord;
+							schemaName = GetPreviousWord(c, wordTests);
+						} else {
+							schemaName = prevWord;  // select * from cdrfile.account_dim a where a.xxxx
+						}
+						
+						// We are done, found it
+						popupInfoRequestType = IR_COLUMNSINTABLEALIAS;
+						break;
+					}
+					
+				// Check: Is user request a list of tables in the schema?
+				} else if (prevWord == "from") {
+					if (wordsBackFromKeyWord == 1) { // select * from cdw_stg._
+						popupInfoRequestType = IR_TABLESINSCHEMA;
+						schemaName = keyWord;
+						break;
+					} else 
+					if (                                                                                
+						(wordsBackFromKeyWord == 2 && !foundAlias) // select  from fi_executions t._ (absorb dot)
+						) {
+						// keyword = alias[.]
+						// prevwords[0] = tablename
+						
+						if (ShowAllColumns) {
+							tableName = prevWords[0];
+							schemaName = Null;
+							aliasName = keyWord;
+							posToInsertAt = c;
+							popupInfoRequestType = IR_INSERTALLCOLUMNSATFROMPOS;
+							break;
+						}
+							
+					} else 
+					if (
+						(wordsBackFromKeyWord == 3 && !foundAlias && prevWordTests[1].followedBy == ".")
+						
+					    ) { 
+							WordTests wt = prevWordTests[1];
+							WordTests wt2 = prevWordTests[0];
+							 
+						// keyword = alias[.]
+						// prevwords[0] = tablename
+						// prevwords[1] = schemaname[.]
+						
+						if (ShowAllColumns) {
+							schemaName = prevWords[1];
+							tableName = prevWords[0];
+							aliasName = keyWord;
+							posToInsertAt = c;
+							popupInfoRequestType = IR_INSERTALLCOLUMNSATFROMPOS;
+							break;
+						}
+					}
+				}
+			}
+			
+			if (popupInfoRequestType == IR_NOMATCH) {
+				
+			}
+			if (popupInfoRequestType == IR_COLUMNSINTABLEALIAS) {
+				if (foundAlias) {
+					WaitCursor();
+					if (ShowAllColumns) {
+						Exclamation("Not impl");
+						// Fetch all, create comma-delimited list
+					} else {
 						if (schemaName.IsEmpty()) { // No schema provided
 							AddColumns(Null, tableName);
 						} else {
@@ -433,22 +542,85 @@ struct MyRichEdit : public RichEdit {
 						Rect editorR = GetScreenView();
 						columnlist.WhenSelect = THISBACK(SelectedPopUpColumn);
 						columnlist.PopUp(this, editorR.left + caretR.left, editorR.top + caretR.bottom, editorR.top + caretR.bottom, editorR.top + caretR.bottom);
-						return false; // Leave the dot
 					}
-							           
+					return false; // Leave the dot
+				}
+			} else 
+			if (popupInfoRequestType == IR_TABLESINSCHEMA) {
+				WaitCursor();
+				AddTables(schemaName);
+				Rect caretR = GetCaret();
+				Rect editorR = GetScreenView();
+				tablelist.WhenSelect = THISBACK(SelectedPopUpTable);
+				tablelist.PopUp(this, editorR.left + caretR.left, editorR.top + caretR.bottom, editorR.top + caretR.bottom, editorR.top + caretR.bottom);
+				return false; // Leave the dot
+			} else 
+				
+			// Copy all columns before the FROM clause as comma-delimited list
+			if (popupInfoRequestType == IR_INSERTALLCOLUMNSATFROMPOS) {
+				if (!connection) return false;
+				WaitCursor();
+				Vector<SqlColumnInfo> columns = connection->session->EnumColumns(schemaName, tableName);
+				String columnlist;
+				for (int i = 0; i < columns.GetCount(); i++) {
+					int datatype = columns[i].type;
+					if (In(datatype, 1, 2, 3)) {
+						columnlist << (i?", ":"") << aliasName << "." << columns[i].name << "/* " << columns[i].type << " */";
+					}
 				}
 				
-				// Either an alias, a database, schema
+				// Check spacing at insert point
+				char cc = Get()[posToInsertAt];
+				if (!In(cc, K_SPACE, K_ENTER, K_TAB)) {
+					columnlist.Cat(' '); // Add a character to push out the "from" word
+				}
+				
+				// Spacing before insertion point
+				if (posToInsertAt) {
+					cc = Get()[posToInsertAt-1];
+					if (!In(cc, K_SPACE, K_ENTER, K_TAB)) {
+						columnlist.Insert(0, ' '); // Add a character at front to separate from "select"
+					}
+				}
+				
+				Insert(posToInsertAt, AsRichText(columnlist.ToWString()));
+				
+				return false; // Don't eat the dot, let script handler insert it
 			}
-			break;
-			case K_CTRL_SPACE:
-			break;
+		}
+		return false;
+	}
+	
+	//==========================================================================================	
+	bool Key(dword key, int count) {
+		static dword style;
+		static Rect normalwindowrect;
+
+		// Request for popup information extended.  For schemas all columns are listed comma-delimited
+		// Must capture before RichEdit key processor, which absorbs it.
+		
+		switch (key) {
+			
+			// Attempt to paste 
+			case K_CTRL_V:
+				ProcessPaste();
+				return true; // Eat keystroke
+				
+			// Request for popup information
+			case K_PERIOD: 
+				return PopupRequested(false);
+
+			// Request all columns spread across
+			case K_CTRL_PERIOD: // Defined in AKeys.cpp and Win32Keys.i
+				return PopupRequested(true);
 		}
 		
-		return false;
+		return RichEdit::Key(key, count);
 	}
 
 	//==========================================================================================	
+	// User selected an item from the popup grid, which closes it and sets the Cursor to the selected item.
+	// We now paste it into the script at the current script cursor.
 	void SelectedPopUpTable() {
 		WString txt = tablelist.Get(0);
 		PasteText(AsRichText(txt, GetFormatInfo()));
@@ -484,6 +656,40 @@ struct MyRichEdit : public RichEdit {
 	}
 	
 	//==========================================================================================	
+	void AddTables(const String &schema) { // owner?
+		String schemaName = ToUpper(schema);
+		
+		
+		if (tablelist.schemaName == schemaName) {
+			// Already loaded
+			return;
+		}
+
+		// TODO: Keep binary cache and let user force refresh, track age.  Use a flat file
+		if (!connection) return;
+		
+		tablelist.Clear();
+		// Need list of users. SCHEMA NAME IS CASE SENSITIVE!!!!!  I BET POSTGRE has to be lower.
+		Vector<String> tables = connection->session->EnumTables(schemaName);
+		Vector<String> views = connection->session->EnumViews(schemaName);
+		Sort(tables);
+		Sort(views);
+		tablelist.BackPaint();
+		tablelist.BackPaintHint();
+		
+		for(int i = 0; i < tables.GetCount(); i++) {
+			tablelist.Add(ToLower(tables[i]));
+		}
+
+		for(int i = 0; i < views.GetCount(); i++) {
+			tablelist.Add(ToLower(views[i]));
+		}
+		
+		tablelist.WantFocus();
+		tablelist.schemaName = schemaName;
+	}
+	
+	//==========================================================================================	
 	void Serialize(Stream &s) {
 		RichEdit::Serialize(s);
 		int version = 0;
@@ -494,3 +700,28 @@ struct MyRichEdit : public RichEdit {
 
 
 #endif
+
+//                case '`':  return f | K_CTRL_GRAVE;
+//                case '-':  return f | K_CTRL_MINUS;
+//                case '=':  return f | K_CTRL_EQUAL;
+//                case '\\': return f | K_CTRL_BACKSLASH;
+//                case ';':  return f | K_CTRL_SEMICOLON;
+//                case '\'': return f | K_CTRL_APOSTROPHE;
+//                case ',':  return f | K_CTRL_COMMA;
+//                case '.':  return f | K_CTRL_PERIOD;
+//                case '/':  return f | K_CTRL_SLASH;
+//                case '[':  return f | K_CTRL_LBRACKET;
+//                case ']':  return f | K_CTRL_RBRACKET;		}
+//K_CTRL_LBRACKET  = K_CTRL|219|K_DELTA,
+//K_CTRL_RBRACKET  = K_CTRL|221|K_DELTA,
+//K_CTRL_MINUS     = K_CTRL|0xbd|K_DELTA,
+//K_CTRL_GRAVE     = K_CTRL|0xc0|K_DELTA,
+//K_CTRL_SLASH     = K_CTRL|0xbf|K_DELTA,
+//K_CTRL_BACKSLASH = K_CTRL|0xdc|K_DELTA,
+//K_CTRL_COMMA     = K_CTRL|0xbc|K_DELTA,
+//K_CTRL_PERIOD    = K_CTRL|0xbe|K_DELTA,
+//K_CTRL_SEMICOLON = K_CTRL|0xbe|K_DELTA,
+//K_CTRL_EQUAL     = K_CTRL|0xbb|K_DELTA,
+//K_CTRL_APOSTROPHE= K_CTRL|0xde|K_DELTA,
+
+// K_A, K+F1
