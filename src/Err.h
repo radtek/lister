@@ -13,13 +13,24 @@ Oracle:
 
 #include "shared.h"
 
-#include <PostgreSQL/PostgreSQL.h> // Need to move to Connection manager
-
 #define ACTNDB_OPEN 1
 #define ACTNDB_CLOSE 2
 #define ACTNDB_EXECSEL 3
 #define ACTNDB_CONFIG 4
 
+#define RESPTOERR_MARKASCLOSED 1
+#define RESPTOERR_RECONNECT 2
+#define RESPTOERR_RERUN 3
+
+//==========================================================================================	
+// Register a function or method(?) that will cleanup a broken connection, return success/failure
+// which will allow a reconnect and rerun.  A Fetch would require a reexecute.
+
+bool RegisterReconnect(void *fnc()) {
+	return false;	
+}
+
+//==========================================================================================	
 bool HandleDbError(int actioncode, Sql &sql, String *cmd = NULL) {
 	String errcode = sql.GetErrorCodeString();
 	int myerrno = sql.GetErrorCode();
