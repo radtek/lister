@@ -4,11 +4,10 @@
 #include "shared.h"
 #include "MyGrid.h"
 #include "ConnButton.h"
+#include "Connection.h"
 #include "ConnState.h"
-#include "SqlUtil.h"
 #include "NewInstanceWin.h"
-
-#include <PostgreSQL/PostgreSQL.h> // Need to move to Connection manager
+#include "ConnectedCtrl.h"
 
 // THESE NAMES MUST BE UNIQUE IN ORDER TO LABEL COLUMN WIDTHS USER CUSTOMIZATIONS WHEN XMLIZING
 
@@ -42,9 +41,8 @@ void MakeConnState(One<Ctrl>& ctrl) {
 }
 
 //==========================================================================================	
-class ConnGrid : public MyGrid {
+class ConnGrid : public MyGrid, ConnectedCtrl {
 public:
-	PostgreSQLSession *connDb;
 	
 	EditInt fldConnId;
 	EditStringNotNull fldConnName;               // 0) A meaningful name; too many connections to track without a name
@@ -69,22 +67,21 @@ public:
 
 	//==========================================================================================	
 	ConnGrid() {
-		connDb = NULL;
 	}
 	
-	int GetConnId() { return Get(IDConnId); }
-	void SetConnId(int pconnId) { Set(IDConnId, pconnId); }
-	String GetConnName() { return TrimBoth(Get(IDConnName)); }
-	String GetInstanceTypeName() { return TrimBoth(Get(IDInstTypName)); }
-	int GetInstanceId() { return Get(IDInstanceId); }
-	String GetInstanceName() { return TrimBoth(Get(IDInstanceName)); }
-	String GetInstanceAddress() { return TrimBoth(Get(IDInstanceAddress)); }
-	int GetInstTypId() { return Get(IDInstTypId); }
-	int GetEnvId() { return Get(IDEnvId); }
-	int GetLoginId() { return Get(IDLoginId); }
-	String GetLoginStr() { return TrimBoth(Get(IDLoginStr)); }
-	String GetLoginPwd() { return TrimBoth(Get(IDLoginPwd)); }
-	ConnState *ConnGrid::GetConnState() { return (ConnState *)GetCtrl(GetCursor(), FindCol(IDConnState)); }
+	int GetConnId(int row) { return Get(row, IDConnId); }
+	void SetConnId(int row, int pconnId) { Set(row, IDConnId, pconnId); }
+	String GetConnName(int row) { return TrimBoth(Get(row, IDConnName)); }
+	String GetInstanceTypeName(int row) { return TrimBoth(Get(row, IDInstTypName)); }
+	int GetInstanceId(int row) { return Get(row, IDInstanceId); }
+	String GetInstanceName(int row) { return TrimBoth(Get(row, IDInstanceName)); }
+	String GetInstanceAddress(int row) { return TrimBoth(Get(row, IDInstanceAddress)); }
+	int GetInstTypId(int row) { return Get(row, IDInstTypId); }
+	int GetEnvId(int row) { return Get(row, IDEnvId); }
+	int GetLoginId(int row) { return Get(row, IDLoginId); }
+	String GetLoginStr(int row) { return TrimBoth(Get(row, IDLoginStr)); }
+	String GetLoginPwd(int row) { return TrimBoth(Get(row, IDLoginPwd)); }
+	ConnState *ConnGrid::GetConnState(int row) { return (ConnState *)GetCtrl(row, FindCol(IDConnState)); }
 
 	//==========================================================================================	
 	void NewConn() {
@@ -132,71 +129,78 @@ public:
 	}
 	
 	//==========================================================================================	
+	// Popup to let user enter new connection instance details
 	void NewInstance() {
-		if (!newInstanceWin.IsOpen()) {
-			newInstanceWin.Open();
+		switch(newInstanceWin.Run()) {
+		case IDOK:
+			Exclamation("Adding");
+			// Insert into database
+			break;
+
+		case IDCANCEL:
+			break;
 		}
+		newInstanceWin.Close();
 	}
 
 	// Has to pass a connection that persists after this window closes
 	//==========================================================================================	
-	void Load(PostgreSQLSession *pconnDb, Sql &connSql) {
-		connDb = pconnDb;
+	virtual void Load(Connection *pconnection) {
+		ConnectedCtrl::Load(pconnection);
+		
+		connection = pconnection;
+
+		Sql sql(connection->GetSession());
+		
 		// Populate the instance types
 			
-		if (!connSql.Execute("select insttypid, insttypname from insttyps")) {
-			Exclamation(Format("Error: %s", DeQtf(connSql.GetLastError())));		
-		} else {
-			while(connSql.Fetch()) {
-				instTypList.Add(atoi(connSql[0].ToString()), connSql[1].ToString());
-				newInstanceWin.instTypList.Add(atoi(connSql[0].ToString()), connSql[1].ToString());
+		if (connection->SendQueryDataScript(sql, "select insttypid, insttypname from insttyps")) {
+			while(sql.Fetch()) {
+				instTypList.Add(atoi(sql[0].ToString()), sql[1].ToString());
+				newInstanceWin.instTypList.Add(atoi(sql[0].ToString()), sql[1].ToString());
 			}
 		}
 		
 		// Populate the instance list
 		
-		if (!connSql.Execute("select i.instanceid, i.instancename, i.instanceaddress, i.note, it.insttypid, it.insttypname, i.envid from instances i left join insttyps it on i.insttypid = it.insttypid order by instancename")) {
-			Exclamation(Format("Error: %s", DeQtf(connSql.GetLastError())));		
-		} else {
+		if (connection->SendQueryDataScript(sql, "select i.instanceid, i.instancename, i.instanceaddress, i.note, it.insttypid, it.insttypname, i.envid from instances i left join insttyps it on i.insttypid = it.insttypid order by instancename")) {
 	
 			// Populate the Environment list
 	
-			while(connSql.Fetch()) {
-				instanceList.Add(atoi(connSql[0].ToString()), connSql[1].ToString());
+			while(sql.Fetch()) {
+				instanceList.Add(atoi(sql[0].ToString()), sql[1].ToString());
 			}
 		}
 		
-		if (!connSql.Execute("select e.envid, e.envstdname, e.envletter from environments e")) {
-			Exclamation(Format("Error: %s", DeQtf(connSql.GetLastError())));		
-		} else {
+		if (connection->SendQueryDataScript(sql, "select e.envid, e.envstdname, e.envletter from environments e")) {
 	
 			// Populate the Connection List so user can select
 	
-			while(connSql.Fetch()) {
-				envList.Add(atoi(connSql[0].ToString()), connSql[1].ToString());
-				newInstanceWin.envList.Add(atoi(connSql[0].ToString()), connSql[1].ToString());
+			while(sql.Fetch()) {
+				envList.Add(atoi(sql[0].ToString()), sql[1].ToString());
+				newInstanceWin.envList.Add(atoi(sql[0].ToString()), sql[1].ToString());
 				newInstanceWin.envList.SetData(-1);
 			}
 		}
 		
-		if (!connSql.Execute("select ConnId, ConnName, LoginId, LoginStr, LoginPwd, InstanceId, InstanceName, InstanceAddress, InstTypID, InstTypName, EnvId, EnvStdName from v_conn order by ConnName")) {
-			Exclamation(Format("Error: %s", DeQtf(connSql.GetLastError())));
+		if (!connection->SendQueryDataScript(sql, "select ConnId, ConnName, LoginId, LoginStr, LoginPwd, InstanceId, InstanceName, InstanceAddress, InstTypID, InstTypName, EnvId, EnvStdName from v_conn order by ConnName")) {
 			return;
 		}
-		while(connSql.Fetch()) {
+		
+		while(sql.Fetch()) {
 			Add();
 			Set(IDConnState, ConnState::ConvertStateToColor(NOCON_UNDEF));  // Show connection as red, not connected, should change to gray if unknown
-			Set(IDConnId, connSql["CONNID"]);
-			Set(IDConnName, connSql["CONNNAME"]);
-			Set(IDLoginId, connSql["LOGINID"]);
-			Set(IDLoginStr, connSql["LOGINSTR"]);
-			Set(IDLoginPwd, connSql["LOGINPWD"]);
-			Set(IDInstanceId, connSql["INSTANCEID"]);
-			Set(IDInstanceName, connSql["INSTANCENAME"]);
-			Set(IDInstanceAddress, connSql["INSTANCEADDRESS"]);
-			Set(IDInstTypId, connSql["INSTTYPID"]);
-			Set(IDInstTypName, connSql["INSTTYPNAME"]);
-			Set(IDEnvId, connSql["ENVID"]);
+			Set(IDConnId, sql["CONNID"]);
+			Set(IDConnName, sql["CONNNAME"]);
+			Set(IDLoginId, sql["LOGINID"]);
+			Set(IDLoginStr, sql["LOGINSTR"]);
+			Set(IDLoginPwd, sql["LOGINPWD"]);
+			Set(IDInstanceId, sql["INSTANCEID"]);
+			Set(IDInstanceName, sql["INSTANCENAME"]);
+			Set(IDInstanceAddress, sql["INSTANCEADDRESS"]);
+			Set(IDInstTypId, sql["INSTTYPID"]);
+			Set(IDInstTypName, sql["INSTTYPNAME"]);
+			Set(IDEnvId, sql["ENVID"]);
 		}
 		
 		// Create a blank row so user can just type new connection detail (not have to preset Insert)
@@ -206,66 +210,50 @@ public:
 	
 	//==========================================================================================	
 	//  Let main interface set colors representing the state of the connection.
-	void SetConnState(EnumConnState enumConnState) {
+	void SetConnState(int row, EnumConnState enumConnState) {
 		Color &connColor = ConnState::ConvertStateToColor(enumConnState);
-		Set(GetCursor(), IDConnState, connColor);
+		Set(row, IDConnState, connColor);
 	}
 	
 	//==========================================================================================	
 	void AddedNewConnection() {
-		Sql connSql(*connDb);
+		ASSERT(connection);
+		ASSERT(IsCursor());
+		int row = GetCursor();
+		Sql sql(connection->GetSession());
+		
+		// If no data changed that we need to update, ignore.
+		
 		if (!MeaningfulDataChange()) return;
+		
 		if (IsNewRow()) {	
 			
 			// SQL allows INSTEAD OF VIEW code to search for the login/pwd combo and create a row if necessary
 			// We do pass a valid instance #, though.
-			String sql = Format(" \
+			String script = Format(" \
 			INSERT INTO v_conn(ConnName, LoginStr, LoginPwd, InstanceId) VALUES \
 			                     ('%s'/*ConnName*/, '%s'/*LoginStr*/, '%s'/*LoginPwd*/, %d/*InstanceId*/)", 
-			                   GetConnName(), GetLoginStr(), GetLoginPwd(), GetInstanceId());
-			int rsp = PromptOKCancel(CAT << "Adding Connection: " << sql);
+			                   GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetInstanceId(row));
+			int rsp = PromptOKCancel(CAT << "Adding Connection: " << script);
 			if (rsp == 1) {
 				
-				if (!connSql.Execute(sql)) {
-					Exclamation(Format("Error inserting v_conn: %s, %s", DeQtf(connSql.GetLastError()), sql));
-					return;
-				} else {
-					int connId = GetInsertedId(connSql, "connections", "connid");
-					SetConnId(connId);
-					
-					//Exclamation("Added Connection");
+				if (connection->SendAddDataScript(sql, script)) {
+					int connId = connection->GetInsertedId(sql, "connections", "connid");
+					SetConnId(row, connId);
 				}
-				
-				// Fetch generated key for connid
 			}
 		} else {
-			String sql = Format(" \
+			String script = Format(" \
 			UPDATE v_conn set ConnName = '%s', LoginStr = '%s', LoginPwd = '%s', InstanceId = %d \
 			     WHERE ConnId = %d", 
-			     GetConnName(), GetLoginStr(), GetLoginPwd(), GetInstanceId(), GetConnId());
-			int rsp = PromptOKCancel(CAT << "Updating Connection: " << sql);
+			     GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetInstanceId(row), GetConnId(row));
+			int rsp = PromptOKCancel(CAT << "Updating Connection: " << script);
 			if (rsp == 1) {
-				
-				if (!connSql.Execute(sql)) {
-					Exclamation(Format("Error updating v_conn: %s, %s", DeQtf(connSql.GetLastError()), sql));
-					return;
-				} else {
-					
-					//Exclamation("Updated Connection");
-				}
+				connection->SendChangeDataScript(sql, script);
 			}
 		}
 	}
 		
-	//==========================================================================================	
-	void HidePrivateColumns() {
-		GetColumn(FindCol(IDConnId)).Hidden();
-		GetColumn(FindCol(IDLoginId)).Hidden();
-		GetColumn(FindCol(IDInstanceName)).Hidden();
-		GetColumn(FindCol(IDInstanceAddress)).Hidden();
-		GetColumn(FindCol(IDInstTypName)).Hidden();
-	}
-	
 	//==========================================================================================	
 	// Don't care if the connect button changed, or the color changed.
 	bool MeaningfulDataChange() {
@@ -287,7 +275,7 @@ public:
 	//==========================================================================================	
 	//  The main interface calls this to position and select a specific connection, usually
 	//  so it can trigger a connect event.
-	bool FindConnName(String pconnName) {
+	bool FindConnName(String pconnName, bool silent = false) {
 		int rowno = Find(pconnName, IDConnName);
 		if (rowno == -1) return false;
 		GoTo(rowno);
