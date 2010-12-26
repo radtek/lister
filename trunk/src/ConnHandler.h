@@ -2,9 +2,9 @@
 #define _ConnHandler_h_
 
 #include "shared.h"
-#include "ConnState.h"
-#include "ConnGrid.h"
 #include "Connection.h"
+
+// List all supported connection headers
 
 #include <Oracle/Oracle7.h>
 #include <Oracle/Oracle8.h>
@@ -15,7 +15,6 @@
 class ConnHandler {
 public:
 	
-	GridCtrl *outputGrid;
 	//==========================================================================================	
 	ConnHandler() {
 	}
@@ -24,26 +23,21 @@ public:
 	~ConnHandler() {
 	}
 	
+	//==========================================================================================	
 	// Connect to the database highlighted in the connection grid
-	
-	//==========================================================================================	
-	void DbActive() {
-		Exclamation("Active");
-	}
-	
-	//==========================================================================================	
-	EnumConnState Connect(String instanceTypeName, String loginStr, String loginPwd, String instanceAddress, Connection &conn) {
+	EnumConnState Connect(String instanceTypeName, String loginStr, String loginPwd, String instanceAddress, Connection &conn, String dbName = Null) {
 		// Determine what grid we are in by progressing back (Assumes we are clicking a button in a connection list grid)
-		
 		String connStr;
 		
+		//———————————————————————————————————————————————————————————————————————————————————————— 
 		if (instanceTypeName == "Oracle") {
 			connStr << loginStr << "/" << loginPwd << "@" << instanceAddress;
 
-			//One<Oracle8> oci = new Oracle8;
-			One<Oracle7> oci = new Oracle7; // Needed to overcome ORA-1406 error on large column sets that fail on oci8 
+			One<Oracle8> oci = new Oracle8;
+			//One<Oracle7> oci = new Oracle7; // Needed to overcome ORA-1406 error on large column sets that fail on oci8 
 			
-			if (!oci->Open(connStr /* no objects (yet) */)) { // adjust for your Oracle server
+//			if (!oci->Open(connStr /* no objects (yet) */)) { // adjust for your Oracle server
+			if (!oci->Open(connStr, NULL /* no objects (yet) */)) { // adjust for your Oracle server
 				Exclamation(NFormat("Oracle connect failed, [* \1%s\1].", oci->GetLastError()));
 				conn.enumConnState = CON_FAIL;
 				conn.session = NULL;
@@ -59,6 +53,27 @@ public:
 			conn.enumConnState = CON_SUCCEED;
 
 			return conn.enumConnState;
+		//———————————————————————————————————————————————————————————————————————————————————————— 
+		} else if (instanceTypeName == "PostgreSQL") {
+			connStr << "host=" << instanceAddress << " dbname=" << dbName 
+				<< " user=" << loginStr << " password=" << loginPwd;
+				
+			One<PostgreSQLSession> pg = new PostgreSQLSession; // Currently testing with 8.4 and 9.
+			
+			if(!pg->Open(connStr)) {
+				Exclamation(Format("PostgreSQL connect failed, [* \1%s\1].", DeQtf(pg->GetLastError())));
+				conn.enumConnState = CON_FAIL;
+				conn.session = NULL;
+				delete -pg;
+				return conn.enumConnState;
+			}
+			
+			conn.session = -pg;
+			conn.enumConnState = CON_SUCCEED;
+
+			return conn.enumConnState;
+			
+		//———————————————————————————————————————————————————————————————————————————————————————— 
 		} else if (instanceTypeName == "MS SQL") {
 			//Microsoft SQL Server ODBC Driver Version 03.85.1132
 			//SQL Native Client
@@ -93,11 +108,14 @@ public:
 			
 			return conn.enumConnState;
 		
+		//———————————————————————————————————————————————————————————————————————————————————————— 
 		} else if (instanceTypeName == "FTP") {
 			Exclamation(CAT << "Error: FTP not implemented");
 
 			// FTP
 			// C:\upp\uppsrc\plugin\ftp\ftp.cpp(44): if(!FtpConnect(host, &ftpconn, perror, &FtpClient::Callback, this, 200, idletimeout_secs)) {
+
+		//———————————————————————————————————————————————————————————————————————————————————————— 
 		} else {
 			Exclamation(CAT << "Error: Unrecognized instance type: " << instanceTypeName);
 			conn.enumConnState = NOCON_MISCONFIG;
@@ -126,5 +144,11 @@ This section describes the OCI locale functions
 	Rect r = GetRect();
 	r.Offset(200, 0);
 	SetRect(r);
+
+*/
+
+/*
+  Files loaded:
+  a) Before Oracle8 loaded: 
 
 */
