@@ -17,3 +17,4 @@ So here's a few of my drivers:
   * Steal code.  I have no shame.  If I see code, its mine. Shoot me.
   * Logs.  Log output.
   * Exceptions.  I don't use try/catch, but I do throw exceptions when something blows chunks, even in release code.
+  * Online Source Control.  svn is great and provides as much visibility into my code as I could possibly need.
