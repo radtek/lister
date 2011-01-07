@@ -1,38 +1,50 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <!DOCTYPE lister>
 <lister>
-	<vertsplit>
-		<pos value="6470"/>
-	</vertsplit>
-	<horzsplit>
-		<pos value="4125"/>
-	</horzsplit>
-	<grid>
+	<vertsplit1>
+		<pos value="5630"/>
+	</vertsplit1>
+	<horzsplit1>
+		<pos value="1736"/>
+	</horzsplit1>
+	<horzsplit11>
+		<pos value="2175"/>
+	</horzsplit11>
+	<horzsplit12>
+		<pos value="2394"/>
+	</horzsplit12>
+	<horzsplit2>
+		<pos value="200"/>
+	</horzsplit2>
+	<horzsplit21>
+		<pos value="9631"/>
+	</horzsplit21>
+	<grid1>
 		<columnwidths>
 			<key>ConnState</key>
 			<value value="16"/>
 			<key>ConnId</key>
 			<value value="-2"/>
 			<key>ConnName</key>
-			<value value="112"/>
+			<value value="158"/>
 			<key>LoginId</key>
 			<value value="-2"/>
 			<key>LoginStr</key>
-			<value value="101"/>
+			<value value="50"/>
 			<key>LoginPwd</key>
-			<value value="54"/>
+			<value value="50"/>
 			<key>InstId</key>
-			<value value="104"/>
+			<value value="50"/>
 			<key>InstanceName</key>
 			<value value="-2"/>
 			<key>InstTypID</key>
-			<value value="56"/>
+			<value value="50"/>
 			<key>InstTypName</key>
 			<value value="-2"/>
 			<key>InstanceAddress</key>
 			<value value="-2"/>
 			<key>EnvId</key>
-			<value value="41"/>
+			<value value="50"/>
 			<key>ConnNote</key>
 			<value value="50"/>
 			<key>CONNECT</key>
@@ -40,11 +52,89 @@
 			<key>Dummy</key>
 			<value value="1"/>
 		</columnwidths>
-	</grid>
-	<cmdScript type="String">[ $$0,0#00000000000000000000000000000000:Default]
+	</grid1>
+	<grid2>
+		<columnwidths>
+			<key>TASKID</key>
+			<value value="272"/>
+			<key>TASKNAME</key>
+			<value value="39"/>
+			<key>SRCCODE</key>
+			<value value="100"/>
+			<key>PROJECTNAME</key>
+			<value value="100"/>
+		</columnwidths>
+	</grid2>
+	<grid3>
+		<columnwidths>
+			<key>SCRIPTID</key>
+			<value value="140"/>
+			<key>SCRIPTNAME</key>
+			<value value="68"/>
+			<key>NOTE</key>
+			<value value="231"/>
+		</columnwidths>
+	</grid3>
+	<grid4>
+		<columnwidths>
+			<key>State</key>
+			<value value="16"/>
+			<key>TestId</key>
+			<value value="-2"/>
+			<key>TestName</key>
+			<value value="183"/>
+			<key>TestScriptId</key>
+			<value value="294"/>
+			<key>TestNote</key>
+			<value value="139"/>
+			<key>TestConnId</key>
+			<value value="82"/>
+			<key>TestTypId</key>
+			<value value="121"/>
+			<key>InvertComparison</key>
+			<value value="50"/>
+			<key>CompTypId</key>
+			<value value="74"/>
+			<key>X</key>
+			<value value="50"/>
+			<key>Y</key>
+			<value value="50"/>
+			<key>DesiredOutcome</key>
+			<value value="50"/>
+			<key>ActualOutcome</key>
+			<value value="112"/>
+			<key>OutputValue</key>
+			<value value="50"/>
+			<key>TEST!</key>
+			<value value="20"/>
+			<key>Err</key>
+			<value value="1"/>
+		</columnwidths>
+	</grid4>
+	<win1>
+		<x value="915"/>
+		<y value="191"/>
+		<cx value="5009"/>
+		<cy value="1143"/>
+	</win1>
+	<edit1 type="String">
+		<scriptid value="94"/>
+[ $$0,0#00000000000000000000000000000000:Default]
 [{_} 
-[s0; select `* from cdw1`_user.vw`_trade t where td`_fd`_src`_nm 
-`= `&apos;STRAW`&apos; and tdor`_src`_nm `= `&apos;BLOOMBERGBACNY`&apos; and cob`_dt 
-`= `&apos;03`-DEC`-10`&apos;&amp;]
-[s0; ]</cmdScript>
+[s0; select trex`_rf`_id, tdc`_id, tdor`_sys`_tk`_no, tdor`_exe`_rf`_id, 
+td`_sta`_cd, tdor`_sta`_cd, tdor`_sys`_td`_sta`_cd, tdor`_sys`_rc`_sbty`_lkup`_cd
+, tdor`_sys`_rc`_sbty`_lkup`_dim`_ky, td`_qy, td`_lcl`_px, td`_cpt`_br`_id, 
+td`_capc`_cd, td`_dervs`_int`_rt, td`_ico`_td`_in, td`_ytm, td`_cpn`_rt, 
+td`_lcl`_prn`_am, td`_cpt`_nt`_lcl`_am,cob`_dt, td`_dt, trex`_ts, 
+td`_stl`_dt, td`_mat`_dt, td`_rtac`_in, td`_prpy`_ac`_in, td`_ac`_in, 
+td`_ex`_cd, td`_bysl`_cd, td`_vl,td`_prm`_bk`_nm, td`_cpt`_bk`_nm, 
+td`_cli`_coper`_id, td`_cli`_pty`_dim`_ky, td`_cpt`_ml`_lgey`_id, 
+td`_cpt`_id, td`_cpt`_ac`_no, td`_cpt`_ac`_dim`_ky, td`_cusip`_insm`_id, 
+td`_isin`_insm`_id, td`_insm`_dim`_ky, td`_insm`_hit`_atr`_vl, 
+td`_sub`_insm`_hit`_atr`_vl, td`_bb`_tck`_id, trex`_dsk`_tx, 
+td`_exe`_fc`_id, td`_exe`_fc`_nm, td`_srcs`_tdr`_id, td`_srcs`_tdr`_nm, 
+td`_cmt`_tx, td`_nt`_tx, td`_gci`_id, td`_sc`_ty`_cd, tdor`_src`_nm, 
+td`_fd`_src`_nm from cdw1`_user.vw`_trade t where t.tdor`_src`_nm 
+`= `&apos;MTS`&apos; and td`_fd`_src`_nm `= `&apos;STRAW`&apos; and cob`_dt `= `&apos;06`-JAN`-11`&apos;&amp;]
+[s0; ]</edit1>
 </lister>
