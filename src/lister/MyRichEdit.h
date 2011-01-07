@@ -42,6 +42,7 @@
 //K_NUMPAD2    = VK_NUMPAD2 + K_DELTA,
 //K_NUMPAD3    = VK_NUMPAD3 + K_DELTA,
 //K_NUMPAD4    = VK_NUMPAD4 + K_DELTA,
+
 //K_NUMPAD5    = VK_NUMPAD5 + K_DELTA,
 //K_NUMPAD6    = VK_NUMPAD6 + K_DELTA,
 //K_NUMPAD7    = VK_NUMPAD7 + K_DELTA,
@@ -97,12 +98,19 @@ struct MyRichEdit : public RichEdit {
 	int scriptId; // If brought from sqllist, then this is set, until modified
 	double zoomlevel;
 	enum PopupInfoRequestType {
-			IR_NOMATCH
-			, IR_TABLESINSCHEMA
-			, IR_COLUMNSINTABLEALIAS
-			, IR_TABLESMRU
-			, IR_INSERTALLCOLUMNSATFROMPOS
-			};
+		IR_NOMATCH
+	,	IR_TABLESINSCHEMA
+	,	IR_COLUMNSINTABLEALIAS
+	,	IR_TABLESMRU
+	,	IR_INSERTALLCOLUMNSATFROMPOS
+	};
+	
+	// What do we do after our custom keyhandler runs?
+	enum KeyProcessorResponse {
+		ALLOWDEFAULTKEYPROCESSORTORUN
+	,	SIGNALWEPROCESSEDKEY
+	,	SIGNALWEDIDNOTPROCESSKEY
+	};
 	
 	//==========================================================================================	
 	MyRichEdit() {
@@ -171,36 +179,136 @@ struct MyRichEdit : public RichEdit {
 	}
 
 	//==========================================================================================	
-	//  Turn a set of lines into series of union alls (for ex:)
-	void PasteAsWrappedUnion() {
+	void PasteAsLineMacro() {
 		static String wrapperCmd = MACRO;  // Retain any changes the user makes
 		
 		String ci = ReadClipboardText();
 		String co;
 		
 		if (ci.Find('\n') > 0) {
-			if(MyEditText(wrapperCmd, "Enter wrapper text for UNION ALL Build", "Wrapper (leave macro or it won't work!!!). Use \\n for new lines:")) {
-				Vector<String> cil = Split(ci, '\n');
-				Sort(cil);
-				for (int i = 0; i < cil.GetCount(); i++) {
-					if (i) co << "\nunion all\n";
-					
-					// Converts "Select * from [[INPUT]]" to "Select * from x union all select * from y..."
-					// Note that the macro can be doubled, tripled, etc
-					String nco = ReplaceStr(wrapperCmd, MACRO, TrimRight(cil[i]));
-					co << nco;
-				}
-			}
-		} else {
-			co << "'" << ci << "'";
+			Vector<String> cil = Split(ci, '\n');
+			Sort(cil);
+			String co = PasteAsLineMacro(
+				cil // List of lines as input to parser
+			,	MACRO
+			,	""  // No additional line to insert between
+			,   "Enter wrapper text for line macro Build" // title of dialog
+			,   cil[0] // Insert one line as an example
+			,   wrapperCmd // Saved wrapper command (remembers
+			);
+			WriteClipboardText(co);
+			Paste();
+			WriteClipboardText(ci); // Restore clipboard so it doesn't keep expanding
 		}
+	}
+	
+	//==========================================================================================	
+	//  Turn a set of lines into series of text with the clipboard text pasted in
+	String PasteAsLineMacro(
+		Vector<String> lines, String macroMarker, String inBetweenNewLine, String title, 
+		String furtherInstructions = Null, String wrapperString = Null) 
+	{
+		String scrubAllOcc;
+		String splitOnThisToMacros;
+		bool forceInputToUpper;
+		bool convertSpacesToUnderscores;
+		String expandedLines;
+		String instructions = "Wrapper (leave macro or it won't work!!!). Use \\n for new lines, use [[INPUT1]], [[INPUT2]], ... and a spliton value to treat input as fields, and [[INPUT]] to just use the whole thing.";
+		
+		if (!furtherInstructions.IsVoid()) {
+			instructions << "  " << '\n' << furtherInstructions;
+		}
+
+		Vector<String> splitInputLine;
+		
+		if(UrpInputBox(wrapperString, scrubAllOcc, splitOnThisToMacros, forceInputToUpper, convertSpacesToUnderscores, title, instructions)) {
+			Vector<String> scrubList;
+			if (!scrubAllOcc.IsEmpty()) {
+				scrubList = Split(scrubAllOcc, ";");
+			}
+			
+			for (int i = 0; i < lines.GetCount(); i++) {
+				String scrubbedInputLine = TrimBoth(lines[i]);
+				if (!scrubAllOcc.IsEmpty()) {
+					for (int j = 0; j < scrubList.GetCount(); j++) {
+				 		scrubbedInputLine = UrpString::ReplaceInWhatWith(scrubbedInputLine, scrubList[j], "");
+					}
+				}
+
+				if (forceInputToUpper) {
+					scrubbedInputLine = ToUpper(scrubbedInputLine);
+				}
+				
+				if (convertSpacesToUnderscores) {
+					scrubbedInputLine = UrpString::ReplaceInWhatWith(scrubbedInputLine, " ", "_");
+				}
+				
+				if (!splitOnThisToMacros.IsEmpty()) {
+					splitInputLine = Split(scrubbedInputLine, splitOnThisToMacros);
+				} else {
+					splitInputLine.Clear();
+				}
+				
+				// if not the first line, stuff a separating string, like "UNION ALL" between each input line
+				if (i && !inBetweenNewLine.IsEmpty()) expandedLines << "\n" << inBetweenNewLine;
+				
+				// Converts "Select * from [[INPUT]]" to "Select * from x union all select * from y..."
+				String patchedLine = UrpString::ReplaceInWhatWith(wrapperString, macroMarker, TrimRight(scrubbedInputLine));
+				for (int j = 0; j < splitInputLine.GetCount(); j++) {
+					int oj = j + 1;
+					String indexedMarker = "[[INPUT" + FormatInteger(oj) + "]]";
+					patchedLine = UrpString::ReplaceInWhatWith(patchedLine, indexedMarker, splitInputLine[j]);
+				}
+
+				expandedLines << "\n" << patchedLine;
+			}
+			
+			return expandedLines;
+		}
+		
+		return Null;
+	}
+	
+	//==========================================================================================	
+	//  Turn a set of lines into series of union alls (for ex:)
+	void PasteAsWrappedUnion() {
+		static String wrapperCmd = MACRO;  // Retain any changes the user makes
+		
+		String ci = ReadClipboardText();
+		String co;
+		String scrubAllOcc;
+		String splitOnThisToMacros;
+		
+//		if (ci.Find('\n') > 0) {
+//			if(UrpInputBox(
+//					wrapperCmd
+//					, scrubAllOcc
+//					, splitOnThisToMacros
+//					, "Enter wrapper text for UNION ALL Build"
+//					, "Wrapper (leave macro or it won't work!!!). Use \\n for new lines, use [[MACRO1]], [[MACRO2]] and a spliton value to treat input as fields:")
+//					) 
+//			{
+//				Vector<String> cil = Split(ci, '\n');
+//				Sort(cil);
+//				for (int i = 0; i < cil.GetCount(); i++) {
+//					if (i) co << "\nunion all\n";
+//					
+//					// Converts "Select * from [[INPUT]]" to "Select * from x union all select * from y..."
+//					String nco = UrpString::ReplaceInWhatWith(wrapperCmd, MACRO, TrimRight(cil[i]));
+//					co << nco;
+//				}
+//			}
+//		} else {
+//			co << "'" << ci << "'";
+//		}
 		
 		WriteClipboardText(co);
 		Paste();
 		WriteClipboardText(ci); // Restore clipboard so it doesn't keep expanding
 	}
 
-	//==========================================================================================	
+	//==========================================================================================
+	// Came with the web search below.  Untested.	
 	static String DumpSpecial(String s) {
 	    String out;
 	    for(const char *p = s.Begin(), *e = s.End(); p < e; p++)
@@ -222,6 +330,7 @@ struct MyRichEdit : public RichEdit {
 	}
 
 	//==========================================================================================	
+	// Doesn't work.
 	void SearchSharePoint() {
 		RichText txt = GetSelection();
 		String searchString = txt.GetPlainText().ToString();
@@ -245,6 +354,22 @@ struct MyRichEdit : public RichEdit {
 	}
 
 	//==========================================================================================	
+	// Strip Qtf codes off of text.
+	void DeFormatSelection() {
+		RichText txt = GetSelection();
+		String deformattedText = txt.GetPlainText().ToString();
+		WriteClipboardText(deformattedText);
+		Paste();
+	}
+
+	//==========================================================================================	
+	// Clean entire thing of Qtf.
+	void DeFormatScript() {
+		SetScript(GetScript());
+	}
+	
+	//==========================================================================================	
+	// Stolen from the RichEdit since I needed to manipulated non-exposed components.
 	virtual void RightDown(Point p, dword flags) {
 		useraction = true;
 		NextUndo();
@@ -257,11 +382,14 @@ struct MyRichEdit : public RichEdit {
 		String fieldparam;
 		String ofieldparam;
 		RichObject object, o;
+		
+		// If user selected a piece of text...
 		if(GetSelection(l, h)) {
 			if(c >= l && c < h) {
 				CopyTool(menu);
 				CutTool(menu);
 				menu.Add("Search SharePoint", THISBACK(SearchSharePoint));
+				menu.Add("De-Format", THISBACK(DeFormatSelection));
 			}
 			PasteTool(menu);
 		}
@@ -318,6 +446,8 @@ struct MyRichEdit : public RichEdit {
 					PasteTool(menu);
 					menu.Add("Paste/Wrap w/Apostrophe", THISBACK(PasteWithApostrophe)); // Added: JSH, copied from Mouse.cpp
 					menu.Add("Paste as UNION ALL", THISBACK(PasteAsWrappedUnion)); // Added: JSH, copied from Mouse.cpp
+					menu.Add("Paste as Line Macro", THISBACK(PasteAsLineMacro));
+					menu.Add("De-Format", THISBACK(DeFormatScript));
 					FindReplaceTool(menu);
 					ObjectTool(menu);
 				}
@@ -405,7 +535,7 @@ struct MyRichEdit : public RichEdit {
 	}
 	
 	//==========================================================================================	
-	bool PopupRequested(bool ShowAllColumns) {
+	KeyProcessorResponse PopupRequested(bool ShowAllColumns) {
 		// We are now pointing to the character following the period
 		int c = GetCursor();
 		char cc = Get()[c];
@@ -414,12 +544,12 @@ struct MyRichEdit : public RichEdit {
 		Vector<WordTests> prevWordTests;
 		
 		// Only pop-up if at end of a line or a space follows
-		if (cc != 10 && cc != 32) return false;
+		if (cc != 10 && cc != 32) return ALLOWDEFAULTKEYPROCESSORTORUN;
 
 		WordTests wordTests;
 		
 		String keyWord = GetPreviousWord(c, wordTests);
-		if (!wordTests.startsWithLetter) return false; // Probably a decimal number or something.
+		if (!wordTests.startsWithLetter) return ALLOWDEFAULTKEYPROCESSORTORUN; // Probably a decimal number or something.
 		
 		// Ok, have preceeding word
 		
@@ -429,8 +559,14 @@ struct MyRichEdit : public RichEdit {
 			Rect caretR = GetCaret();
 			Rect editorR = GetScreenView();
 			tablelist.WhenSelect = THISBACK(SelectedPopUpTable);
-			tablelist.PopUp(this, editorR.left + caretR.left, editorR.top + caretR.bottom, editorR.top + caretR.bottom, editorR.top + caretR.bottom);
-			return true; // Absorb the dot, just put tablename
+			tablelist.PopUp(
+				this							// owner
+			,	editorR.left + caretR.left		// x
+			,	editorR.top + caretR.bottom		// top
+			,	editorR.top + caretR.bottom		// bottom
+			,	300								// width
+			);
+			return ALLOWDEFAULTKEYPROCESSORTORUN; // Absorb the dot, just put tablename
 		} else {
 			// Is the word an alias or what?
 			
@@ -541,9 +677,15 @@ struct MyRichEdit : public RichEdit {
 						Rect caretR = GetCaret();
 						Rect editorR = GetScreenView();
 						columnlist.WhenSelect = THISBACK(SelectedPopUpColumn);
-						columnlist.PopUp(this, editorR.left + caretR.left, editorR.top + caretR.bottom, editorR.top + caretR.bottom, editorR.top + caretR.bottom);
+						columnlist.PopUp(
+							this							// owner
+						,	editorR.left + caretR.left		// x
+						,	editorR.top + caretR.bottom		// top
+						,	editorR.top + caretR.bottom		// bottom
+						,	300								// width
+						);
 					}
-					return false; // Leave the dot
+					return ALLOWDEFAULTKEYPROCESSORTORUN;	// Default editor key process will print dot
 				}
 			} else 
 			if (popupInfoRequestType == IR_TABLESINSCHEMA) {
@@ -552,13 +694,19 @@ struct MyRichEdit : public RichEdit {
 				Rect caretR = GetCaret();
 				Rect editorR = GetScreenView();
 				tablelist.WhenSelect = THISBACK(SelectedPopUpTable);
-				tablelist.PopUp(this, editorR.left + caretR.left, editorR.top + caretR.bottom, editorR.top + caretR.bottom, editorR.top + caretR.bottom);
-				return false; // Leave the dot
+				tablelist.PopUp(
+							this							// owner
+						,	editorR.left + caretR.left		// x
+						,	editorR.top + caretR.bottom		// top
+						,	editorR.top + caretR.bottom		// bottom
+						,	300								// width (Show alot of the name)
+						);
+				return ALLOWDEFAULTKEYPROCESSORTORUN; // Leave the dot
 			} else 
 				
 			// Copy all columns before the FROM clause as comma-delimited list
 			if (popupInfoRequestType == IR_INSERTALLCOLUMNSATFROMPOS) {
-				if (!connection) return false;
+				if (!connection) return ALLOWDEFAULTKEYPROCESSORTORUN;
 				WaitCursor();
 				Vector<SqlColumnInfo> columns = connection->session->EnumColumns(schemaName, tableName);
 				String columnlist;
@@ -585,10 +733,10 @@ struct MyRichEdit : public RichEdit {
 				
 				Insert(posToInsertAt, AsRichText(columnlist.ToWString()));
 				
-				return false; // Don't eat the dot, let script handler insert it
+				return ALLOWDEFAULTKEYPROCESSORTORUN; // Don't eat the dot, let script handler insert it
 			}
 		}
-		return false;
+		return ALLOWDEFAULTKEYPROCESSORTORUN;
 	}
 	
 	//==========================================================================================	
@@ -598,12 +746,15 @@ struct MyRichEdit : public RichEdit {
 
 		// Request for popup information extended.  For schemas all columns are listed comma-delimited
 		// Must capture before RichEdit key processor, which absorbs it.
+
+		KeyProcessorResponse keyProcessorResponse;
 		
 		switch (key) {
 			
 			// Attempt to paste 
 			case K_CTRL_V:
 				ProcessPaste();
+				keyProcessorResponse = SIGNALWEPROCESSEDKEY;
 				return true; // Eat keystroke
 				
 			// Request for popup information
@@ -613,9 +764,24 @@ struct MyRichEdit : public RichEdit {
 			// Request all columns spread across
 			case K_CTRL_PERIOD: // Defined in AKeys.cpp and Win32Keys.i
 				return PopupRequested(true);
+			
+			default:
+				keyProcessorResponse = ALLOWDEFAULTKEYPROCESSORTORUN;
+		}
+
+		switch (keyProcessorResponse) {
+			case SIGNALWEPROCESSEDKEY:
+				return true;
+			case SIGNALWEDIDNOTPROCESSKEY:
+				return false;
+			case ALLOWDEFAULTKEYPROCESSORTORUN:
+				break;
+			default:
+				throw Exc("Unrecognized keyProcessorResponse in MyRichEdit: " + keyProcessorResponse);
 		}
 		
 		return RichEdit::Key(key, count);
+		
 	}
 
 	//==========================================================================================	
@@ -688,14 +854,28 @@ struct MyRichEdit : public RichEdit {
 		tablelist.WantFocus();
 		tablelist.schemaName = schemaName;
 	}
+
+	//==========================================================================================	
+	void SetScript(String script) {
+		SetQTF(script);
+	}
 	
 	//==========================================================================================	
-	void Serialize(Stream &s) {
-		RichEdit::Serialize(s);
-		int version = 0;
-		s / version;
-		s % scriptId; // By serializing id, when you start up, the previous script will be present and you'll be able to link up to the test screen.
+	// Script is always text, not Rich text.
+	String GetScript() {
+		return TrimBoth(Get().GetPlainText().ToString());
 	}
+
+	//==========================================================================================	
+	// Save script id with script so "Add test for script" button works from toolbar.
+	virtual void Xmlize(XmlIO xml) {
+		xml("scriptid", scriptId);
+		// Copied following from Ctrl::Xmlize.  Not sure how it works.
+		Value v = GetData();
+		UPP::Xmlize(xml, v);
+		SetData(v);
+	}
+	
 };
 
 
