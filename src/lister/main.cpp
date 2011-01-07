@@ -1,8 +1,4 @@
-#include <Urp/Urp.h>
-#include "Lister.h"
-
-#include "image_shared.h"
-#include <Draw/iml_source.h>
+#include "lister.h"
 
 GUI_APP_MAIN
 {

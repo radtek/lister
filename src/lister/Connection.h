@@ -4,7 +4,6 @@
 #include "shared.h"
 #include "ConnState.h"
 #include "SoundHandler.h"
-#include <Urp/Urp.h>
 
 #define INSTTYPNM_POSTGRESQL       "PostgreSQL"
 #define INSTTYPNM_ORACLE           "Oracle"

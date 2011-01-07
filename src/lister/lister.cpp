@@ -1,5 +1,11 @@
 #include "lister.h"
 
+#include "image_shared.h"
+#include <Draw/iml_header.h>
+
+#include "image_shared.h"
+#include <Draw/iml_source.h>
+
 	//==========================================================================================	
 	Lister::Lister() {
 		activeConnection = NULL;
@@ -532,7 +538,7 @@
 		bar.Add(
 			cmdScript.Get().GetPlainText().ToString().GetLength() > 0 && cmdScript.scriptId >= 0
 			&& taskGrid.IsCursor()
-			, "Attach", MyImages::attachtotask16(), 
+			, "Attach", MyImages::attachtotask16(),
 			 THISBACK(AttachScriptToTask)).Tip("Attach script to selected task");
 		
 		//CtrlImg::exclamation(), CtrlImg::smallright(), CtrlImg::open(), CtrlImg::undo(), CtrlImg::remove
@@ -541,7 +547,7 @@
 	
 	//==========================================================================================	
 	// Called from main.cpp. to open the main window
-	virtual void Lister::Run(bool appmodal = false) {
+	/*virtual*/ void Lister::Run(bool appmodal /* = false */) {
 		ToolBarRefresh();
 		ConnectionStatusRefresh();
 		String a = connGrid.GetColumnWidths();
@@ -637,7 +643,7 @@
 	
 	//==========================================================================================	
 	// Hack in Ctrl class to make Xmlize virtual
-	virtual void Lister::Xmlize(XmlIO xml) {
+	/*virtual*/ void Lister::Xmlize(XmlIO xml) {
 		// Use generic names internally to xml with numbers so if splitters added/moved, we can retain users setting if lucky
 		xml
 			("vertsplit1", vertSplitter)

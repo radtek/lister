@@ -1,7 +1,7 @@
 #ifndef _shared_h_
 #define _shared_h_
 
-#include <Urp/Urp.h>
+#include <lister/Urp/Urp.h>
 #include <PostgreSQL/PostgreSQL.h>
 
 using namespace Upp;
@@ -25,8 +25,6 @@ typedef PostgreSQLSession ControlSession;
 #define LAYOUTFILE <lister/lister.lay>
 #include <CtrlCore/lay.h>
 
-#include "image_shared.h"
-#include <Draw/iml_header.h>
 
 #define MODEL <lister/database.sch>
 
