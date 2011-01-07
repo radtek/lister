@@ -1,0 +1,20 @@
+description "My Repository of functions to share\377";
+
+uses
+	GridCtrl,
+	SqlCtrl;
+
+file
+	UrpInput.h,
+	Urp.h,
+	UrpShared.h,
+	UrpWindow.h,
+	UrpString.h,
+	UrpLineEdit.h,
+	UrpGrid.h,
+	Urp.lay,
+	UrpPaint.h,
+	UrpSqlGrid.h,
+	UrpMain.h,
+	UrpSplitter.h;
+
