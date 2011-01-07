@@ -2,7 +2,7 @@
 #define _ConnGrid_h_
 
 #include "shared.h"
-#include "MyGrid.h"
+#include <Urp/Urp.h>
 #include "ConnButton.h"
 #include "Connection.h"
 #include "ConnState.h"
@@ -41,7 +41,7 @@ void MakeConnState(One<Ctrl>& ctrl) {
 }
 
 //==========================================================================================	
-class ConnGrid : public MyGrid, ConnectedCtrl {
+class ConnGrid : public UrpGrid, ConnectedCtrl {
 public:
 	
 	EditInt fldConnId;
@@ -61,26 +61,26 @@ public:
 	NewInstanceWin newInstanceWin;
 		
 	typedef ConnGrid CLASSNAME;
-
+	
 	// Everything you need to connect to a server
-	GridCtrl *outputGrid;
+	//GridCtrl *outputGrid;
 
 	//==========================================================================================	
-	ConnGrid() {
+	ConnGrid() : UrpGrid() {
 	}
 	
-	int GetConnId(int row) { return Get(row, IDConnId); }
-	void SetConnId(int row, int pconnId) { Set(row, IDConnId, pconnId); }
-	String GetConnName(int row) { return TrimBoth(Get(row, IDConnName)); }
-	String GetInstanceTypeName(int row) { return TrimBoth(Get(row, IDInstTypName)); }
-	int GetInstanceId(int row) { return Get(row, IDInstanceId); }
-	String GetInstanceName(int row) { return TrimBoth(Get(row, IDInstanceName)); }
-	String GetInstanceAddress(int row) { return TrimBoth(Get(row, IDInstanceAddress)); }
-	int GetInstTypId(int row) { return Get(row, IDInstTypId); }
-	int GetEnvId(int row) { return Get(row, IDEnvId); }
-	int GetLoginId(int row) { return Get(row, IDLoginId); }
-	String GetLoginStr(int row) { return TrimBoth(Get(row, IDLoginStr)); }
-	String GetLoginPwd(int row) { return TrimBoth(Get(row, IDLoginPwd)); }
+	int GetConnId(int row)					{ return Get(row, IDConnId); }
+	void SetConnId(int row, int pconnId)	{ Set(row, IDConnId, pconnId); }
+	String GetConnName(int row)				{ return TrimBoth(Get(row, IDConnName)); }
+	String GetInstanceTypeName(int row)		{ return TrimBoth(Get(row, IDInstTypName)); }
+	int GetInstanceId(int row)				{ return Get(row, IDInstanceId); }
+	String GetInstanceName(int row)			{ return TrimBoth(Get(row, IDInstanceName)); }
+	String GetInstanceAddress(int row)		{ return TrimBoth(Get(row, IDInstanceAddress)); }
+	int GetInstTypId(int row)				{ return Get(row, IDInstTypId); }
+	int GetEnvId(int row)					{ return Get(row, IDEnvId); }
+	int GetLoginId(int row)					{ return Get(row, IDLoginId); }
+	String GetLoginStr(int row)				{ return TrimBoth(Get(row, IDLoginStr)); }
+	String GetLoginPwd(int row)				{ return TrimBoth(Get(row, IDLoginPwd)); }
 	ConnState *ConnGrid::GetConnState(int row) { return (ConnState *)GetCtrl(row, FindCol(IDConnState)); }
 
 	//==========================================================================================	
@@ -91,41 +91,31 @@ public:
 	
 	//==========================================================================================	
 	void Build() {
-			Appending().Removing().Editing();
-			EditsInNewRow().Accepting().Moving();
-			MovingCols().MovingRows().Hiding().Duplicating().Canceling().AskRemove();
-			Duplicating().Searching().SearchDisplay().SearchImmediate().SearchHideRows().SearchMoveCursor();
-			Closing().Inserting().RowChanging().ResizingRows();
-			LiveCursor();
-			RejectNullRow(false);
-			Clipboard();
-			WhenNewRow = THISBACK(NewConn);
-			Proportional();
-			ColorRows(true);
-			FixedPaste();
-			instanceList.SearchHideRows().Resizeable().Width(200);
-			instanceList.NotNull().AddPlus(THISBACK(NewInstance));
-			
-			// F3 moves the cursor to the next matched row. 
-			// Hidden rows currently managed by serialization
-			// Multi selecting works in the same way as in ArrayCtrl. One can select a row by holding CTRL and pressing LMB
-						
-			AddColumn(IDConnState, "").Ctrls(MakeConnState).Default(ConnState::ConvertStateToColor(NOCON_NEVER)).Fixed(16);
-			AddColumn(IDConnId, "Id").Edit(fldConnId).Default(Null);
-			AddColumn(IDConnName, "Name").Edit(fldConnName);
-			AddColumn(IDLoginId, "Login Id");
-			AddColumn(IDLoginStr, "Login").Edit(fldLoginStr);                                                             
-			AddColumn(IDLoginPwd, "Pwd").Edit(fldLoginPwd);                                                               
-			AddColumn(IDInstanceId, "Instance").Edit(instanceList).SetConvert(instanceList).Default(-1);
-			AddColumn(IDInstanceName, "InstNm");
-			AddColumn(IDInstTypId, "Database").Edit(instTypList).SetConvert(instTypList).Default(-1);
-			AddColumn(IDInstTypName, "InstTypeNm");      
-			AddColumn(IDInstanceAddress, "Address").Edit(fldInstanceAddress).Editable(false);
-			AddColumn(IDEnvId, "Env").Edit(envList).SetConvert(envList).Default(-1);
-			AddColumn(IDConnNote, "Note").Edit(fldConnNote);
-			AddColumn(IDCONNECT, "").Ctrls(MakeButton).Fixed(20).SetImage(CtrlImg::go_forward());
-			AddColumn(IDDUMMY, "").Fixed(1); // This is required due to bug in GridCtrl where image clones across all downstream cells if at end of visible chain.
-			//Absolute(); // Warning: Hiding/moving columns will cause blackout drawing issues, but only way to get user sizing to retain across sessions (see xmlize)
+		
+		WhenNewRow = THISBACK(NewConn);
+		
+		instanceList.SearchHideRows().Resizeable().Width(200);
+		instanceList.NotNull().AddPlus(THISBACK(NewInstance));
+		
+		// F3 moves the cursor to the next matched row. 
+		// Hidden rows currently managed by serialization
+		// Multi selecting works in the same way as in ArrayCtrl. One can select a row by holding CTRL and pressing LMB
+					
+		AddColumn(IDConnState, "").Ctrls(MakeConnState).Default(ConnState::ConvertStateToColor(NOCON_NEVER)).Fixed(16);
+		AddColumn(IDConnId, "Id").Edit(fldConnId).Default(Null);
+		AddColumn(IDConnName, "Name").Edit(fldConnName);
+		AddColumn(IDLoginId, "Login Id");
+		AddColumn(IDLoginStr, "Login").Edit(fldLoginStr);                                                             
+		AddColumn(IDLoginPwd, "Pwd").Edit(fldLoginPwd);                                                               
+		AddColumn(IDInstanceId, "Instance").Edit(instanceList).SetConvert(instanceList).Default(-1);
+		AddColumn(IDInstanceName, "InstNm");
+		AddColumn(IDInstTypId, "Database").Edit(instTypList).SetConvert(instTypList).Default(-1);
+		AddColumn(IDInstTypName, "InstTypeNm");      
+		AddColumn(IDInstanceAddress, "Address").Edit(fldInstanceAddress).Editable(false);
+		AddColumn(IDEnvId, "Env").Edit(envList).SetConvert(envList).Default(-1);
+		AddColumn(IDConnNote, "Note").Edit(fldConnNote);
+		AddColumn(IDCONNECT, "").Ctrls(MakeButton).Fixed(20).SetImage(CtrlImg::go_forward());
+		AddColumn(IDDUMMY, "").Fixed(1); // This is required due to bug in GridCtrl where image clones across all downstream cells if at end of visible chain.
 	}
 	
 	//==========================================================================================	
@@ -147,60 +137,57 @@ public:
 	//==========================================================================================	
 	virtual void Load(Connection *pconnection) {
 		ConnectedCtrl::Load(pconnection);
-		
 		connection = pconnection;
 
-		Sql sql(connection->GetSession());
-		
 		// Populate the instance types
 			
-		if (connection->SendQueryDataScript(sql, "select insttypid, insttypname from insttyps")) {
-			while(sql.Fetch()) {
-				instTypList.Add(atoi(sql[0].ToString()), sql[1].ToString());
-				newInstanceWin.instTypList.Add(atoi(sql[0].ToString()), sql[1].ToString());
+		if (connection->SendQueryDataScript("select insttypid, insttypname from insttyps")) {
+			while(connection->Fetch()) {
+				instTypList.Add(connection->Get(0), connection->Get(1));
+				newInstanceWin.instTypList.Add(connection->Get(0), connection->Get(1));
 			}
 		}
 		
 		// Populate the instance list
 		
-		if (connection->SendQueryDataScript(sql, "select i.instanceid, i.instancename, i.instanceaddress, i.note, it.insttypid, it.insttypname, i.envid from instances i left join insttyps it on i.insttypid = it.insttypid order by instancename")) {
+		if (connection->SendQueryDataScript("select i.instanceid, i.instancename, i.instanceaddress, i.note, it.insttypid, it.insttypname, i.envid from instances i left join insttyps it on i.insttypid = it.insttypid order by instancename")) {
 	
 			// Populate the Environment list
 	
-			while(sql.Fetch()) {
-				instanceList.Add(atoi(sql[0].ToString()), sql[1].ToString());
+			while(connection->Fetch()) {
+				instanceList.Add(connection->Get(0), connection->Get(1));
 			}
 		}
 		
-		if (connection->SendQueryDataScript(sql, "select e.envid, e.envstdname, e.envletter from environments e")) {
+		if (connection->SendQueryDataScript("select e.envid, e.envstdname, e.envletter from environments e")) {
 	
 			// Populate the Connection List so user can select
 	
-			while(sql.Fetch()) {
-				envList.Add(atoi(sql[0].ToString()), sql[1].ToString());
-				newInstanceWin.envList.Add(atoi(sql[0].ToString()), sql[1].ToString());
+			while(connection->Fetch()) {
+				envList.Add(connection->Get(0), connection->Get(1));
+				newInstanceWin.envList.Add(connection->Get(0), connection->Get(1));
 				newInstanceWin.envList.SetData(-1);
 			}
 		}
 		
-		if (!connection->SendQueryDataScript(sql, "select ConnId, ConnName, LoginId, LoginStr, LoginPwd, InstanceId, InstanceName, InstanceAddress, InstTypID, InstTypName, EnvId, EnvStdName from v_conn order by ConnName")) {
+		if (!connection->SendQueryDataScript("select ConnId, ConnName, LoginId, LoginStr, LoginPwd, InstanceId, InstanceName, InstanceAddress, InstTypID, InstTypName, EnvId, EnvStdName from v_conn order by ConnName")) {
 			return;
 		}
 		
-		while(sql.Fetch()) {
+		while(connection->Fetch()) {
 			Add();
 			Set(IDConnState, ConnState::ConvertStateToColor(NOCON_UNDEF));  // Show connection as red, not connected, should change to gray if unknown
-			Set(IDConnId, sql["CONNID"]);
-			Set(IDConnName, sql["CONNNAME"]);
-			Set(IDLoginId, sql["LOGINID"]);
-			Set(IDLoginStr, sql["LOGINSTR"]);
-			Set(IDLoginPwd, sql["LOGINPWD"]);
-			Set(IDInstanceId, sql["INSTANCEID"]);
-			Set(IDInstanceName, sql["INSTANCENAME"]);
-			Set(IDInstanceAddress, sql["INSTANCEADDRESS"]);
-			Set(IDInstTypId, sql["INSTTYPID"]);
-			Set(IDInstTypName, sql["INSTTYPNAME"]);
-			Set(IDEnvId, sql["ENVID"]);
+			Set(IDConnId, connection->Get("CONNID"));
+			Set(IDConnName, connection->Get("CONNNAME"));
+			Set(IDLoginId, connection->Get("LOGINID"));
+			Set(IDLoginStr, connection->Get("LOGINSTR"));
+			Set(IDLoginPwd, connection->Get("LOGINPWD"));
+			Set(IDInstanceId, connection->Get("INSTANCEID"));
+			Set(IDInstanceName, connection->Get("INSTANCENAME"));
+			Set(IDInstanceAddress, connection->Get("INSTANCEADDRESS"));
+			Set(IDInstTypId, connection->Get("INSTTYPID"));
+			Set(IDInstTypName, connection->Get("INSTTYPNAME"));
+			Set(IDEnvId, connection->Get("ENVID"));
 		}
 		
 		// Create a blank row so user can just type new connection detail (not have to preset Insert)
@@ -220,7 +207,6 @@ public:
 		ASSERT(connection);
 		ASSERT(IsCursor());
 		int row = GetCursor();
-		Sql sql(connection->GetSession());
 		
 		// If no data changed that we need to update, ignore.
 		
@@ -237,8 +223,8 @@ public:
 			int rsp = PromptOKCancel(CAT << "Adding Connection: " << script);
 			if (rsp == 1) {
 				
-				if (connection->SendAddDataScript(sql, script)) {
-					int connId = connection->GetInsertedId(sql, "connections", "connid");
+				if (connection->SendAddDataScript(script)) {
+					int connId = connection->GetInsertedId("connections", "connid");
 					SetConnId(row, connId);
 				}
 			}
@@ -249,7 +235,7 @@ public:
 			     GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetInstanceId(row), GetConnId(row));
 			int rsp = PromptOKCancel(CAT << "Updating Connection: " << script);
 			if (rsp == 1) {
-				connection->SendChangeDataScript(sql, script);
+				connection->SendChangeDataScript(script);
 			}
 		}
 	}
