@@ -2,9 +2,9 @@
 #define _CursorHandler_h_
 
 #include "shared.h"
-#include "Err.h"
 #include "SoundHandler.h"
 #include "Connection.h"
+
 
 //==========================================================================================	
 class CursorHandler : public TopWindow {
@@ -12,40 +12,52 @@ public:
 	GridCtrl *outputGrid;
 	Connection *connection;
 	Vector<int> cw; // Column width calculator.  We add in heading widths and value widths as we load the data
-	Sql cursor;
-
+	
 	//==========================================================================================	
 	CursorHandler(Connection *pconnection) {
+		ASSERT(pconnection);
 		connection = pconnection;
-		cursor = Sql(connection->GetSession());
 	}
 	
 	//==========================================================================================	
-	void ColSize() {
+	void ColSize(Sql *cursor) {
 		int maxw = 18 * StdFont().Info().GetAveWidth();
 		int maxx = outputGrid->GetSize().cx;
 		int wx = 0;
-		for(int i = 0; i < cursor.GetColumns(); i++) {
+		for(int i = 0; i < cursor->GetColumns(); i++) {
 			outputGrid->SetColWidth(i + outputGrid->indicator, cw[i]);
 		}
 	}
 	
 	//==========================================================================================	
 	bool Run(GridCtrl *poutputGrid, String sql) {
+		ASSERT(connection);
 		int x = 0;
 		outputGrid = poutputGrid;
 		WaitCursor wc;
-		outputGrid->Reset();
-		cursor.ClearError();
-		connection->SendChangeEnvScript(cursor, "alter session set nls_date_format='DD-MON-RR'");
 
-		if (!connection->SendQueryDataScript(cursor, sql)) {
+		outputGrid->Ready(false);
+		//outputGrid->Reset(); // Crashing when first column is sorted!  U++ bug.
+		outputGrid->Clear();
+		for (int i = outputGrid->GetColumnCount() - 1; i >= 0; i--) {
+			outputGrid->RemoveColumn(i);
+		}
+		outputGrid->Ready(true);
+
+		if (!connection->SendChangeEnvScript("alter session set nls_date_format='DD-MON-RR'", true /* silent */)) {
 			Speak(EVS_EXECUTE_FAILED);
 			return false;
 		}
 
+		if (!connection->SendQueryDataScript(sql, true /* silent */)) {
+			// We make our own beep, so that it distintively identifies a "lister executino failure" to the user, not a generic windows failure
+			Speak(EVS_EXECUTE_FAILED);
+			Prompt(Ctrl::GetAppName(), CtrlImg::exclamation(), Format("Error: [* %s].", DeQtf(connection->GetLastError())), t_("OK"));
+			return false;
+		}
+
 		Speak(EVS_EXECUTE_SUCCEEDED);
-		int colCount = cursor.GetColumns();
+		int colCount = connection->GetColumns();
 		
 		cw.Clear();
 		cw.SetCount(colCount);
@@ -66,10 +78,8 @@ public:
 		outputGrid->FixedPaste();
 		outputGrid->Navigating();
 
-		//GetItemAttrs(const Item& it, int id, const ItemRect& hi, const ItemRect& vi, dword& style, GridDisplay*& gd, Color& fg, Color& bg, Font& fnt);		
-		
 		for (int i = 0; i < colCount; i++) {
-			const SqlColumnInfo& ci = cursor.GetColumnInfo(i);
+			const SqlColumnInfo& ci = connection->GetColumnInfo(i);
 			int w = GetTextSize(ci.name, StdFont()).cx + 14;
 			outputGrid->AddColumn(ci.name).Width(w);
 			cw[i] = w;
@@ -78,19 +88,19 @@ public:
 		// Fetch data and display
 		Progress pi;
 		pi.SetText("Fetched %d line(s)");
-		ColSize();
+		ColSize(connection);
 		wc.Show();
 		
 		outputGrid->Ready(false);
 
 		int rc = 0;		
-		while(cursor.Fetch()) {
+		while(connection->Fetch()) {
 			rc++;
-			Vector<Value> row = cursor.GetRow();
+			Vector<Value> row = connection->GetRow();
 			
 			// Measure the column widths of the first 10 values, should be representative?
 			if (rc < 10) {
-				for (int j = 0; j < cursor.GetColumns(); j++) {
+				for (int j = 0; j < connection->GetColumns(); j++) {
 					cw[j] = Upp::max(cw[j], (int)(GetTextSize(StdFormat(row[j]), StdFont()).cx + 14));
 				}
 			}
@@ -101,20 +111,19 @@ public:
 		
 		outputGrid->Ready(true);
 
-		ColSize();
+		ColSize(connection);
 		
 		if (outputGrid->GetCount() > 0)
 			outputGrid->SetCursor(0);
 		
 		outputGrid->SetFocus();
 		
-		if (cursor.WasError()) {
+		if (connection->WasError()) {
 			Speak(EVS_EXECUTE_FAILED);
-			HandleDbError(ACTNDB_EXECSEL, cursor, &sql);
+			connection->HandleDbError(ACTNDB_EXECSEL, &sql);
 			return false;
 		}
 
-		
 		return true;
 	}
 
