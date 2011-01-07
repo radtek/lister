@@ -1,0 +1,50 @@
+----------------------------------------------------------------------------
+               Import library to Include file conversion.
+----------------------------------------------------------------------------
+
+There are now two separate versions of the earlier utility l2inc.exe, one
+for the ANSI functions and the other for UNICODE functions. 
+
+  Files.
+
+  l2inca.exe Version 1.2A 16896 bytes The ANSI version
+  l2incu.exe Version 1.2U 16986 bytes The UNICODE version
+
+Both versions are identical except for the way they filter the function
+names. A couple of refinements have been done to make the utilities more
+flexible. They still support both TASM & MASM syntax, libraries that do not
+have imports will not generate and empty include file and the internal
+filtering is now more robust. 
+
+While these utilities were designed for the PLATFORMSDK libraries, they
+have been tested on the VC98 Microsoft libraries as well and the current
+filtering appears to handle static libraries without the previous problems.
+
+----------------------------------------------------------------------------
+
+Both utilities are copyright freeware, the copyright is displayed when the
+programs are run without parameters. Any programmer is welcome to use these
+utilities as they see fit without any cost whatsoever.
+
+They are not to be sold or included in any COMMERCIAL package. Any person
+may include these utilities in any FREEWARE package.
+
+Please note that these utilities retain the status of being private
+property, they are not and will not be tendered into the public domain.
+
+Copyright © Steve Hutchesson 1999. < hutch@pbq.com.au >
+Sydney
+Australia
+
+
+
+
+
+
+
+
+
+
+
+
+
