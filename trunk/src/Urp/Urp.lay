@@ -1,0 +1,13 @@
+LAYOUT(MyEditStringLayout, 612, 124)
+	ITEM(Label, lbl, SetLabel(t_("String command with [[INPUT]] or [[INPUT1]], [[INPUT2]] in it")).HSizePosZ(4, 4).TopPosZ(4, 40))
+	ITEM(Label, lbl2, SetLabel(t_("Scrub any occurences of:")).HSizePosZ(4, 472).TopPosZ(72, 19))
+	ITEM(Label, lbl3, SetLabel(t_("Split on this to [[INPUTn]]:")).HSizePosZ(272, 204).TopPosZ(72, 19))
+	ITEM(EditString, text, HSizePosZ(4, 4).VSizePosZ(48, 56))
+	ITEM(EditString, fldScrubText, HSizePosZ(144, 352).VSizePosZ(72, 33))
+	ITEM(EditString, fldSplitOn, HSizePosZ(412, 36).VSizePosZ(72, 33))
+	ITEM(Option, optForceInputToUpper, SetLabel(t_("Force input to upper case")).LeftPosZ(4, 152).TopPosZ(92, 16))
+	ITEM(Option, optConvertSpacesToUnderscores, SetLabel(t_("Convert spaces to underscores")).LeftPosZ(160, 180).TopPosZ(92, 16))
+	ITEM(Button, ok, SetLabel(t_("OK")).RightPosZ(88, 80).BottomPosZ(6, 22))
+	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPosZ(4, 80).BottomPosZ(6, 22))
+END_LAYOUT
+
