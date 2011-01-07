@@ -1,13 +1,6 @@
 LAYOUT(ListerLayout, 740, 340)
 END_LAYOUT
 
-LAYOUT(MyEditStringLayout, 612, 84)
-	ITEM(Label, lbl, SetLabel(t_("Test")).HSizePosZ(4, 4).TopPosZ(4, 19))
-	ITEM(EditString, text, HSizePosZ(68, 4).VSizePosZ(24, 41))
-	ITEM(Button, ok, SetLabel(t_("OK")).RightPosZ(88, 80).BottomPosZ(14, 22))
-	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPosZ(4, 80).BottomPosZ(14, 22))
-END_LAYOUT
-
 LAYOUT(NewInstanceLayout, 452, 268)
 	ITEM(EditStringNotNull, instanceName, LeftPosZ(88, 228).TopPosZ(24, 19))
 	ITEM(EditStringNotNull, instanceAddress, LeftPosZ(88, 228).TopPosZ(96, 19))
@@ -19,5 +12,9 @@ LAYOUT(NewInstanceLayout, 452, 268)
 	ITEM(DropGrid, envList, Tip(t_("Can be blank.")).LeftPosZ(88, 228).TopPosZ(72, 19))
 	ITEM(Button, ok, SetLabel(t_("Ok")).Tip(t_("Write to database if name is unique.")).RightPosZ(12, 104).TopPosZ(24, 24))
 	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPosZ(12, 104).TopPosZ(56, 24))
+END_LAYOUT
+
+LAYOUT(TestWinLayout, 580, 76)
+	ITEM(TestGrid, testGrid, LeftPosZ(4, 572).TopPosZ(4, 72))
 END_LAYOUT
 
