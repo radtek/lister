@@ -3,13 +3,21 @@
 
 #include "shared.h"
 #include "ConnState.h"
-#include "insttypnms.h"
 #include "SoundHandler.h"
-#include "MiscUtilities.h"
-#include "StringHandler.h"
+#include <Urp/Urp.h>
+
+#define INSTTYPNM_POSTGRESQL       "PostgreSQL"
+#define INSTTYPNM_ORACLE           "Oracle"
+#define INSTTYPNM_MSSQLSERVER      "MS SQL"
+#define INSTTYPNM_FTP              "ftp"
+#define INSTTYPNM_TELNET           "telnet"
+
+#define CONTROL_CONN_NAME          "SESSIONCONTROL"
+
+#define ACTNDB_EXECSEL 3
 
 // List all supported connection headers
-
+#include <CtrlLib/CtrlLib.h>
 #include <Oracle/Oracle7.h>
 #include <Oracle/Oracle8.h>
 #include <MSSQL/MSSQL.h>
@@ -24,7 +32,7 @@ enum InstanceTypes { INSTTYP_UNDEF, INSTTYP_ORACLE, INSTTYP_POSTGRESQL, INSTTYP_
 	, INSTTYP_OUTLOOKMEETING };
 	
 //==========================================================================================
-class Connection : Moveable<Connection> {
+class Connection : Moveable<Connection>, public Sql {
 public:
 	typedef Connection CLASSNAME;
 	friend class ConnectionFactory;
@@ -40,18 +48,22 @@ public:
 	String instanceAddress;
 	String dbName; // Can be used complete SQL that doesn' set the default dtabase
 	Thread connectThread;
-	// TODO: Put this in a stack, create struct of status, start time, ect.
-	
+	TopWindow *topWindow;
+
+	// Set to 1 to cancel any activity against the connection that is cancellable.  Ignored
+	// if nothing active.
+	volatile Atomic cancelAnyActiveStatements;	
 	// Lock any connection information update or read using this mutex
 	Mutex connectInfoUpdating;
 		String connectErrorMessage;  // If connection fails, this is updated with the info (No access to GUI in thread) within Mutex
 		
+	// Self-locking flag to interface between the ConnectThread and Connect method
 	volatile Atomic connectThreadStatus;
 	enum ConnectThreadStatus {CONNECTSTATUS_UNDEF, CONNECTSTATUS_KILL, CONNECTSTATUS_NOTENOUGHINFO, CONNECTSTATUS_SUCCEED, CONNECTSTATUS_FAIL, CONNECTSTATUS_UNKNOWN };
 	
 protected:	
 	//==========================================================================================
-	// Use the ConnectionFactory.Connect
+	// Use the ConnectionFactory.Connect to create a new connection.
 	Connection() {
 		connId = UNKNOWN;
 		connName = Null;	
@@ -59,25 +71,55 @@ protected:
 		instanceType = INSTTYP_UNDEF;	
 		enumConnState = NOCON_UNDEF;
 		session = NULL;
+		topWindow = NULL;
+		cancelAnyActiveStatements = 0; // Clear any requests
+		connectErrorMessage = "";
 	}
 
 	//==========================================================================================	
-	bool Connect(TopWindow *win) {
+	// Called from within OCI8Connection in Oci8.cpp Execute() or Fetch() function during
+	// OCI_STILL_EXECUTING status.
+	void WhenStillExecuting() {
+		if (topWindow) {
+			topWindow->ProcessEvents();
+			// No sleep function here; let Oci8.cpp sleep
+			if (cancelAnyActiveStatements == 1) {
+				Cancel();
+			}
+		}
+		
+		// TODO: Check if user requested to cancel this run.  if so OCIBreak/OCICancel
+	}
+	
+	//==========================================================================================	
+	bool Connect(TopWindow *ptopWindow) {
+		topWindow = ptopWindow;
 		connectThreadStatus = CONNECTSTATUS_UNDEF;
-		connectThread.Run(THISBACK(ConnectThread));
+		connectThread.Run(THISBACK1(ConnectThread, topWindow));
 		while (connectThreadStatus == CONNECTSTATUS_UNDEF) {
-			win->ProcessEvents();
+			if (topWindow) {
+				topWindow->ProcessEvents();
+			}
+			// TODO: Can connections be interrupted?
 			Sleep(10);
 		}
 		
 		bool status = (connectThreadStatus == CONNECTSTATUS_SUCCEED);
+
+		if (status) {
+			ASSERT(session);
+			Assign(*session);  // FYI: Session = SqlSource, which has CreateConnection, which a sql object is really just a wrapper for "cn"
+			this->SetWhenStillExecuting(THISBACK(WhenStillExecuting));
+		}
+		
 		return status;
 	}
 	
 	//==========================================================================================	
 	// postcondition: Sets enumConnState, instType
 	// precondition: Connects strictly from ConnectFactory
-	void ConnectThread() {
+	// TopWindow is currently only supported by Oracle driver (I added :))
+	void ConnectThread(TopWindow *topWindow) {
 		String connStr;
 		bool connected = false;
 
@@ -86,21 +128,26 @@ protected:
 			instanceType = INSTTYP_ORACLE;
 			
 			connStr 
-				<< loginStr << "/" << loginPwd << "@" << instanceAddress;
+				<< loginStr << "/" 
+				<< loginPwd << "@" 
+				<< instanceAddress;
 
 			One<Oracle8> attemptingsession = new Oracle8; // Altered to work with bug in 10.2.0.1 with TIMESTAMP size
-			
+
 			connected = attemptingsession->Open(connStr, NULL /* no objects (yet) */);
 			session = -attemptingsession;
+			
+			// Tell the Execute()/Fetch() to call the main event window every so often to prevent GUI freeze
+//			((OCI8Connection *)this)->SetTopWindow(topWindow);
 
 		//———————————————————————————————————————————————————————————————————————————————————————— 
 		} else if (instanceTypeName == INSTTYPNM_POSTGRESQL) {
 			instanceType = INSTTYP_POSTGRESQL;
 			connStr 
-				<< "host=" << instanceAddress 
-				<< " dbname=" << dbName 
-				<< " user=" << loginStr 
-				<< " password=" << loginPwd;
+				<< " host="			<< instanceAddress 
+				<< " dbname="		<< dbName 
+				<< " user="			<< loginStr 
+				<< " password="		<< loginPwd;
 				
 			One<PostgreSQLSession> attemptingsession = new PostgreSQLSession; // Currently testing with 8.4 and 9.
 
@@ -111,11 +158,11 @@ protected:
 		} else if (instanceTypeName == INSTTYPNM_MSSQLSERVER) {
 			instanceType = INSTTYP_MSSQLSERVER;
 			connStr 
-				<< "Driver={SQL Server};"  // 
-				<< "Server=" << instanceAddress << ";"
-				<< "UID=" << loginStr << ";"
-				<< "PWD=" << loginPwd << ";"
-				// "Database=" << ?
+				<< "Driver={SQL Server};"
+				<< "Server=" 	<< instanceAddress	<< ";"
+				<< "UID="		<< loginStr			<< ";"
+				<< "PWD="		<< loginPwd			<< ";"
+				// "Database="	<< dbName			<< ";"
 				// Trusted_Connection=Yes;
 				;
 				
@@ -176,14 +223,13 @@ public:
 	}
 	
 	//==========================================================================================
-	// 	
 	String PrepTextDataForSend(const String &textData) {
 		switch (instanceType) {
 			case INSTTYP_POSTGRESQL:
-				return ReplaceStr(ReplaceStr(textData, "\\", "\\\\"), "'", "\\'");	
+				return UrpString::ReplaceInWhatWith(UrpString::ReplaceInWhatWith(textData, "\\", "\\\\"), "'", "\\'");	
 				break;
 			case INSTTYP_ORACLE:
-				return ReplaceStr(textData, "'", "''");	
+				return UrpString::ReplaceInWhatWith(textData, "'", "''");	
 				break;
 			default:
 				return textData;
@@ -220,10 +266,24 @@ public:
 		bool firstCharStartingBlockFound = false;
 		bool oddApostFound = false;
 		int lastApostFoundAt = 0;
-		Vector<int> insertApostAt; // Will have to keep incrementing as we insert, or insert from end, yeah, that's better
+		VectorMap<int, int> insertCharAt; // Will have to keep incrementing as we insert, or insert from end, yeah, that's better
+		VectorMap<int, int> replaceCharAt;
 		
 		while(*s) {
 			int c = *s;
+			// ISO Latin-1 codes: 34=quotation mark, 39=apostrophe, 8216=left single curly quote, 8217=right single curly quote, 
+			if (In(c, '`', 8216, 8217)) {
+				replaceCharAt.Add((s - first_s), '\'');
+			} else if (c < 0) {
+				String unicode_c = FormatIntHex(c);
+				// This character was detected in a pasted string, possibly a Qtf code?  Not sure.  Has to be stripped
+				// or it will cause an error when OciParse is called on it.
+				// Update:  These turned out to be some freaky unicode underline in "cr_staging". halfwidth underscore = U+005F aka underbar, understrike, low line, low dash
+				if (In(unicode_c, "ffffffc2", "ffffffa0")) { // A0 = No-Break Space?? http://www.utf8-chartable.de/  These may be private characters
+					replaceCharAt.Add((s - first_s), ' ');
+				}
+			}
+			
 			int nextc = *(s + 1);
 			int prevc;
 			if (s != first_s) {
@@ -257,7 +317,7 @@ public:
 				if (c == '\n' || nextc == 0) {
 					inLineComment = false;
 					if (oddApostFound) {
-						insertApostAt.Add(lastApostFoundAt+1);
+						insertCharAt.Add(lastApostFoundAt+1, '\'');
 						oddApostFound = false;
 					}
 				}
@@ -274,72 +334,120 @@ public:
 			}
 		}
 		
+		bool newScriptCreated = false;
+		
+		String newScript;
+
+		// Replace any oddball grave accents, left/right apostrophes. 
+				
+		if (replaceCharAt.GetCount()) {
+			if (!newScriptCreated) {
+				newScript = script;
+				newScriptCreated = true;
+			}
+			
+			for (int i = replaceCharAt.GetCount() - 1;  i >= 0; i--) {
+				int oldcharat = replaceCharAt.GetKey(i);
+				int newchar = replaceCharAt[i]; // Doh!  Have to use key value, not index!!!
+				newScript.Set(oldcharat, newchar);
+			}
+		}
+
 		// Now patch up any odd commented aposts
 		// Go backwards so as to avoid messing up indexes
-		
-		if (insertApostAt.GetCount()) {
-			String newScript = script;
-			for (int i = insertApostAt.GetCount() - 1;  i >= 0; i--) {
-				newScript.Insert(i, '\'');
+
+		// This function hoses all saved positions
+				    
+		if (insertCharAt.GetCount()) {
+			if (!newScriptCreated) {
+				newScript = script;
+				newScriptCreated = true;
 			}
-			return newScript;
+			
+			for (int i = insertCharAt.GetCount() - 1;  i >= 0; i--) {
+				int insertat = insertCharAt.GetKey(i);
+				int newchar = insertCharAt.Get(i);
+				newScript.Insert(insertat, newchar);
+			}
 		}
-		
-		return script;
+
+		if (newScriptCreated) {
+			return newScript;
+		} else {
+			return script;
+		}
 	}
 
 	//==========================================================================================
 	//  Wrap script method implementation and error handling.  Will allow reconnects and reexecutes.
-	bool SendQueryDataScript(Sql &sql, const char *sqlText, bool silent = false) {
+	bool SendQueryDataScript(const char *sqlText, bool silent = false) {
+		ClearError();
 		
+	retryQuery:
+	
 		// We have to prep some scripts where embedded codes break the processor
-		if (!sql.Execute(PrepScriptForSend(sqlText))) {
-			if (silent) {
-				LOG(CAT << "SQL Error: " << DeQtf(sql.GetLastError()));
+		
+		if (!Execute(PrepScriptForSend(sqlText))) {
+			if (GetErrorCode() == 12571) {
+				// Oracle TNS-Packet failure, happens after timeout
+				// Should detect that we haven't run a script for a while and have probably timed out
+				if (PromptYesNo("Detected connection timeout, reconnect?")) {
+					delete -session;
+					Connect(topWindow);
+					goto retryQuery;
+				} else {
+					delete -session;
+				}
 				return false;
 			} else {
-				Exclamation(Format("Error: [* \1%s\1].", DeQtf(sql.GetLastError())));
-				return false;
+				if (silent) {
+					LOG(CAT << "SQL Error: " << DeQtf(GetLastError()));
+					return false;
+				} else {
+					PromptOK(Format("Error: [* %s].", DeQtf(GetLastError())));
+					return false;
+				}
 			}
 		}
+
 		return true;
 	}
 	
 	//==========================================================================================
-	bool SendAddDataScript(Sql &sql, const char *sqlText, bool silent = false) {
-		return SendQueryDataScript(sql, sqlText, silent);
+	bool SendAddDataScript(const char *sqlText, bool silent = false) {
+		return SendQueryDataScript(sqlText, silent);
 	}
 	
 	//==========================================================================================
-	bool SendChangeDataScript(Sql &sql, const char *sqlText, bool silent = false) {
-		return SendQueryDataScript(sql, sqlText, silent);
+	bool SendChangeDataScript(const char *sqlText, bool silent = false) {
+		return SendQueryDataScript(sqlText, silent);
 	}
 	
 	//==========================================================================================
-	bool SendDeleteDataScript(Sql &sql, const char *sqlText, bool silent = false) {
-		return SendQueryDataScript(sql, sqlText, silent);
+	bool SendRemoveDataScript(const char *sqlText, bool silent = false) {
+		return SendQueryDataScript(sqlText, silent);
 	}
 	
 	//==========================================================================================
-	bool SendChangeEnvScript(Sql &sql, const char *sqlText, bool silent = false) {
-		return SendQueryDataScript(sql, sqlText, silent);
+	bool SendChangeEnvScript(const char *sqlText, bool silent = false) {
+		return SendQueryDataScript(sqlText, silent);
 	}
 	
 	//==========================================================================================
-	bool SendQueryEnvScript(Sql &sql, const char *sqlText, bool silent = false) {
-		return SendQueryDataScript(sql, sqlText, silent);
+	bool SendQueryEnvScript(const char *sqlText, bool silent = false) {
+		return SendQueryDataScript(sqlText, silent);
 	}
 	
 	//==========================================================================================
-	bool SendChangeStructureScript(Sql &sql, const char *sqlText, bool silent = false) {
-		return SendQueryDataScript(sql, sqlText, silent);
+	bool SendChangeStructureScript(const char *sqlText, bool silent = false) {
+		return SendQueryDataScript(sqlText, silent);
 	}
 
 	//==========================================================================================	
-	int GetInsertedId(Sql &sql, String tableName, String columnName) {
+	int GetInsertedId(String tableName, String columnName) {
 		switch (instanceType) {
 			case INSTTYP_POSTGRESQL:
-				return GetPostgreSQLInsertedId(sql, tableName, columnName);
+				return GetPostgreSQLInsertedId(tableName, columnName);
 				break;
 			default:
 				ASSERT(1==0);
@@ -350,17 +458,75 @@ public:
 	
 	//==========================================================================================	
 	// Only works for PostgreSQL.
-	int GetPostgreSQLInsertedId(Sql &sql, String tableName, String columnName) {
+	int GetPostgreSQLInsertedId(String tableName, String columnName) {
 				
 		// PostgreSQL constructs a default sequence for serial columns
 		String sequenceName = CAT << tableName << "_" << columnName << "_" << "seq";
-		String cmd = CAT << "select currval('" << sequenceName << "')";
-		if (!SendQueryDataScript(sql, cmd)) { // ERROR: currval of sequence "connections_connid_seq" is not yet defined in this session
+		String script = CAT << "select currval('" << sequenceName << "')";
+		if (!SendQueryDataScript(script)) { // ERROR: currval of sequence "connections_connid_seq" is not yet defined in this session
 			return -1;
 		}
 		
-		sql.Fetch();
-		return atoi(sql[0].ToString());
+		Fetch();
+		return atoi((*this)[0].ToString());
+	}
+
+	//==========================================================================================	
+	Value Get(SqlId i) const {
+		Value v;
+		Sql::GetColumn(i, v);
+		return v;
+	}
+
+	//==========================================================================================	
+	// PostgreSQL driver does not 
+	bool GetBool(int i) const {
+		Value v;
+		Sql::GetColumn(i, v);
+
+		if (v.GetType() == STRING_V) {
+			return (v == "1");
+		}
+		
+		return v;
+	}
+	
+	//==========================================================================================	
+	Value Get(int i) const {
+		Value v;
+		Sql::GetColumn(i, v);
+		return v;
+	}
+
+//	//==========================================================================================	
+//	Value GetV(int i) const {
+//		Value v;
+//		Sql::GetColumn(i, v);
+//		return v;
+//	}
+
+	//==========================================================================================	
+	bool HandleDbError(int actioncode, String *cmd = NULL) {
+		
+		String errcode = GetErrorCodeString();
+		int myerrno = GetErrorCode();
+		Sql::ERRORCLASS ec = GetErrorClass();
+		String es = GetErrorStatement();
+		// CONNECTION_BROKEN?
+		if (ec == Sql::CONNECTION_BROKEN) {
+			Exclamation("Connection broken");
+			return false;
+			//Reconnect, try again, but sql statement object will be broke.
+			//Post a message to main window to reconnect.
+		}
+		
+		if (myerrno == 25408) {
+			Exclamation("Connection broken (could not replay:Oracle)");
+			return false;
+		}
+		
+		Exclamation(Format("Error: #=%d, [* \1%s\1].", myerrno, DeQtf(GetLastError())));
+		return false;
 	}
 };
 
@@ -372,10 +538,17 @@ public:
 
 class ConnectionFactory {
 public:
+	static Connection *controlConnection;
 	static VectorMap<String,Connection *>& Connections() {
 		static VectorMap<String,Connection *> connections;
 		return connections;
 	}
+	
+	//==========================================================================================	
+	ConnectionFactory(Connection *pcontrolConnection = NULL) {
+		controlConnection = pcontrolConnection;
+	}
+	
 	//==========================================================================================	
 	~ConnectionFactory() {
 		// Release all the connection objects to prevent a memory leak
@@ -384,17 +557,73 @@ public:
 			delete conn;
 		}
 	}
+	
+	//==========================================================================================	
+	static String ControlInstanceType() {
+		return INSTTYPNM_POSTGRESQL;
+	}
+
+	Connection *Connect(TopWindow *win, int connId, Connection *pcontrolConnection = NULL) {
+		Connection *lcontrolConnection = NULL;
+		
+		// User passed a new control connection, we will use locally temporarily for this connection
+		if (pcontrolConnection) lcontrolConnection = pcontrolConnection;
+		
+		// If they passed a new control connection and we don't have a shared controlconnection already established, we'll use the new one as a shared one
+		if (lcontrolConnection && !controlConnection) controlConnection = lcontrolConnection;
+		
+		// If they didn't pass us a anew control connection then they must want to use the shared one
+		if (!lcontrolConnection) lcontrolConnection = controlConnection;
+		
+		// If there wasn't a shared control connection set up, then we can't look up any other connection information from a control database
+		if (!lcontrolConnection) return NULL;
+		
+		String FetchConnDtlById = Format("select "
+				"ConnId"          // 0
+			",	ConnName"         // 1
+			",  LoginId"          // 2
+			",  LoginStr"         // 3
+			",  LoginPwd"         // 4
+			",  InstanceId"       // 5
+			",  InstanceName"     // 6
+			",  InstanceAddress"  // 7
+			",  InstTypID"        // 8
+			",  InstTypName"      // 9
+			",  EnvId"            // 10
+			",  EnvStdName"       // 11
+			",  dbName"           // 12
+			" from v_conn where ConnId = %d", connId);
+			
+		if (!lcontrolConnection->SendQueryDataScript(FetchConnDtlById)) {
+			return NULL;
+		}
+		
+		lcontrolConnection->Fetch();
+
+		String connName = lcontrolConnection->Get(1);
+		String instanceTypeName = lcontrolConnection->Get(9);
+		String loginStr = lcontrolConnection->Get(3);
+		String loginPwd = lcontrolConnection->Get(4);
+		String instanceAddress = lcontrolConnection->Get(7);
+		String dbName = lcontrolConnection->Get(12);
+		
+		return Connect(win, connName, instanceTypeName, loginStr, loginPwd, instanceAddress, dbName);
+	}
+	
 	//==========================================================================================	
 	// Connection factory (Takes window for async connection spinning.
-	Connection *Connect(TopWindow *win, String connName, String instanceTypeName, String loginStr, String loginPwd, String instanceAddress, String dbName = Null) {
+	// Assumption: connName is unique per connection.  No support for multiple connections per connection definition
+	Connection *Connect(TopWindow *win, String connName, String instanceTypeName
+		, String loginStr, String loginPwd, String instanceAddress, String dbName = Null) {
 		
 		Connection *connection = Connections().GetAdd(connName, new Connection());
 		connection->instanceTypeName = instanceTypeName;
+		connection->connName = connName;
 		connection->loginStr = loginStr;
 		connection->loginPwd = loginPwd; // For reconnecting, or changing password, you have to pass the old one
 		connection->instanceAddress = instanceAddress;
 		connection->dbName = dbName;
-
+		
 		// BUG: if connection information changed, it won't be representative of the actual connection
 		
 		if (!In(connection->enumConnState, CON_SUCCEED, CON_STALE)) {
@@ -405,12 +634,18 @@ public:
 			}
 		}
 
+		if (connName == CONTROL_CONN_NAME) {
+			controlConnection = Connections().Get(connName);
+			LOG("Set control Connection to " + connName + ", " + instanceTypeName + ", login=" + loginStr + ", addr=" + instanceAddress + ", db=" + dbName);
+		}
+		
 		// Cycle through hooks
-	
 	
 		return Connections().Get(connName);
 	}
 };
+
+Connection *ConnectionFactory::controlConnection = NULL;
 
 #endif
 
