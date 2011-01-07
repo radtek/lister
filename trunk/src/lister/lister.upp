@@ -18,12 +18,13 @@ uses
 	Ole,
 	OleDB,
 	Web,
-	Oracle,
-	Urp;
+	lister\Urp,
+	lister\Oracle;
 
 file
 	main.cpp,
 	lister.h,
+	lister.cpp,
 	CursorHandler.h,
 	SoundHandler.h,
 	MyRichEdit.notes.h,

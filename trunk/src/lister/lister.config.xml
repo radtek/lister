@@ -84,7 +84,7 @@
 			<key>TestName</key>
 			<value value="183"/>
 			<key>TestScriptId</key>
-			<value value="294"/>
+			<value value="301"/>
 			<key>TestNote</key>
 			<value value="139"/>
 			<key>TestConnId</key>
@@ -114,8 +114,8 @@
 	<win1>
 		<x value="915"/>
 		<y value="191"/>
-		<cx value="5009"/>
-		<cy value="1143"/>
+		<cx value="7754"/>
+		<cy value="1716"/>
 	</win1>
 	<edit1 type="String">
 		<scriptid value="94"/>
