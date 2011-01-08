@@ -1,6 +1,8 @@
-#include "MyRichEdit.h"
 #include <RichEdit/RichEdit.h>
 #include <Web/Web.h>
+
+#include "shared.h"
+#include "MyRichEdit.h"
 #include "Connection.h"
 
 #define K_PERIOD 0xbe|K_DELTA
@@ -49,6 +51,14 @@ static const String MACRO = "[[INPUT]]";
 			tablelist.Clear();
 		}
 		connection = mconnection;
+		
+		// If we have a connection then we log the connection id since we can't persist the actual pointer over runs
+		// By persisting the id, on startup the test can be created.
+		if (connection) {
+			connId = connection->connId;
+		} else {
+			connId = UNKNOWN;
+		}
 	}
 	
 	//==========================================================================================	
@@ -764,7 +774,10 @@ static const String MACRO = "[[INPUT]]";
 	//==========================================================================================	
 	// Save script id with script so "Add test for script" button works from toolbar.
 	/*virtual*/ void MyRichEdit::Xmlize(XmlIO xml) {
-		xml("scriptid", scriptId);
+		xml
+			("scriptid", scriptId)
+			("connid", connId)
+		;
 		// Copied following from Ctrl::Xmlize.  Not sure how it works.
 		Value v = GetData();
 		UPP::Xmlize(xml, v);
