@@ -5,8 +5,10 @@ uses
 	SqlCtrl;
 
 file
+	UrpInput.cpp,
 	UrpInput.h,
 	Urp.h,
+	UrpShared.cpp,
 	UrpShared.h,
 	UrpWindow.h,
 	UrpString.h,
@@ -15,6 +17,7 @@ file
 	Urp.lay,
 	UrpPaint.h,
 	UrpSqlGrid.h,
+	UrpMain.cpp,
 	UrpMain.h,
 	UrpSplitter.h;
 
