@@ -19,10 +19,6 @@ using namespace Upp;
 #define KEY_SOURCEDEFLT      -7       // From a feed, the default value was provided, like "99999999" for a SSN, empirically determined
 #define KEY_MULTIVALUEDA     -8       // There are legitimately multiple values, stored in standard multivalue table type A
 
-#include "TestGrid.h" // Referenced from layout
-
-#define LAYOUTFILE <lister/lister/lister.lay>
-#include <CtrlCore/lay.h>
 
 #endif
 
