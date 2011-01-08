@@ -59,6 +59,7 @@ file
 	NewInstanceWin.cpp,
 	TestWin.h,
 	TestWin.cpp,
+	shared_layout.h,
 	shared_db.h,
 	shared.h,
 	image_shared.h,

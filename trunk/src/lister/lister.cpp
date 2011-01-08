@@ -459,15 +459,17 @@
 	}
 	
 	//==========================================================================================	
-	// Update the toolbar active/inactive state of each button when connection or something changes.
-	void Lister::ToolBarRefresh() {
-		toolbar.Set(THISBACK(MyToolBar));
-	}
-
-	//==========================================================================================	
 	void Lister::AttachScriptToTask() {
 		ASSERT(taskGrid.IsCursor());
+		ASSERT(cmdScript.scriptId >= 0);
 		int taskId = taskGrid.GetCursor();
+		String script = Format("insert into relations(fromid, toid, fromtbid, totbid)"
+		                       " values(%d, %d, '%s', '%s')", taskId, cmdScript.scriptId,
+		                       OB_TASKS, OB_SCRIPTS);
+		                       
+		if (controlConnection->SendAddDataScript(script)) {
+			
+		}
 		
 	}
 	
@@ -499,12 +501,20 @@
 	}
 
 	//==========================================================================================	
+	// Update the toolbar active/inactive state of each button when connection or something changes.
+	void Lister::ToolBarRefresh() {
+		toolbar.Set(THISBACK(MyToolBar));
+	}
+
+	//==========================================================================================	
 	// Define the toolbar over the script editor.
 	void Lister::MyToolBar(Bar& bar) {
+		
+		// Add Script To History
 		bar.Add(!(cmdScript.Get().GetPlainText().ToString().IsEmpty()), "File", CtrlImg::smalldown(), THISBACK(AddScriptToHistory)).Tip("Memorize Script");
 		
-		// Only allow test creation if there is a script, a scriptid, and a connection
-		bar.Add(
+		// Create Test From Script if we have an id
+		bar.Add( // Only allow test creation if there is a script, a scriptid, and a connection
 			(cmdScript.Get().GetPlainText().ToString().GetLength() > 0 
 			 && cmdScript.connection
 			 && cmdScript.scriptId >= 0), "File", MyImages::addtotest16(), 
@@ -554,7 +564,6 @@
 	/*virtual*/ void Lister::Run(bool appmodal /* = false */) {
 		ToolBarRefresh();
 		ConnectionStatusRefresh();
-		String a = connGrid.GetColumnWidths();
 		TopWindow::SetFocus();
 		TopWindow::Run(appmodal);
 		
