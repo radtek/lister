@@ -13,6 +13,7 @@
 #include "TaskGrid.h"
 #include "ScriptGrid.h"
 #include "TestWin.h"
+#include "shared_db.h"
 
 #define APP_TITLE "lister"
 

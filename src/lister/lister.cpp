@@ -6,6 +6,9 @@
 #include "image_shared.h"
 #include <Draw/iml_source.h>
 
+#define SCHEMADIALECT <PostgreSQL/PostgreSQLSchema.h>
+#include "Sql/sch_source.h"
+
 	//==========================================================================================	
 	Lister::Lister() {
 		activeConnection = NULL;
@@ -244,13 +247,14 @@
 			{
 				// Make sound tada or yep or "uh-huh"
 				Speak(EVS_TEST_SUCCEEDED);
-				testGrid.Set(IDActualOutcome, "P");
+				testGrid.SetActualOutcome(testRow, "P");
 			} else {
 				// Grr, doh! woopsee
 				Speak(EVS_TEST_FAILED);
-				testGrid.Set(IDActualOutcome, "F");
-				
+				testGrid.SetActualOutcome(testRow, "F");
 			}
+			
+			testGrid.Accept();
 			
 			// Write to database
 			// TODO: Set time, log

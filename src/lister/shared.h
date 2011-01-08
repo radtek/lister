@@ -2,12 +2,11 @@
 #define _shared_h_
 
 #include <lister/Urp/Urp.h>
-#include <PostgreSQL/PostgreSQL.h>
 
 using namespace Upp;
 
 // This must be on this side of using namespace
-typedef PostgreSQLSession ControlSession;
+//typedef PostgreSQLSession ControlSession;
 
 #define UNKNOWN -1
 
@@ -20,19 +19,10 @@ typedef PostgreSQLSession ControlSession;
 #define KEY_SOURCEDEFLT      -7       // From a feed, the default value was provided, like "99999999" for a SSN, empirically determined
 #define KEY_MULTIVALUEDA     -8       // There are legitimately multiple values, stored in standard multivalue table type A
 
-#include "TestGrid.h"
+#include "TestGrid.h" // Referenced from layout
 
-#define LAYOUTFILE <lister/lister.lay>
+#define LAYOUTFILE <lister/lister/lister.lay>
 #include <CtrlCore/lay.h>
-
-
-#define MODEL <lister/database.sch>
-
-#define SCHEMADIALECT <PostgreSQL/PostgreSQLSchema.h>
-#include "Sql/sch_header.h"
-
-#define SCHEMADIALECT <PostgreSQL/PostgreSQLSchema.h>
-#include "Sql/sch_source.h"
 
 #endif
 
