@@ -26,7 +26,7 @@ NAMESPACE_UPP
 //#define DLLFILENAME "ora803.dll"
 #define DLLFILENAME "oci.dll"
 #define DLIMODULE   OCI8
-#define DLIHEADER   <Oracle/Oci8.dli>
+#define DLIHEADER   <lister/Oracle/Oci8.dli>
 #include <Core/dli_source.h>
 //C:\FreeBase\Oracle\Client\instantclientwin3211.2.0.1\instantclient_11_2
 //C:\Program Files\Oracle\product\10.2.0\client_1\bin
