@@ -1,10 +1,13 @@
 #ifndef _MyRichEdit_h_
 #define _MyRichEdit_h_
 
-#include "shared.h"
+//#include "shared.h"
 
 #include <RichEdit/RichEdit.h>
+#include <CtrlLib/CtrlLib.h>
 #include <Web/Web.h>
+
+class Connection;
 
 //#define K_PERIOD 0xbe|K_DELTA
 
@@ -45,7 +48,9 @@ struct MyRichEdit : public RichEdit {
 	MyPopUpTable tablelist, columnlist;
 	typedef MyRichEdit CLASSNAME;
 	Connection *connection;
-	int scriptId; // If brought from sqllist, then this is set, until modified
+	int connId;  // connection id for this connection, so we can save it in configuration
+	int scriptId; // If brought from sqllist, then this is set.  Saved in configuration to make test creation easier
+
 	double zoomlevel;
 	enum PopupInfoRequestType {
 		IR_NOMATCH
