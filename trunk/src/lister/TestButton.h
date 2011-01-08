@@ -1,25 +1,19 @@
 #ifndef _TestButton_h_
 #define _TestButton_h_
 
-#include "shared.h"
+#include <CtrlLib/CtrlLib.h>
+
+using namespace Upp;
 
 class TestButton : public Button {
 public:
 	typedef TestButton CLASSNAME;
 	bool wasClicked;
 	
-	TestButton() : Button() {
-		WhenPush = THISBACK(BeginTest); // Forces this to be a nested class
-		wasClicked = false;
-	}
-
-	~TestButton() {
-	}
+	TestButton();
 
 	// Only called if we use WhenCtrlsAction, NOT WhenCtrlAction.	
-	void BeginTest() {
-		wasClicked = true; // TestGrid will pick up
-	}
+	void BeginTest();
 };
 
 #endif

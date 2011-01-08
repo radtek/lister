@@ -1,2 +1,2 @@
 #define IMAGECLASS MyImages
-#define IMAGEFILE "lister/lister.iml"
+#define IMAGEFILE "lister/lister/lister.iml"
