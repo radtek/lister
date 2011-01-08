@@ -32,7 +32,6 @@ public:
 	TestWin testWin;
 	TaskGrid taskGrid;
 	ScriptGrid scriptGrid;
-	
 	MyRichEdit cmdScript;
 	Connection *controlConnection; // Connection to lister data
 	Connection *activeConnection;
@@ -74,7 +73,7 @@ public:
 	
 	// Capture when session->status value changed, usually during a Execute or Fetch.
 	// We need the Cancel Execution button to only be active when a asynch execution call is away.
-	void SessionStatusChanged(const SqlSession&session);
+	void SessionStatusChanged(const SqlSession& session);
 	
 	// User clicked the connect button or clicked on a row in the conngrid.	
 	void SetActiveConnection(Connection *newConnection);
