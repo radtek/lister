@@ -21,7 +21,7 @@ struct OCILobLocator;
 
 #define DLLFILENAME "oci.dll"
 #define DLIMODULE   OCI8
-#define DLIHEADER   <Oracle/Oci8.dli>
+#define DLIHEADER   <lister/Oracle/Oci8.dli>
 #include <Core/dli_header.h>
 
 void OCI8SetDllPath(String oci8_path, T_OCI8& oci8 = OCI8_());
