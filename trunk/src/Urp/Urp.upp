@@ -5,19 +5,26 @@ uses
 	SqlCtrl;
 
 file
-	UrpInput.cpp,
-	UrpInput.h,
 	Urp.h,
-	UrpShared.cpp,
+	UrpInput.h,
+	UrpInput.cpp,
 	UrpShared.h,
+	UrpShared.cpp,
 	UrpWindow.h,
+	UrpWindow.cpp,
 	UrpString.h,
+	UrpString.cpp,
 	UrpLineEdit.h,
+	UrpLineEdit.cpp,
 	UrpGrid.h,
-	Urp.lay,
-	UrpPaint.h,
+	UrpGrid.cpp,
 	UrpSqlGrid.h,
-	UrpMain.cpp,
+	UrpSqlGrid.cpp,
+	UrpPaint.h,
+	UrpPaint.cpp,
 	UrpMain.h,
-	UrpSplitter.h;
+	UrpMain.cpp,
+	UrpSplitter.h,
+	UrpSplitter.cpp,
+	Urp.lay;
 
