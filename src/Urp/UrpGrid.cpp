@@ -29,6 +29,7 @@ UrpGrid::UrpGrid() : GridCtrl() {
 	Proportional();
 	ColorRows(true);
 	FixedPaste();
+	CopyColumnNames(true);
 }
 
 //==========================================================================================	
@@ -87,8 +88,13 @@ void UrpGrid::Xmlize(XmlIO xml) {
 		xml("columnwidths", floatingColumnWidths); // Read from store
 		for (int i = 0; i < GetFloatingColumnCount(); i++) {
 			String colIdName = GetFloatingColumnId(i).ToString();
+			int colWidth = 0;
 			
-			int colWidth = floatingColumnWidths.Get(colIdName, GetFloatingColumnWidth(i));
+			if (floatingColumnWidths.Find(colIdName) == -1) {
+				colWidth = 60;
+			} else {
+				colWidth = floatingColumnWidths.Get(colIdName, GetFloatingColumnWidth(i));
+			}
 			
 			// Check for label marked as a hidden column
 			if (colWidth == HIDDEN_COLUMN) {
