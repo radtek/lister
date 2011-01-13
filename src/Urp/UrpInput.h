@@ -3,8 +3,7 @@
 
 #include "UrpShared.h"
 
-// Simple Input Box  (Hard to find something like this in U++) Sizeable.
-//==========================================================================================	
+// Input Box for a transformation control string to be applied to a multiline input string
 bool UrpInputBox(
 		String& wrapperText
 	,	String &scrubAllOcc // If inputed, all occurrence in each input line will be stripped.  No support for cross lines yet.  Hmmm.
@@ -12,5 +11,8 @@ bool UrpInputBox(
 	,	bool &forceInputToUpper // Force input to upper, but not the wrapperText
 	,	bool &convertSpacesToUnderscores // Only on input
 	,	const char *title, const char *label);
+
+// Simpler input box
+bool UrpInputBox(String &inputText, const char *title, const char *label);
 
 #endif
