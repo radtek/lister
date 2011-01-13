@@ -2,6 +2,7 @@
 #define _lister_TaskGrid_h_
 
 #include "shared.h"
+class Connection;
 
 // Extracted from listertables table.
 
@@ -54,6 +55,7 @@ public:
 	TaskGrid();
 	void Build();
 	void Load(Connection *pconnection);
+	int GetTaskId(int row);
 };
 
 
