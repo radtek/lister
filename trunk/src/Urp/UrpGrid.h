@@ -9,6 +9,7 @@
 class UrpGrid: public Upp::GridCtrl {
 public:
 	UrpGrid();
+	virtual bool Key(dword key, int count) { return GridCtrl::Key(key, count); };
 	// Obviously, U++ developer Uno was being a total dickwad when he refused to give a function
 	// to extract column widths, so I've created it.
 	int GetFloatingColumnWidth(int colno);
@@ -23,6 +24,7 @@ public:
 	//  Have to save by name so that code changes that add/subtract columns will not cause confusion.
 	//  Also, we save hidden state by name instead of position, which can really mess with a grid.
 	void Xmlize(XmlIO xml);
+	
 };
 
 #endif
