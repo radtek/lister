@@ -21,7 +21,7 @@ public:
 	EditStringNotNull fldInstTypName;          // 6) String form of type of server: Oracle, MS SQL, etc, which connector we use
 	EditString fldEnvStdName;                // 7) Environment: Dev, UAT, prod.  This is the color
 	EditString fldConnNote;
-	
+	EditString fldDbName;	
 	DropGrid instTypList;
 	DropGrid instanceList;
 	DropGrid envList;
@@ -34,7 +34,6 @@ public:
 	//GridCtrl *outputGrid;
 
 	ConnGrid();
-	
 	int GetConnId(int row);
 	void SetConnId(int row, int pconnId);
 	String GetConnName(int row);
@@ -43,6 +42,7 @@ public:
 	String GetInstanceName(int row);
 	String GetInstanceAddress(int row);
 	int GetInstTypId(int row);
+	String GetDatabaseName(int row);
 	int GetEnvId(int row);
 	int GetLoginId(int row);
 	String GetLoginStr(int row);
