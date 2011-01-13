@@ -6,11 +6,14 @@ class Connection;
 
 class ScriptGrid : public UrpSqlGrid {
 public:
-	EditString scriptName, note, scriptBody;
+	EditString taskName, scriptName, taskNote, scriptNote, scriptBody, why;
 
 	ScriptGrid();
 	void Build();
 	void Load(Connection *pconnection);
+	void LinkScriptToTaskGrid(ArrayCtrl &taskGrid);
+	int GetScriptId(int row);
+	String GetScript(int row);
 };
 
 #endif
