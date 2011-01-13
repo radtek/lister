@@ -3,15 +3,16 @@
 
 #include "shared.h"
 #include "CursorHandler.h"
-#include "ConnGrid.h"
 #include "ConnState.h"
 #include "Connection.h"
 #include "SoundHandler.h"
-#include "TestGrid.h"
 #include "MyRichEdit.h"
 #include "MyDropGrid.h"
+#include "ConnGrid.h"
+#include "TestGrid.h"
 #include "TaskGrid.h"
 #include "ScriptGrid.h"
+#include "OutputGrid.h"
 #include "TestWin.h"
 #include "shared_db.h"
 
@@ -27,7 +28,7 @@ public:
 	StaticRect topLeftPane, topMidLeftPane, topMidRightPane, topRightPane;
 	StaticRect bottomLeftPane, bottomMidPane, bottomRightPane;
 	ToolBar toolbar;
-	GridCtrl mainGrid; // Not currently using UrpGrid since this is not saved
+	OutputGrid mainGrid; // Not currently using UrpGrid since this is not saved
 	ConnGrid connGrid;
 	TestWin testWin;
 	TaskGrid taskGrid;
@@ -43,70 +44,43 @@ public:
 	DropGrid userList;
 
 	Lister();
-	
-	// User clicked Test! on the TestGrid.
-	void ClickedTest();
-
-	// User clicked Connect! on the ConnGrid.
-	void ClickedConnect();
-
-	// Connect to the connection user selected in the ConnGrid.	
-	Connection *ConnectUsingGrid(String connName);
-
-	// Connect based on the connection listed on the ConnGrid based on passed row
-	Connection *ConnectUsingGrid(int row);
-
+	void ClickedTest(); // User clicked Test! on the TestGrid.
+	void ClickedConnect(); // User clicked Connect! on the ConnGrid.
+	Connection *ConnectUsingGrid(String connName); // Connect to the connection user selected in the ConnGrid.	
+	Connection *ConnectUsingGrid(int row); // Connect based on the connection listed on the ConnGrid based on passed row
 	void AddScriptToHistory();
-	
-	// For multi-line scripts, this is the only way to see the full script.
-	void SelectedScriptFromDropDown();
-	
+	void SelectedScriptFromDropDown(); // For multi-line scripts, this is the only way to see the full script.
+	void SelectedTaskScript(); // User selected a script assigned to a task.
+	void GetTaskLastInsertedPkId();
 	// User pressed "+" button on script list dropdown, requesting that the script be loaded
 	// into the editor.
 	void PushScriptToEditor();
-	
 	void CreateTestFromScript();
 	void BrowseTests();
-	
-	// Thought I needed this more	
-	void ListUsers();
-	
+	void ListUsers(); // Thought I needed this more
 	// Capture when session->status value changed, usually during a Execute or Fetch.
 	// We need the Cancel Execution button to only be active when a asynch execution call is away.
+	void ListContacts(); // First attempt at dynamic dialog popup of UrpGrid container. May thread it.
 	void SessionStatusChanged(const SqlSession& session);
-	
-	// User clicked the connect button or clicked on a row in the conngrid.	
-	void SetActiveConnection(Connection *newConnection);
-
-	// Update all enabled/disabled buttons based on a change in the users selected active connection.
-	void ActiveConnectionChanged();
-	
-	// This must be called when a connection changes or you won't be able to execute scripts.
-	void ConnectionStatusRefresh();
-	
+	void SelectedConnection();
+	void SetActiveConnection(Connection *newConnection); // User clicked the connect button or clicked on a row in the conngrid.	
+	void ActiveConnectionChanged(); // Update all enabled/disabled buttons based on a change in the users selected active connection.
+	void ActiveTaskChanged();
+	void ScriptContentChanged(); // If script changed, we can't attach to a task until a script id is created.
+	void ConnectionStatusRefresh(); // This must be called when a connection changes or you won't be able to execute scripts.
 	void CancelRunningScriptOnActiveConn();
-	
-	// Update the toolbar active/inactive state of each button when connection or something changes.
-	void ToolBarRefresh();
-
 	void AttachScriptToTask();
-	
 	void DeployLister();
-
-	// Define the toolbar over the script editor.
-	void MyToolBar(Bar& bar);
-	
-	// Called from main.cpp. to open the main window
-	virtual void Run(bool appmodal = false);
-
-	void ExecuteSQLActiveConn();
-	
+	void NotifyUser(String message); // Simple wrapper
+	void ToolBarRefresh(); // Update the toolbar active/inactive state of each button when connection or something changes.
+	void MyToolBar(Bar& bar); // Define the toolbar over the script editor.
+	virtual void Run(bool appmodal = false); // Called from main.cpp. to open the main window
+	void ScriptExecutionHandler(bool loadIntoTable);
+	void ExecuteSQLActiveConn(); // Load to grid only
+	void ExecuteAndLoadSQLActiveConn(); // Load output of script into a table in control db.
 	bool Key(dword key, int count);
-
 	void Serialize(Stream& s);
-	
-	// Hack in Ctrl class to make Xmlize virtual
-	virtual void Xmlize(XmlIO xml);
+	virtual void Xmlize(XmlIO xml); // Hack in Ctrl class to make Xmlize virtual
 };
 
 #endif
