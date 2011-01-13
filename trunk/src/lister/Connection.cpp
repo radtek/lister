@@ -1,5 +1,6 @@
 #include "Connection.h"
 
+//==============================================================================================
 Connection::Connection() {
 	connId = UNKNOWN;
 	connName = Null;	
@@ -12,7 +13,7 @@ Connection::Connection() {
 	connectErrorMessage = "";
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Called from within OCI8Connection in Oci8.cpp Execute() or Fetch() function during
 // OCI_STILL_EXECUTING status.
 void Connection::WhenStillExecuting() {
@@ -27,7 +28,7 @@ void Connection::WhenStillExecuting() {
 	// TODO: Check if user requested to cancel this run.  if so OCIBreak/OCICancel
 }
 
-//==========================================================================================	
+//==============================================================================================
 bool Connection::Connect(TopWindow *ptopWindow) {
 	topWindow = ptopWindow;
 	connectThreadStatus = CONNECTSTATUS_UNDEF;
@@ -51,7 +52,7 @@ bool Connection::Connect(TopWindow *ptopWindow) {
 	return status;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // postcondition: Sets enumConnState, instType
 // precondition: Connects strictly from ConnectFactory
 // TopWindow is currently only supported by Oracle driver (I added :))
@@ -59,7 +60,7 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 	String connStr;
 	bool connected = false;
 
-	//———————————————————————————————————————————————————————————————————————————————————————— 
+	//__________________________________________________________________________________________
 	if (instanceTypeName == INSTTYPNM_ORACLE) {
 		instanceType = INSTTYP_ORACLE;
 		
@@ -76,7 +77,7 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 		// Tell the Execute()/Fetch() to call the main event window every so often to prevent GUI freeze
 //			((OCI8Connection *)this)->SetTopWindow(topWindow);
 
-	//———————————————————————————————————————————————————————————————————————————————————————— 
+	//__________________________________________________________________________________________
 	} else if (instanceTypeName == INSTTYPNM_POSTGRESQL) {
 		instanceType = INSTTYP_POSTGRESQL;
 		connStr 
@@ -90,24 +91,43 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 		connected = attemptingsession->Open(connStr);
 		session = -attemptingsession; // Pick?
 
-	//———————————————————————————————————————————————————————————————————————————————————————— 
+	//__________________________________________________________________________________________
 	} else if (instanceTypeName == INSTTYPNM_MSSQLSERVER) {
 		instanceType = INSTTYP_MSSQLSERVER;
 		connStr 
-			<< "Driver={SQL Server};"
-			<< "Server=" 	<< instanceAddress	<< ";"
-			<< "UID="		<< loginStr			<< ";"
-			<< "PWD="		<< loginPwd			<< ";"
-			// "Database="	<< dbName			<< ";"
+//			<< "Driver={SQL Server};" // Driver works
+			<< "Driver="	<< "{SQL Native Client}"	<< ";"
+//			<< "Driver="	<< "{SQL Server Native Client 10.0}"	<< ";"
+			<< "Server=" 	<< instanceAddress			<< ";"
+			<< "UID="		<< loginStr					<< ";"
+			<< "PWD="		<< loginPwd					<< ";"
+			<< "Database="	<< dbName					<< ";"
 			// Trusted_Connection=Yes;
 			;
 			
 		One<MSSQLSession> attemptingsession = new MSSQLSession;
 		
+		//SQLExecDirect(hstmt, "select * from authors; select * from titles", SQL_NTS);'
+		//Excess use of SQLBindCol to bind a result set column to a program variable is expensive because SQLBindCol causes an ODBC driver to allocate memory
+		//Applications can use SQLGetData to retrieve data on a column-by-column basis, instead of binding the result set columns using SQLBindCol. If a result set contains only a couple of rows, then using SQLGetData instead of SQLBindCol is faster, otherwise, SQLBindCol gives the best performance. If an application does not always put the data in the same set of variables, it should use SQLGetData instead of constantly rebinding. Applications can only use SQLGetData on columns that are in the select list after all columns are bound with SQLBindCol. The column must also appear after any columns on which the application has already used a SQLGetData.
+		//All statements executed in a stored procedure, including SELECT statements, generate an "x rows affected" message. Issuing a SET NOCOUNT ON at the start of a large stored procedure can significantly reduce the network traffic between the server and client and improve performance by eliminating these messages. These messages are typically not needed by the application when it is executing a stored procedure.
+		//the application can also use SQLExtendedFetch to retrieve multiple rows at a time from the network buffers.
+		//In a static cursor, the complete result set is built when the cursor is opened.
+		//When using server cursors, each call to SQLFetch, SQLExtendedFetch, or SQLSetPos causes a network roundtrip from the client to the server. All cursor statements must be transmitted to the server because the cursor is actually implemented on the server.
+		
+//		SQLAllocEnv(&henv):
+//		SQLAllocConnect(henv, &hdbc);
+//		SQLAllocStmt(hdbc, &hstmt1);
+//		SQLAllocStmt(hdbc, &hstmt2);
+//		SQLSetConnectOption(hdbc, SQL_CURSOR_TYPE, SQL_CURSOR_DYNAMIC);
+//		SQLSetConnectOption(hdbc, SQL_ROWSET_SIZE, 5);
+//		SQLExecDirect(hstmt1, "select * from authors", SQL_NTS);
+
+
 		connected = attemptingsession->Connect(connStr);
 		session = -attemptingsession;
 	
-	//———————————————————————————————————————————————————————————————————————————————————————— 
+	//__________________________________________________________________________________________
 	} else if (instanceTypeName == INSTTYPNM_FTP) {
 		instanceType = INSTTYP_FTP;
 		
@@ -117,14 +137,14 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 		// FTP
 		// C:\upp\uppsrc\plugin\ftp\ftp.cpp(44): if(!FtpConnect(host, &ftpconn, perror, &FtpClient::Callback, this, 200, idletimeout_secs)) {
 	
-	//———————————————————————————————————————————————————————————————————————————————————————— 
+	//__________________________________________________________________________________________
 	} else if (instanceTypeName == INSTTYPNM_TELNET) {
 		instanceType = INSTTYP_TELNET;
 		
 		Exclamation(CAT << "Error: TELNET not implemented");
 		session = NULL;
 
-	//———————————————————————————————————————————————————————————————————————————————————————— 
+	//__________________________________________________________________________________________
 	} else {
 		Exclamation(CAT << "Error: Unrecognized instance type: " << instanceTypeName);
 		enumConnState = NOCON_MISCONFIG;
@@ -152,12 +172,13 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 	return;
 }
 
-//==========================================================================================
+//==============================================================================================
 SqlSession &Connection::GetSession() {
 	return *session;
 }
 
-//==========================================================================================
+//==============================================================================================
+// Avoid breakage when the script is damaged by control characters in its data portion
 String Connection::PrepTextDataForSend(const String &textData) {
 	switch (instanceType) {
 		case INSTTYP_POSTGRESQL:
@@ -171,7 +192,7 @@ String Connection::PrepTextDataForSend(const String &textData) {
 	}
 }
 
-//==========================================================================================
+//==============================================================================================
 // Oracle breaks with odd aposts in line comments
 String Connection::PrepScriptForSend(const String &script) {
 	switch (instanceType) {
@@ -183,7 +204,7 @@ String Connection::PrepScriptForSend(const String &script) {
 	}
 }
 
-//==========================================================================================
+//==============================================================================================
 // This is a prep for actual execution by the receiving instance, not for insertion into 
 // the control db as a saved script text.
 String Connection::PrepOracleScriptForSend(const String &script) {
@@ -313,7 +334,7 @@ String Connection::PrepOracleScriptForSend(const String &script) {
 	}
 }
 
-//==========================================================================================
+//==============================================================================================
 //  Wrap script method implementation and error handling.  Will allow reconnects and reexecutes.
 bool Connection::SendQueryDataScript(const char *sqlText, bool silent /*= false*/) {
 	ClearError();
@@ -328,7 +349,15 @@ retryQuery:
 			// Should detect that we haven't run a script for a while and have probably timed out
 			if (PromptYesNo("Detected connection timeout, reconnect?")) {
 				delete -session;
-				Connect(topWindow);
+				if (!Connect(topWindow)) {
+					Exclamation(CAT << "Error reconnection: " << connectErrorMessage);
+					return false;
+				}
+				if (!session) {
+					Exclamation("Session not reset by reconnect");
+					return false;
+				}
+				
 				goto retryQuery;
 			} else {
 				delete -session;
@@ -348,37 +377,37 @@ retryQuery:
 	return true;
 }
 
-//==========================================================================================
+//==============================================================================================
 bool Connection::SendAddDataScript(const char *sqlText, bool silent /*= false*/) {
 	return SendQueryDataScript(sqlText, silent);
 }
 
-//==========================================================================================
+//==============================================================================================
 bool Connection::SendChangeDataScript(const char *sqlText, bool silent /*= false*/) {
 	return SendQueryDataScript(sqlText, silent);
 }
 
-//==========================================================================================
+//==============================================================================================
 bool Connection::SendRemoveDataScript(const char *sqlText, bool silent /*= false*/) {
 	return SendQueryDataScript(sqlText, silent);
 }
 
-//==========================================================================================
+//==============================================================================================
 bool Connection::SendChangeEnvScript(const char *sqlText, bool silent /*= false*/) {
 	return SendQueryDataScript(sqlText, silent);
 }
 
-//==========================================================================================
+//==============================================================================================
 bool Connection::SendQueryEnvScript(const char *sqlText, bool silent /*= false*/) {
 	return SendQueryDataScript(sqlText, silent);
 }
 
-//==========================================================================================
+//==============================================================================================
 bool Connection::SendChangeStructureScript(const char *sqlText, bool silent /*= false*/) {
 	return SendQueryDataScript(sqlText, silent);
 }
 
-//==========================================================================================	
+//==============================================================================================
 int Connection::GetInsertedId(String tableName, String columnName) {
 	switch (instanceType) {
 		case INSTTYP_POSTGRESQL:
@@ -391,7 +420,7 @@ int Connection::GetInsertedId(String tableName, String columnName) {
 	return UNKNOWN;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Only works for PostgreSQL.
 int Connection::GetPostgreSQLInsertedId(String tableName, String columnName) {
 			
@@ -406,15 +435,15 @@ int Connection::GetPostgreSQLInsertedId(String tableName, String columnName) {
 	return atoi((*this)[0].ToString());
 }
 
-//==========================================================================================	
+//==============================================================================================
 Value Connection::Get(SqlId i) const {
 	Value v;
 	Sql::GetColumn(i, v);
 	return v;
 }
 
-//==========================================================================================	
-// PostgreSQL driver does not 
+//==============================================================================================
+// PostgreSQL driver does not return the type of a boolean as boolean, but as string
 bool Connection::GetBool(int i) const {
 	Value v;
 	Sql::GetColumn(i, v);
@@ -426,14 +455,14 @@ bool Connection::GetBool(int i) const {
 	return v;
 }
 
-//==========================================================================================	
+//==============================================================================================
 Value Connection::Get(int i) const {
 	Value v;
 	Sql::GetColumn(i, v);
 	return v;
 }
 
-//==========================================================================================	
+//==============================================================================================
 bool Connection::HandleDbError(int actioncode, String *cmd/* = NULL*/) {
 	
 	String errcode = GetErrorCodeString();
@@ -462,12 +491,12 @@ bool Connection::HandleDbError(int actioncode, String *cmd/* = NULL*/) {
 	return connections;
 }
 
-//==========================================================================================	
+//==============================================================================================
 ConnectionFactory::ConnectionFactory(Connection *pcontrolConnection/* = NULL*/) {
 	controlConnection = pcontrolConnection;
 }
 
-//==========================================================================================	
+//==============================================================================================
 ConnectionFactory::~ConnectionFactory() {
 	// Release all the connection objects to prevent a memory leak
 	for (int i = 0; i < Connections().GetCount(); i++) {
@@ -476,11 +505,19 @@ ConnectionFactory::~ConnectionFactory() {
 	}
 }
 
-//==========================================================================================	
+//==============================================================================================
 /*static*/ String ConnectionFactory::ControlInstanceType() {
 	return INSTTYPNM_POSTGRESQL;
 }
 
+//==============================================================================================
+Connection *ConnectionFactory::GetConnection(String connName) {
+	if (connName.IsEmpty()) return NULL; // Empty for a new row, for instance
+	ASSERT(!connName.IsEmpty());
+	return Connections().Get(connName, (Connection *)NULL);
+}
+
+//==============================================================================================
 Connection *ConnectionFactory::Connect(TopWindow *win, int connId, Connection *pcontrolConnection/* = NULL*/) {
 	Connection *lcontrolConnection = NULL;
 	
@@ -518,17 +555,25 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, Connection *p
 	
 	lcontrolConnection->Fetch();
 
-	String connName = lcontrolConnection->Get(1);
+	String connName			= lcontrolConnection->Get(1);
 	String instanceTypeName = lcontrolConnection->Get(9);
-	String loginStr = lcontrolConnection->Get(3);
-	String loginPwd = lcontrolConnection->Get(4);
-	String instanceAddress = lcontrolConnection->Get(7);
-	String dbName = lcontrolConnection->Get(12);
+	String loginStr 		= lcontrolConnection->Get(3);
+	String loginPwd 		= lcontrolConnection->Get(4);
+	String instanceAddress 	= lcontrolConnection->Get(7);
+	String dbName 			= lcontrolConnection->Get(12);
 	
-	return Connect(win, connName, instanceTypeName, loginStr, loginPwd, instanceAddress, dbName);
+	return Connect(
+			win
+		,	connName
+		,	instanceTypeName
+		,	loginStr
+		,	loginPwd
+		,	instanceAddress
+		,	dbName
+	);
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Connection factory (Takes window for async connection spinning.
 // Assumption: connName is unique per connection.  No support for multiple connections per connection definition
 Connection *ConnectionFactory::Connect(TopWindow *win, String connName, String instanceTypeName
@@ -554,7 +599,8 @@ Connection *ConnectionFactory::Connect(TopWindow *win, String connName, String i
 
 	if (connName == CONTROL_CONN_NAME) {
 		controlConnection = Connections().Get(connName);
-		LOG("Set control Connection to " + connName + ", " + instanceTypeName + ", login=" + loginStr + ", addr=" + instanceAddress + ", db=" + dbName);
+		LOG("Set control Connection to " + connName + ", " + instanceTypeName 
+		+ ", login=" + loginStr + ", addr=" + instanceAddress + ", db=" + dbName);
 	}
 	
 	// Cycle through hooks
