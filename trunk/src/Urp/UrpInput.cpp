@@ -1,7 +1,7 @@
 #include "UrpInput.h"
 
-// Simple Input Box  (Hard to find something like this in U++) Sizeable.
 //==========================================================================================	
+// Input Box for a transformation control string to be applied to a multiline input string
 bool UrpInputBox(
 		String& wrapperText
 	,	String &scrubAllOcc // If inputed, all occurrence in each input line will be stripped.  No support for cross lines yet.  Hmmm.
@@ -21,6 +21,28 @@ bool UrpInputBox(
 		splitOnThisToMacros = dlg.fldSplitOn;
 		forceInputToUpper = dlg.optForceInputToUpper;
 		convertSpacesToUnderscores = dlg.optConvertSpacesToUnderscores;
+		return true;
+	}
+	return false;
+}
+
+//==========================================================================================	
+// Simpler input box
+bool UrpInputBox(String &inputText, const char *title, const char *label) {
+	WithMyEditStringLayout<TopWindow> dlg;
+	dlg.Sizeable().Zoomable();
+	CtrlLayoutOKCancel(dlg, title);
+	dlg.lbl = label;
+	dlg.text = inputText.ToWString();
+
+	// Hide all the controls we don't support
+	dlg.fldScrubText.Hide();
+	dlg.fldSplitOn.Hide();
+	dlg.optConvertSpacesToUnderscores.Hide();
+	dlg.optForceInputToUpper.Hide();
+	
+	if(dlg.Execute() == IDOK) {
+		inputText = dlg.text;
 		return true;
 	}
 	return false;
