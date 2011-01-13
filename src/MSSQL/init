@@ -1,0 +1,4 @@
+#ifndef _lister_MSSQL_icpp_init_stub
+#define _lister_MSSQL_icpp_init_stub
+#include "lister\ODBC/init"
+#endif
