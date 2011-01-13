@@ -38,6 +38,20 @@ UrpSqlGrid::UrpSqlGrid() {
 }
 
 //==========================================================================================	
+// Override since the standard function expects the pk to be named "id" in order to fetch
+// from Postgre sequence.  We let creator of grid control getting last pk id.
+bool UrpSqlGrid::UpdateRow() {
+	bool updated = SqlArray::UpdateRow();
+	
+	if (updated && IsInsert() && WhenNeedLastInsertedPkId) {
+		WhenNeedLastInsertedPkId();
+		Set(GetKeyId(), lastinsertedpkid);
+	}
+	
+	return updated;
+}
+
+//==========================================================================================	
 // Obviously, U++ developer Uno was being a total dickwad when he refused to give a function
 // to extract column widths, so I've created it.
 int UrpSqlGrid::GetFloatingColumnWidth(int colno) {
@@ -78,6 +92,14 @@ void UrpSqlGrid::HideFloatingColumn(int i) {
 	// Does NOT take into account fixed colunmns
 //GRIDCTRL		HideColumn(i + fixed_cols, true /* Repaint */);
 	HeaderObject().HideTab(i);
+
+}
+
+//==========================================================================================	
+void UrpSqlGrid::HideColumn(Id id) {
+	// Does NOT take into account fixed colunmns
+//GRIDCTRL		HideColumn(i + fixed_cols, true /* Repaint */);
+	HeaderObject().HideTab(GetColumnNo(id));
 
 }
 
