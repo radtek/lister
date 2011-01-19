@@ -34,23 +34,24 @@ void MakeConnState(One<Ctrl>& ctrl) {
 
 //==========================================================================================	
 ConnGrid::ConnGrid() : UrpGrid() {
+
 }
 
 //==========================================================================================	
-int ConnGrid::GetConnId(int row)					{ return Get(row, IDConnId); }
-void ConnGrid::SetConnId(int row, int pconnId)	    { Set(row, IDConnId, pconnId); }
-String ConnGrid::GetConnName(int row)				{ return TrimBoth(Get(row, IDConnName)); }
-String ConnGrid::GetInstanceTypeName(int row)		{ return TrimBoth(Get(row, IDInstTypName)); }
-int ConnGrid::GetInstanceId(int row)				{ return Get(row, IDInstanceId); }
-String ConnGrid::GetInstanceName(int row)			{ return TrimBoth(Get(row, IDInstanceName)); }
-String ConnGrid::GetInstanceAddress(int row)		{ return TrimBoth(Get(row, IDInstanceAddress)); }
-int ConnGrid::GetInstTypId(int row)				    { return Get(row, IDInstTypId); }
-String ConnGrid::GetDatabaseName(int row)           { return Get(row, IDDatabaseName); }
-int ConnGrid::GetEnvId(int row)				  	    { return Get(row, IDEnvId); }
-int ConnGrid::GetLoginId(int row)					{ return Get(row, IDLoginId); }
-String ConnGrid::GetLoginStr(int row)				{ return TrimBoth(Get(row, IDLoginStr)); }
-String ConnGrid::GetLoginPwd(int row)				{ return TrimBoth(Get(row, IDLoginPwd)); }
-ConnState *ConnGrid::GetConnState(int row)          { return (ConnState *)GetCtrl(row, FindCol(IDConnState)); }
+int        ConnGrid::GetConnId          (int row)				{ return Get(row, IDConnId); }
+void       ConnGrid::SetConnId          (int row, int pconnId)	{ Set(row, IDConnId, pconnId); }
+String     ConnGrid::GetConnName        (int row)				{ return TrimBoth(Get(row, IDConnName)); }
+String     ConnGrid::GetInstanceTypeName(int row)				{ return TrimBoth(Get(row, IDInstTypName)); }
+int        ConnGrid::GetInstanceId      (int row)				{ return Get(row, IDInstanceId); }
+String     ConnGrid::GetInstanceName    (int row)				{ return TrimBoth(Get(row, IDInstanceName)); }
+String     ConnGrid::GetInstanceAddress (int row)				{ return TrimBoth(Get(row, IDInstanceAddress)); }
+int        ConnGrid::GetInstTypId       (int row)			    { return Get(row, IDInstTypId); }
+String     ConnGrid::GetDatabaseName    (int row)           	{ return Get(row, IDDatabaseName); }
+int        ConnGrid::GetEnvId           (int row)				{ return Get(row, IDEnvId); }
+int        ConnGrid::GetLoginId         (int row)				{ return Get(row, IDLoginId); }
+String     ConnGrid::GetLoginStr        (int row)				{ return TrimBoth(Get(row, IDLoginStr)); }
+String     ConnGrid::GetLoginPwd        (int row)				{ return TrimBoth(Get(row, IDLoginPwd)); }
+ConnState *ConnGrid::GetConnState       (int row)       	    { return (ConnState *)GetCtrl(row, FindCol(IDConnState)); }
 
 //==========================================================================================	
 void ConnGrid::NewConn() {
@@ -229,6 +230,17 @@ bool ConnGrid::MeaningfulDataChange() {
 		!IsModified(IDDatabaseName)
 		) return false;
 
+	return true;
+}
+
+//==============================================================================================
+// Programmatically select a connection, usually from a task script selection
+bool ConnGrid::FindConnId(int pconnId, bool silent /*= false*/) {
+	int rowno = Find(pconnId, IDConnId);
+	if (rowno == -1) return false;
+	GoTo(rowno);
+	CenterCursor();
+	ProcessEvents();
 	return true;
 }
 
