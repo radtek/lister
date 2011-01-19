@@ -1,4 +1,7 @@
 #include "Connection.h"
+#include "CursorHandler.h"
+#include "Script.h"
+#include "LogWin.h"
 
 //==============================================================================================
 Connection::Connection() {
@@ -194,10 +197,10 @@ String Connection::PrepTextDataForSend(const String &textData) {
 
 //==============================================================================================
 // Oracle breaks with odd aposts in line comments
-String Connection::PrepScriptForSend(const String &script) {
+String Connection::PrepScriptForSend(const String &script, bool log /*=false*/) {
 	switch (instanceType) {
 		case INSTTYP_ORACLE:
-			return PrepOracleScriptForSend(script);
+			return PrepOracleScriptForSend(script, log);
 			break;
 		default:
 			return script;
@@ -207,7 +210,7 @@ String Connection::PrepScriptForSend(const String &script) {
 //==============================================================================================
 // This is a prep for actual execution by the receiving instance, not for insertion into 
 // the control db as a saved script text.
-String Connection::PrepOracleScriptForSend(const String &script) {
+String Connection::PrepOracleScriptForSend(const String &script, bool log /*=false*/) {
 	ASSERT(instanceType == INSTTYP_ORACLE);
 	
 	// Odd number of apostrophes in a line comment before it terminates breaks Oracle's processor
@@ -229,6 +232,9 @@ String Connection::PrepOracleScriptForSend(const String &script) {
 		int c = *s;
 		// ISO Latin-1 codes: 34=quotation mark, 39=apostrophe, 8216=left single curly quote, 8217=right single curly quote, 
 		if (In(c, '`', 8216, 8217)) {
+			if (log) {
+				LogLine(CAT << "Found " << c << " at " << (s - first_s));
+			}
 			replaceCharAt.Add((s - first_s), '\'');
 		} else if (c < 0) {
 			String unicode_c = FormatIntHex(c);
@@ -335,15 +341,144 @@ String Connection::PrepOracleScriptForSend(const String &script) {
 }
 
 //==============================================================================================
-//  Wrap script method implementation and error handling.  Will allow reconnects and reexecutes.
-bool Connection::SendQueryDataScript(const char *sqlText, bool silent /*= false*/) {
+// The Postgres COPY tool (http://www.postgresql.org/docs/8.1/static/sql-copy.html)
+// has expectations of the data it is inputing
+String Connection::PrepForPostgresCopyFrom(const String scriptText) {
+	if (scriptText.IsEqual("\\N")) return String("\\\\N");
+	if (scriptText.IsEqual("\\.")) return String("\\\\.");
+	const char *s = scriptText.Begin();
+	String outText;
+	for (int i = 0; i < scriptText.GetLength(); i++) {
+		switch (s[i]) {
+		case '\t':
+			outText+= "\\T";
+			break;
+		case '\n':
+			outText+= "\\N";
+			break;
+		case '\r':
+			outText+= "\\R";
+			break;
+		default:
+			outText+= s[i];
+		}
+	}
+	
+	return outText;
+}
+
+
+//==============================================================================================
+// Migrate logic from CursorHandler.  Traverse fetch and push out to screen or table.
+// Must be here because we want to push around connection pointer, not connection and cursor pointer.
+bool Connection::ProcessQueryDataScript(Script &sob, bool log) {
+	CursorHandler cursorHandler(controlConnection, this);
+	bool ran = cursorHandler.Run(sob, log);
+
+	return ran;
+}
+
+//==============================================================================================
+// Convert [[]] codes to values.  Hacky for now.
+String Connection::ExpandMacros(String inputText) {
+
+	String macro;
+	String expansion;
+	Date curDate = GetSysDate();
+	
+	macro = "[[TPLUS1]]";
+	if (inputText.Find(macro) >= 0) {
+		if (DayName(DayOfWeek(curDate)) == "Sunday") {
+			expansion = "2"; // Back two days to Friday
+		} else if (DayName(DayOfWeek(curDate)) == "Monday") {
+			expansion = "3";
+		} else {
+			expansion = "1";
+		}
+		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
+	}	
+
+	macro = "[[TPLUS2]]";
+	if (inputText.Find(macro) >= 0) {
+		if (DayName(DayOfWeek(curDate)) == "Sunday") {
+			expansion = "3"; // Back to Thursday
+		} else if (DayName(DayOfWeek(curDate)) == "Monday") {
+			expansion = "4"; // to Thursday
+		} else if (DayName(DayOfWeek(curDate)) == "Tuesday") {
+			expansion = "4"; // to Friday
+		} else {
+			expansion = "2";
+		}
+		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
+	}	
+
+	macro = "[[TPLUS3]]";
+	if (inputText.Find(macro) >= 0) {
+		if (DayName(DayOfWeek(curDate)) == "Sunday") {
+			expansion = "4"; // Back to Wednesday
+		} else if (DayName(DayOfWeek(curDate)) == "Monday") {
+			expansion = "5"; // Back to Wednesday
+		} else if (DayName(DayOfWeek(curDate)) == "Tuesday") {
+			expansion = "5"; // Back to Thursday
+		} else if (DayName(DayOfWeek(curDate)) == "Wednesday") {
+			expansion = "5"; // Back to Friday
+		} else {
+			expansion = "3";
+		}
+		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
+	}	
+
+	macro = "[[TPLUS4]]";
+	if (inputText.Find(macro) >= 0) {
+		if (DayName(DayOfWeek(curDate)) == "Sunday") {
+			expansion = "5"; // Back to Tuesday
+		} else if (DayName(DayOfWeek(curDate)) == "Monday") {
+			expansion = "6"; // Back to Tuesday
+		} else if (DayName(DayOfWeek(curDate)) == "Tuesday") {
+			expansion = "6"; // Back to Wednesday
+		} else if (DayName(DayOfWeek(curDate)) == "Wednesday") {
+			expansion = "6"; // Back to Thursday
+		} else if (DayName(DayOfWeek(curDate)) == "Thursday") {
+			expansion = "6"; // Back to Friday
+		} else {
+			expansion = "4";
+		}
+		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
+	}	
+
+	return inputText;
+}
+
+//==============================================================================================
+// Wrap script method implementation and error handling.  Will allow reconnects and reexecutes.
+// We don't want to expand macros normally if we are writing to the control db.
+bool Connection::SendQueryDataScript(const char *scriptText, bool silent /*= false*/, bool expandMacros /*= false*/, bool log /*= false*/) {
 	ClearError();
+	static bool retry = false;
+	
+	// Process macros if we are pushing to a target
+	
+	String expandedScript;
+	
+	if (expandMacros) {
+		expandedScript = ExpandMacros(scriptText);
+		if (log) {
+			if (scriptText != expandedScript) {
+				LogLine("Script altered by macros");
+			} else {
+				LogLine("Script was not altered by macros");
+			}
+		}
+	} else {
+		expandedScript = scriptText;
+	}
 	
 retryQuery:
 
 	// We have to prep some scripts where embedded codes break the processor
-	
-	if (!Execute(PrepScriptForSend(sqlText))) {
+
+	LOG(expandedScript);	
+	if (!Execute(PrepScriptForSend(expandedScript, log))) {
 		if (GetErrorCode() == 12571) {
 			// Oracle TNS-Packet failure, happens after timeout
 			// Should detect that we haven't run a script for a while and have probably timed out
@@ -358,6 +493,7 @@ retryQuery:
 					return false;
 				}
 				
+				retry = true;
 				goto retryQuery;
 			} else {
 				delete -session;
@@ -372,39 +508,41 @@ retryQuery:
 				return false;
 			}
 		}
+	} else {
+		return true;
 	}
 
 	return true;
 }
 
 //==============================================================================================
-bool Connection::SendAddDataScript(const char *sqlText, bool silent /*= false*/) {
-	return SendQueryDataScript(sqlText, silent);
+bool Connection::SendAddDataScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, silent, expandMacros);
 }
 
 //==============================================================================================
-bool Connection::SendChangeDataScript(const char *sqlText, bool silent /*= false*/) {
-	return SendQueryDataScript(sqlText, silent);
+bool Connection::SendChangeDataScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, silent, expandMacros);
 }
 
 //==============================================================================================
-bool Connection::SendRemoveDataScript(const char *sqlText, bool silent /*= false*/) {
-	return SendQueryDataScript(sqlText, silent);
+bool Connection::SendRemoveDataScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, silent, expandMacros);
 }
 
 //==============================================================================================
-bool Connection::SendChangeEnvScript(const char *sqlText, bool silent /*= false*/) {
-	return SendQueryDataScript(sqlText, silent);
+bool Connection::SendChangeEnvScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, silent, expandMacros);
 }
 
 //==============================================================================================
-bool Connection::SendQueryEnvScript(const char *sqlText, bool silent /*= false*/) {
-	return SendQueryDataScript(sqlText, silent);
+bool Connection::SendQueryEnvScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, silent, expandMacros);
 }
 
 //==============================================================================================
-bool Connection::SendChangeStructureScript(const char *sqlText, bool silent /*= false*/) {
-	return SendQueryDataScript(sqlText, silent);
+bool Connection::SendChangeStructureScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, silent, expandMacros);
 }
 
 //==============================================================================================
@@ -463,29 +601,31 @@ Value Connection::Get(int i) const {
 }
 
 //==============================================================================================
-bool Connection::HandleDbError(int actioncode, String *cmd/* = NULL*/) {
+bool Connection::HandleDbError(int actioncode, String *cmd/* = NULL*/, bool log) {
 	
 	String errcode = GetErrorCodeString();
 	int myerrno = GetErrorCode();
 	Sql::ERRORCLASS ec = GetErrorClass();
 	String es = GetErrorStatement();
+	String msg;
+	
 	// CONNECTION_BROKEN?
 	if (ec == Sql::CONNECTION_BROKEN) {
-		Exclamation("Connection broken");
-		return false;
+		msg = "Connection broken";
 		//Reconnect, try again, but sql statement object will be broke.
 		//Post a message to main window to reconnect.
+	} else if (myerrno == 25408) {
+		msg = "Connection broken (could not replay:Oracle)";
+	} else {
+		msg = Format("Error: #=%d, [* \1%s\1].", myerrno, DeQtf(GetLastError()));
 	}
 	
-	if (myerrno == 25408) {
-		Exclamation("Connection broken (could not replay:Oracle)");
-		return false;
-	}
-	
-	Exclamation(Format("Error: #=%d, [* \1%s\1].", myerrno, DeQtf(GetLastError())));
+	Exclamation(msg);
+	if (log) LogLine(msg);
 	return false;
 }
 
+//==============================================================================================
 /*static*/ VectorMap<String,Connection *>& ConnectionFactory::Connections() {
 	static VectorMap<String,Connection *> connections;
 	return connections;
@@ -577,22 +717,34 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, Connection *p
 // Connection factory (Takes window for async connection spinning.
 // Assumption: connName is unique per connection.  No support for multiple connections per connection definition
 Connection *ConnectionFactory::Connect(TopWindow *win, String connName, String instanceTypeName
-	, String loginStr, String loginPwd, String instanceAddress, String dbName/* = Null*/) {
+	, String loginStr, String loginPwd, String instanceAddress, String dbName/* = Null*/, bool log) {
 	
-	Connection *connection = Connections().GetAdd(connName, new Connection());
+	Connection *connection = Connections().Get(connName, (Connection *)NULL);
+	if (!connection) {
+		if (log) LogLine(CAT << "Connection " << connName << " not in Connections vector");
+		connection = Connections().GetAdd(connName, new Connection());
+	}
+
+	if (log) {
+			LogLine("Attempting To Establish Connection to " + connName + ", " + instanceTypeName 
+			+ ", login=" + loginStr + ", addr=" + instanceAddress + ", db=" + dbName);
+	}
 	connection->instanceTypeName = instanceTypeName;
 	connection->connName = connName;
 	connection->loginStr = loginStr;
 	connection->loginPwd = loginPwd; // For reconnecting, or changing password, you have to pass the old one
 	connection->instanceAddress = instanceAddress;
 	connection->dbName = dbName;
+	if (controlConnection) connection->controlConnection = controlConnection;
 	
 	// BUG: if connection information changed, it won't be representative of the actual connection
 	
 	if (!In(connection->enumConnState, CON_SUCCEED, CON_STALE)) {
 		if (connection->Connect(win)) {
+			if (log) LogLine("Connection Established.");
 			Speak(EVS_CONNECT_SUCCEEDED);
 		} else {
+			if (log) LogLine("Failed to establish connection.");
 			Speak(EVS_CONNECT_FAILED);
 		}
 	}
