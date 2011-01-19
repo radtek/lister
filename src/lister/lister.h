@@ -14,6 +14,7 @@
 #include "ScriptGrid.h"
 #include "OutputGrid.h"
 #include "TestWin.h"
+#include "LogWin.h"
 #include "shared_db.h"
 
 #define APP_TITLE "lister"
@@ -37,20 +38,25 @@ public:
 	Connection *controlConnection; // Connection to lister data
 	Connection *activeConnection;
 	ConnectionFactory connectionFactory;
+	UrpWindowFactory windowFactory;
 	Button sendScript;
 	typedef Lister CLASSNAME;
 	enum EnumScreenZoom { ZOOM_NORMALSCREEN, ZOOM_FULLSCREEN, ZOOM_ALLSCREENS };
 	EnumScreenZoom enumScreenZoom;
 	DropGrid userList;
-
+	WithDropChoice<EditString> targetNameList;
+	DropGrid scriptTargetList, fastFlushTargetList;
+	EditInt fldRowLimit;
+	
 	Lister();
 	void ClickedTest(); // User clicked Test! on the TestGrid.
 	void ClickedConnect(); // User clicked Connect! on the ConnGrid.
-	Connection *ConnectUsingGrid(String connName); // Connect to the connection user selected in the ConnGrid.	
-	Connection *ConnectUsingGrid(int row); // Connect based on the connection listed on the ConnGrid based on passed row
+	Connection *ConnectUsingGrid(String connName, bool log = false); // Connect to the connection user selected in the ConnGrid.	
+	Connection *ConnectUsingGrid(int row, bool log = false); // Connect based on the connection listed on the ConnGrid based on passed row
 	void AddScriptToHistory();
 	void SelectedScriptFromDropDown(); // For multi-line scripts, this is the only way to see the full script.
-	void SelectedTaskScript(); // User selected a script assigned to a task.
+	void ProcessSelectedTaskScripts(dword key);
+	void ProcessTaskScript(int taskScriptRow, bool loadScript, bool executeScript); // User pressed Ctrl-F8 to load into Editor
 	void GetTaskLastInsertedPkId();
 	// User pressed "+" button on script list dropdown, requesting that the script be loaded
 	// into the editor.
@@ -62,6 +68,7 @@ public:
 	// We need the Cancel Execution button to only be active when a asynch execution call is away.
 	void ListContacts(); // First attempt at dynamic dialog popup of UrpGrid container. May thread it.
 	void SessionStatusChanged(const SqlSession& session);
+	bool SelectConnectionById(int pconnId);
 	void SelectedConnection();
 	void SetActiveConnection(Connection *newConnection); // User clicked the connect button or clicked on a row in the conngrid.	
 	void ActiveConnectionChanged(); // Update all enabled/disabled buttons based on a change in the users selected active connection.
@@ -75,11 +82,10 @@ public:
 	void ToolBarRefresh(); // Update the toolbar active/inactive state of each button when connection or something changes.
 	void MyToolBar(Bar& bar); // Define the toolbar over the script editor.
 	virtual void Run(bool appmodal = false); // Called from main.cpp. to open the main window
-	void ScriptExecutionHandler(bool loadIntoTable);
-	void ExecuteSQLActiveConn(); // Load to grid only
-	void ExecuteAndLoadSQLActiveConn(); // Load output of script into a table in control db.
+	void ScriptExecutionHandler(ScriptTarget pscriptTarget);
+	void RunScriptOutputToScreen(); // Load to grid only
+	void RunScriptOutputToTable(); // Load output of script into a table in control db.
 	bool Key(dword key, int count);
-	void Serialize(Stream& s);
 	virtual void Xmlize(XmlIO xml); // Hack in Ctrl class to make Xmlize virtual
 };
 
