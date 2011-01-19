@@ -9,6 +9,7 @@ UrpSqlGrid::UrpSqlGrid() {
 	EvenRowColor();
 	Removing();
 	AllSorting();
+	MultiSelect(); // ArrayCtrl
 //GRIDCTRL		Editing();
 //GRIDCTRL		EditsInNewRow();
 //GRIDCTRL		Accepting();
@@ -35,6 +36,8 @@ UrpSqlGrid::UrpSqlGrid() {
 //GRIDCTRL		Proportional();
 //GRIDCTRL		ColorRows(true);
 //GRIDCTRL		FixedPaste();
+
+//	.SetDisplay()
 }
 
 //==========================================================================================	
