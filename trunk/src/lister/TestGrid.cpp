@@ -118,21 +118,21 @@ void TestGrid::Build() {
 }
 
 //==========================================================================================	
-int TestGrid::GetTestId(int row)					{ return Get(row, IDTestId); }
-void TestGrid::SetTestId(int row, int ptestId)	{ Set(row, IDTestId, ptestId); }
-String TestGrid::GetTestName(int row)				{ return TrimBoth(Get(row, IDTestName)); }
-String TestGrid::GetTestNote(int row)             { return TrimBoth(Get(row, IDTestNote)); }
-int TestGrid::GetTestScriptId(int row)            { return Get(row, IDTestScriptId); }
-int TestGrid::GetTestConnId(int row)              { return Get(row, IDTestConnId); }
-int TestGrid::GetTestTypId(int row)               { return Get(row, IDTestTypId); }
-bool TestGrid::GetInvertComparison(int row)       { return Get(row, IDInvertComparison); }
-int TestGrid::GetCompTypId(int row)               { return Get(row, IDCompTypId); }
-String TestGrid::GetCompareUsingX(int row)        { return Get(row, IDCompareUsingX); }
-String TestGrid::GetCompareUsingY(int row)        { return Get(row, IDCompareUsingY); }
-String TestGrid::GetDesiredOutcome(int row)       { return Get(row, IDDesiredOutcome); }
-String TestGrid::GetActualOutcome(int row)        { return Get(row, IDActualOutcome); } // Null returns INT_MIN, I think
-void TestGrid::SetActualOutcome(int row, String pactualOutcome) { Set(row, IDActualOutcome, pactualOutcome); }
-String TestGrid::GetOutputValue(int row)          { return Get(row, IDOutputValue); }
+int    TestGrid::GetTestId            (int row)							  { return Get(row, IDTestId); }
+void   TestGrid::SetTestId            (int row, int ptestId)			  { Set(row, IDTestId, ptestId); }
+String TestGrid::GetTestName          (int row)							  { return TrimBoth(Get(row, IDTestName)); }
+String TestGrid::GetTestNote          (int row)             			  { return TrimBoth(Get(row, IDTestNote)); }
+int    TestGrid::GetTestScriptId      (int row)              			  { return Get(row, IDTestScriptId); }
+int    TestGrid::GetTestConnId        (int row)              			  { return Get(row, IDTestConnId); }
+int    TestGrid::GetTestTypId         (int row)               			  { return Get(row, IDTestTypId); }
+bool   TestGrid::GetInvertComparison  (int row)       			  		  { return Get(row, IDInvertComparison); }
+int    TestGrid::GetCompTypId         (int row)              			  { return Get(row, IDCompTypId); }
+String TestGrid::GetCompareUsingX     (int row)        				  	  { return Get(row, IDCompareUsingX); }
+String TestGrid::GetCompareUsingY     (int row)   					      { return Get(row, IDCompareUsingY); }
+String TestGrid::GetDesiredOutcome    (int row)       					  { return Get(row, IDDesiredOutcome); }
+String TestGrid::GetActualOutcome     (int row)        					  { return Get(row, IDActualOutcome); } // Null returns INT_MIN, I think
+void   TestGrid::SetActualOutcome     (int row, String pactualOutcome)	  { Set(row, IDActualOutcome, pactualOutcome); }
+String TestGrid::GetOutputValue       (int row)          				  { return Get(row, IDOutputValue); }
 
 //==========================================================================================	
 void TestGrid::SaveTest() {
