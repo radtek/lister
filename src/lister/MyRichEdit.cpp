@@ -4,14 +4,16 @@
 #include "shared.h"
 #include "MyRichEdit.h"
 #include "Connection.h"
+#include "Script.h"
 
 #define K_PERIOD 0xbe|K_DELTA
 
 static const String MACRO = "[[INPUT]]";
 
-//==========================================================================================	
+//==============================================================================================	
 MyRichEdit::MyRichEdit() {
 	connection = NULL;
+	sob = NULL; createdSobPresent = false; // Normally an sob is passed to us
 	scriptId = UNKNOWN;
 	connId = UNKNOWN;
 	tablelist.AddColumn("Table", 100);
@@ -24,7 +26,13 @@ MyRichEdit::MyRichEdit() {
 	zoomlevel = 8.0; // default zoom is about 9 pt on my screen
 }
 
-//==========================================================================================	
+//==============================================================================================	
+/*virtual */MyRichEdit::~MyRichEdit() {
+	if (createdSobPresent && sob)
+		delete sob;
+}
+
+//==============================================================================================	
 //  Added a zoom text feature.
 /*virtual*/ void MyRichEdit::MouseWheel(Point p, int zdelta, dword keyflags) {
 	if (keyflags == K_CTRL) {
@@ -38,7 +46,7 @@ MyRichEdit::MyRichEdit() {
 	}
 }
 
-//==========================================================================================	
+//==============================================================================================	
 void MyRichEdit::Layout() {
 	RichEdit::Layout();
 	long editor_cx = GetSize().cx;
@@ -46,7 +54,7 @@ void MyRichEdit::Layout() {
 	SetPage(Size(adaptive_cx, INT_MAX));
 }
 
-//==========================================================================================	
+//==============================================================================================	
 void MyRichEdit::SetConn(Connection *mconnection) {
 	if (connection != mconnection) {
 		tablelist.Clear();
@@ -62,7 +70,7 @@ void MyRichEdit::SetConn(Connection *mconnection) {
 	}
 }
 
-//==========================================================================================	
+//==============================================================================================	
 //  Turn a set of lines into a stream for IN clause use
 void MyRichEdit::PasteWithApostrophe() {
 	String ci = ReadClipboardText();
@@ -84,7 +92,7 @@ void MyRichEdit::PasteWithApostrophe() {
 	WriteClipboardText(ci); // Restore clipboard so it doesn't keep expanding
 }
 
-//==========================================================================================	
+//==============================================================================================	
 void MyRichEdit::PasteAsLineMacro() {
 	static String wrapperCmd = MACRO;  // Retain any changes the user makes
 	
@@ -108,7 +116,7 @@ void MyRichEdit::PasteAsLineMacro() {
 	}
 }
 
-//==========================================================================================	
+//==============================================================================================	
 //  Turn a set of lines into series of text with the clipboard text pasted in
 String MyRichEdit::PasteAsLineMacro(
 	Vector<String> lines, String macroMarker, String inBetweenNewLine, String title, 
@@ -175,7 +183,7 @@ String MyRichEdit::PasteAsLineMacro(
 	return Null;
 }
 
-//==========================================================================================	
+//==============================================================================================	
 //  Turn a set of lines into series of union alls (for ex:)
 void MyRichEdit::PasteAsWrappedUnion() {
 	static String wrapperCmd = MACRO;  // Retain any changes the user makes
@@ -213,7 +221,7 @@ void MyRichEdit::PasteAsWrappedUnion() {
 	WriteClipboardText(ci); // Restore clipboard so it doesn't keep expanding
 }
 
-//==========================================================================================
+//==============================================================================================
 // Came with the web search below.  Untested.	
 /*static*/ String MyRichEdit::DumpSpecial(String s) {
     String out;
@@ -235,7 +243,7 @@ void MyRichEdit::PasteAsWrappedUnion() {
     return out;
 }
 
-//==========================================================================================	
+//==============================================================================================	
 // Doesn't work.
 void MyRichEdit::SearchSharePoint() {
 	RichText txt = GetSelection();
@@ -259,7 +267,7 @@ void MyRichEdit::SearchSharePoint() {
 	Pick(AsRichText(dcontent.ToWString()));
 }
 
-//==========================================================================================	
+//==============================================================================================	
 // Strip Qtf codes off of text.
 void MyRichEdit::DeFormatSelection() {
 	RichText txt = GetSelection();
@@ -268,13 +276,13 @@ void MyRichEdit::DeFormatSelection() {
 	Paste();
 }
 
-//==========================================================================================	
+//==============================================================================================	
 // Clean entire thing of Qtf.
 void MyRichEdit::DeFormatScript() {
-	SetScript(scriptId, GetScript());
+	SetScriptText(GetScriptText());
 }
 
-//==========================================================================================	
+//==============================================================================================	
 // Stolen from the RichEdit since I needed to manipulated non-exposed components.
 /*virtual*/ void MyRichEdit::RightDown(Point p, dword flags) {
 	useraction = true;
@@ -380,12 +388,12 @@ void MyRichEdit::DeFormatScript() {
 	}
 }
 
-//==========================================================================================	
+//==============================================================================================	
 bool MyRichEdit::IsLegalWordChar(char cc) {
 	return (IsLeNum(cc) || cc == '_');
 }
 
-//==========================================================================================	
+//==============================================================================================	
 String MyRichEdit::GetPreviousWord(int &pc, WordTests &wordTests) {
 	int c = pc;
 	String w = String::GetVoid();
@@ -432,7 +440,7 @@ String MyRichEdit::GetPreviousWord(int &pc, WordTests &wordTests) {
 	return w;
 }
 
-//==========================================================================================	
+//==============================================================================================	
 void MyRichEdit::ProcessPaste() {
 	String pasteData = ReadClipboardText();
 	ClearClipboard();
@@ -440,7 +448,7 @@ void MyRichEdit::ProcessPaste() {
 	Paste();
 }
 
-//==========================================================================================	
+//==============================================================================================	
 MyRichEdit::KeyProcessorResponse MyRichEdit::PopupRequested(bool ShowAllColumns) {
 	// We are now pointing to the character following the period
 	int c = GetCursor();
@@ -645,7 +653,7 @@ MyRichEdit::KeyProcessorResponse MyRichEdit::PopupRequested(bool ShowAllColumns)
 	return ALLOWDEFAULTKEYPROCESSORTORUN;
 }
 
-//==========================================================================================	
+//==============================================================================================	
 void MyRichEdit::ScriptContentChanged(dword key) {
 	
 	// Script has changed, so the script id is no longer correct
@@ -658,7 +666,7 @@ void MyRichEdit::ScriptContentChanged(dword key) {
 	if (WhenScriptContentChanged) WhenScriptContentChanged();
 }
 
-//==========================================================================================	
+//==============================================================================================	
 bool MyRichEdit::Key(dword key, int count) {
 	static dword style;
 	static Rect normalwindowrect;
@@ -668,9 +676,17 @@ bool MyRichEdit::Key(dword key, int count) {
 
 	KeyProcessorResponse keyProcessorResponse;
 
-	// Flush out scriptId if any changes are made
-	
-	ScriptContentChanged(key);
+
+	if (In(key, K_CTRL_KEY, K_ALT_KEY, K_SHIFT_KEY
+				, K_CTRL_KEY|K_KEYUP, K_ALT_KEY|K_KEYUP, K_SHIFT_KEY|K_KEYUP)) 
+	{
+		// Update toolbar tips and icons to reflect the new state of keys
+		if (WhenToolBarMayBeAffected) WhenToolBarMayBeAffected();
+		
+	} else {
+		// Flush out scriptId if any changes are made, ignore control keys
+		ScriptContentChanged(key);
+	}
 			
 	switch (key) {
 		
@@ -707,7 +723,7 @@ bool MyRichEdit::Key(dword key, int count) {
 	
 }
 
-//==========================================================================================	
+//==============================================================================================	
 // User selected an item from the popup grid, which closes it and sets the Cursor to the selected item.
 // We now paste it into the script at the current script cursor.
 void MyRichEdit::SelectedPopUpTable() {
@@ -715,13 +731,13 @@ void MyRichEdit::SelectedPopUpTable() {
 	PasteText(AsRichText(txt, GetFormatInfo()));
 }
 
-//==========================================================================================	
+//==============================================================================================	
 void MyRichEdit::SelectedPopUpColumn() {
 	WString txt = columnlist.Get(0);
 	PasteText(AsRichText(txt, GetFormatInfo()));
 }
 
-//==========================================================================================	
+//==============================================================================================	
 void MyRichEdit::AddColumns(String schema, String table) {
 			
 	if (columnlist.schemaName == schema && columnlist.tableName == table) {
@@ -744,7 +760,7 @@ void MyRichEdit::AddColumns(String schema, String table) {
 
 }
 
-//==========================================================================================
+//==============================================================================================
 void MyRichEdit::AddTables(const String &schema) { // owner?
 	String schemaName = ToUpper(schema);
 	
@@ -778,28 +794,94 @@ void MyRichEdit::AddTables(const String &schema) { // owner?
 	tablelist.schemaName = schemaName;
 }
 
-
-//==========================================================================================
+//==============================================================================================
 // Treat incoming script as plain text.  Underscores in plain text will be converted to
 // spaces if treated as QTF, and so DeQtf removes the Qtf interpretation of special
-// characters.
-void MyRichEdit::SetScript(int scriptId, String script) {
-	SetQTF(DeQtf(script));
+// characters. Legacy.
+void MyRichEdit::SetScript(Connection * pconnection, int pconnId, int pscriptId, String pscriptText) {
+	if (pconnId >= 0) {
+		connId = pconnId;
+	}
+	
+	if (pconnection) connection = pconnection; // Else keep any existing connection
+	
+	if (pscriptId >= 0) {
+		scriptId = pscriptId;
+	}
+	
+	SetScriptText(pscriptText);
 }
 
-//==========================================================================================
+//==============================================================================================
+void MyRichEdit::SetScript(Connection *pconnection, int pconnId, Script &psob) {
+	if (pconnId >= 0) {
+		connId = pconnId;
+	}
+	
+	if (pconnection) connection = pconnection; // Else keep any existing connection
+	
+	if (psob.scriptId >= 0) {
+		scriptId = psob.scriptId;
+	}
+	
+	SetScriptText(psob.script);
+	sob = &psob; // Currently we don't own the script.  Lister main probably does.
+}
+
+//==============================================================================================
+int MyRichEdit::GetConnId() {
+	return connId;
+}
+
+//==============================================================================================
 // Since we save the RichScript, we can restore it and not treat it as plain text.
-void MyRichEdit::SetRichScript(int scriptId, String script) {
-	SetQTF(script);
+void MyRichEdit::SetRichScriptText(int pscriptId, String pscriptText) {
+	if (pscriptId >= 0) {
+		scriptId = pscriptId;
+	}
+	
+	SetQTF(pscriptText);
 }
 
-//==========================================================================================
+//==============================================================================================
 // Script is always text, not Rich text.
-String MyRichEdit::GetScript() {
+String MyRichEdit::GetScriptText() {
 	return TrimBoth(Get().GetPlainText().ToString());
 }
 
-//==========================================================================================
+//==============================================================================================
+void MyRichEdit::SetScriptText(String pscriptText) {
+	SetQTF(DeQtf(pscriptText));
+}
+
+//==============================================================================================
+void MyRichEdit::CreateSob() {
+	if (!sob && !createdSobPresent) {
+		sob = new Script();
+	} else {
+		Exclamation("Internal error: CreateSob");
+		throw new Exc("Internal error: CreateSob");
+	}
+}
+
+//==============================================================================================
+void MyRichEdit::Log() {
+	LogLine(CAT << "Script #:" << scriptId << ", conn #:" << connId);
+//	if (connection) {
+//		LogLine(CAT << "Connection: " << connection->connName);
+//	} else {
+//		LogLine("Connection ptr is null");
+//	}
+//
+//	LogLine(CAT << "Script:" << sob->script);
+//	if (sob->scriptId != scriptId) {
+//		LogLine(CAT << "sob.scriptId <> scriptId: " << sob->scriptId);
+//	}
+//	LogLine(CAT << "rowlimit: " << sob->rowLimit << ", scriptTarget: " << (int)sob->scriptTarget
+//	        << ", targetname: " << sob->targetName); // << ", flush?" << sob->fastFlushTarget);
+}
+
+//==============================================================================================
 // Save script id with script so "Add test for script" button works from toolbar.
 /*virtual*/ void MyRichEdit::Xmlize(XmlIO xml) {
 	xml
