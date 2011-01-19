@@ -14,5 +14,7 @@ bool UrpInputBox(
 
 // Simpler input box
 bool UrpInputBox(String &inputText, const char *title, const char *label);
+// It's annoying to deal with empty fields and get MIN_INT or some crap back.
+int GetFieldInt(EditInt &fld, int valIfEmpty = -1);
 
 #endif
