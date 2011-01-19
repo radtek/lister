@@ -6,6 +6,8 @@
 #include <RichEdit/RichEdit.h>
 #include <CtrlLib/CtrlLib.h>
 #include <Web/Web.h>
+#include "Script.h"
+#include "LogWin.h"
 
 class Connection;
 
@@ -45,15 +47,18 @@ struct WordTests : public Moveable<WordTests> {
 
 //==========================================================================================	
 struct MyRichEdit : public RichEdit {
-	MyPopUpTable tablelist, columnlist;
 	typedef MyRichEdit CLASSNAME;
-	Connection *connection;
-	int connId;  // connection id for this connection, so we can save it in configuration
-	int scriptId; // If brought from sqllist, then this is set.  Saved in configuration to make test creation easier
-	int originalScriptId; // If script content changes, this is set and scriptId is cleared
-	Callback WhenScriptContentChanged;  // Set from main to detect when to update the toolbar
-	double zoomlevel;
-	
+	MyPopUpTable	    tablelist // Popup helpers
+	,				    columnlist;
+	Connection         *connection;
+	int                 connId;  // connection id for this connection, so we can save it in configuration
+	int                 scriptId; // If brought from sqllist, then this is set.  Saved in configuration to make test creation easier
+	int                 originalScriptId; // If script content changes, this is set and scriptId is cleared
+	Script             *sob; // More sophisticated object that tracks output parameters along with the text
+	bool                createdSobPresent; // Set if we had to create an sob object, so we can destroy it
+	Callback            WhenScriptContentChanged;  // Set from main to detect when to update the toolbar
+	Callback            WhenToolBarMayBeAffected; // Control keys affect the meaning of various buttons, so we want to update their colurs, tips, etc
+	double              zoomlevel;
 	enum PopupInfoRequestType {
 		IR_NOMATCH
 	,	IR_TABLESINSCHEMA
@@ -70,6 +75,8 @@ struct MyRichEdit : public RichEdit {
 	};
 	
 	MyRichEdit();
+	virtual ~MyRichEdit();
+	
 	//  Added a zoom text feature.
 	virtual void MouseWheel(Point p, int zdelta, dword keyflags);
 	void Layout();
@@ -105,10 +112,16 @@ struct MyRichEdit : public RichEdit {
 	void AddColumns(String schema, String table);
 	void AddTables(const String &schema);
 	void ScriptContentChanged(dword key);
-	void SetScript(int scriptId, String script); // Script is always text, not Rich text.
-	void SetRichScript(int scriptId, String script); // Should create Rich (Qtf) string.
-	String GetScript(); // Returns plain text
+	void SetScript(Connection *pconnection, int pconnId, int pscriptId, String pscriptText); // Script is always text, not Rich text.
+	// Enhanced version with target management
+	void SetScript(Connection *pconnection, int pconnId, Script &psob); 
+	void SetRichScriptText(int pscriptId, String pscriptText); // Should create Rich (Qtf) string.
+	int GetConnId();
+	String GetScriptText(); // Returns plain text
+	void SetScriptText(String pscriptText);
 	// Save script id with script so "Add test for script" button works from toolbar.
+	void CreateSob();  // Create an instance of sob since one was not passed
+	void Log();
 	virtual void Xmlize(XmlIO xml);
 	
 };
