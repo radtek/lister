@@ -13,7 +13,7 @@ bool UrpInputBox(
 	WithMyEditStringLayout<TopWindow> dlg;
 	dlg.Sizeable().Zoomable();
 	CtrlLayoutOKCancel(dlg, title);
-	dlg.lbl = label;
+	dlg.lblInstructions = label;
 	dlg.text = wrapperText.ToWString();
 	if(dlg.Execute() == IDOK) {
 		wrapperText = dlg.text;
@@ -32,18 +32,32 @@ bool UrpInputBox(String &inputText, const char *title, const char *label) {
 	WithMyEditStringLayout<TopWindow> dlg;
 	dlg.Sizeable().Zoomable();
 	CtrlLayoutOKCancel(dlg, title);
-	dlg.lbl = label;
+	dlg.lblInstructions = label;
 	dlg.text = inputText.ToWString();
 
-	// Hide all the controls we don't support
+	// Hide all the controls we don't support, from transformation action
 	dlg.fldScrubText.Hide();
 	dlg.fldSplitOn.Hide();
 	dlg.optConvertSpacesToUnderscores.Hide();
 	dlg.optForceInputToUpper.Hide();
+	dlg.lblScrubText.Hide();
+	dlg.lblSplitOn.Hide();
 	
 	if(dlg.Execute() == IDOK) {
 		inputText = dlg.text;
 		return true;
 	}
 	return false;
+}
+
+//==========================================================================================	
+// It's annoying to deal with empty fields and get MIN_INT or some crap back.
+int GetFieldInt(EditInt &fld, int valIfEmpty /*= -1*/) {
+	Value f = fld.GetData();
+	
+	if (f.IsVoid()) {
+		return valIfEmpty;
+	} else {
+		return f;
+	}
 }
