@@ -2,22 +2,40 @@
 <!DOCTYPE lister>
 <lister>
 	<vertsplit1>
-		<pos value="4579"/>
+		<isexpanded value="0"/>
+		<isshrunk value="0"/>
+		<savedpos value="-1"/>
+		<pos value="5022"/>
 	</vertsplit1>
 	<horzsplit1>
-		<pos value="1994"/>
+		<isexpanded value="0"/>
+		<isshrunk value="0"/>
+		<savedpos value="-1"/>
+		<pos value="2486"/>
 	</horzsplit1>
 	<horzsplit11>
-		<pos value="2020"/>
+		<isexpanded value="0"/>
+		<isshrunk value="0"/>
+		<savedpos value="-1"/>
+		<pos value="2348"/>
 	</horzsplit11>
 	<horzsplit12>
-		<pos value="2650"/>
+		<isexpanded value="0"/>
+		<isshrunk value="0"/>
+		<savedpos value="-1"/>
+		<pos value="4463"/>
 	</horzsplit12>
 	<horzsplit2>
-		<pos value="394"/>
+		<isexpanded value="0"/>
+		<isshrunk value="0"/>
+		<savedpos value="-1"/>
+		<pos value="382"/>
 	</horzsplit2>
 	<horzsplit21>
-		<pos value="9645"/>
+		<isexpanded value="0"/>
+		<isshrunk value="0"/>
+		<savedpos value="-1"/>
+		<pos value="9092"/>
 	</horzsplit21>
 	<grid1>
 		<columnwidths>
@@ -26,29 +44,29 @@
 			<key>ConnId</key>
 			<value value="-2"/>
 			<key>ConnName</key>
-			<value value="81"/>
+			<value value="131"/>
 			<key>LoginId</key>
 			<value value="-2"/>
 			<key>LoginStr</key>
-			<value value="42"/>
+			<value value="97"/>
 			<key>LoginPwd</key>
-			<value value="42"/>
+			<value value="69"/>
 			<key>InstId</key>
-			<value value="42"/>
+			<value value="80"/>
 			<key>InstanceName</key>
 			<value value="-2"/>
 			<key>InstTypID</key>
-			<value value="41"/>
+			<value value="54"/>
 			<key>InstTypName</key>
 			<value value="-2"/>
 			<key>Database</key>
-			<value value="42"/>
+			<value value="79"/>
 			<key>InstanceAddress</key>
 			<value value="-2"/>
 			<key>EnvId</key>
-			<value value="42"/>
+			<value value="63"/>
 			<key>ConnNote</key>
-			<value value="42"/>
+			<value value="45"/>
 			<key>CONNECT</key>
 			<value value="20"/>
 			<key>Dummy</key>
@@ -58,9 +76,9 @@
 	<grid2>
 		<columnwidths>
 			<key>TASKID</key>
-			<value value="239"/>
+			<value value="216"/>
 			<key>TASKNAME</key>
-			<value value="45"/>
+			<value value="40"/>
 			<key>SRCCODE</key>
 			<value value="100"/>
 			<key>PROJECTNAME</key>
@@ -72,15 +90,25 @@
 			<key>RELID</key>
 			<value value="-2"/>
 			<key>TASKID</key>
-			<value value="397"/>
+			<value value="215"/>
 			<key>WHY</key>
-			<value value="200"/>
+			<value value="52"/>
 			<key>SCRIPT</key>
-			<value value="140"/>
-			<key>SCRIPTNAME</key>
-			<value value="200"/>
+			<value value="-2"/>
 			<key>SCRIPTNOTE</key>
-			<value value="50"/>
+			<value value="-2"/>
+			<key>SCRIPTID</key>
+			<value value="77"/>
+			<key>RELCONNID</key>
+			<value value="55"/>
+			<key>SCRIPTTARGET</key>
+			<value value="130"/>
+			<key>TARGETNAME</key>
+			<value value="62"/>
+			<key>FASTFLUSHTARGET</key>
+			<value value="48"/>
+			<key>ROWLIMIT</key>
+			<value value="36"/>
 		</columnwidths>
 	</grid3>
 	<grid4>
@@ -88,47 +116,55 @@
 			<key>State</key>
 			<value value="16"/>
 			<key>TestId</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>TestName</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>TestScriptId</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>TestNote</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>TestConnId</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>TestTypId</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>InvertComparison</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>CompTypId</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>X</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>Y</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>DesiredOutcome</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>ActualOutcome</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>OutputValue</key>
-			<value value="50"/>
+			<value value="3614"/>
 			<key>TEST!</key>
 			<value value="20"/>
 			<key>Err</key>
-			<value value="1"/>
+			<value value="-2"/>
 		</columnwidths>
 	</grid4>
 	<win1>
 		<x value="0"/>
 		<y value="0"/>
-		<cx value="585"/>
+		<cx value="656"/>
 		<cy value="400"/>
 	</win1>
 	<edit1 type="String">
-		<scriptid value="-1"/>
-		<connid value="-1"/>
+		<scriptid value="227"/>
+		<connid value="14"/>
 [ $$0,0#00000000000000000000000000000000:Default]
 [{_} 
-[s0; ]</edit1>
+[s0; select businessdate, count(`*) from (select businessdate, ticket, 
+tradetype `|`| `&apos;`-`&apos; `|`| tradetypename as rectyp, executiondatetime, 
+tradedatetime from fi`_executions where businessdate `= trunc(sysdate) 
+`- `[`[TPLUS3`]`] and region `= `&apos;TSF`&apos; and sourceenum `= 0 and 
+account not like `&apos;MTS%`&apos;) a group by businessdate]</edit1>
+<x value="267"/>
+	<y value="65"/>
+	<cx value="2727"/>
+	<cy value="903"/>
 </lister>
