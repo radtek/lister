@@ -4,6 +4,7 @@
 #include "shared.h"
 #include "ConnState.h"
 #include "SoundHandler.h"
+#include "LogWin.h"
 
 #define INSTTYPNM_POSTGRESQL       "PostgreSQL"
 #define INSTTYPNM_ORACLE           "Oracle"
@@ -21,6 +22,10 @@
 #include <Oracle/Oracle8.h>
 #include <MSSQL/MSSQL.h>
 #include <PostgreSQL/PostgreSQL.h>
+#include "Script.h"
+
+#define RUN_SILENT  true
+#define EXPAND_MACROS true
 
 // Internal ids for speed of processing.  We don't use the control db key values since they
 // are only for db relations.  There's no way to guarantee consistency across db<=>code constants
@@ -37,6 +42,7 @@ class Connection : Moveable<Connection>, public Sql {
 public:
 	typedef Connection CLASSNAME;
 	friend class ConnectionFactory;
+	Connection                  *controlConnection;
 	EnumConnState                enumConnState;  // Track the connection state
 	Vector<Callback>             WhenChange;
 	One<SqlSession>              session; // The meat.
@@ -81,25 +87,28 @@ public:
 	SqlSession &GetSession();
 	String PrepTextDataForSend(const String &textData);
 	// Oracle breaks with odd aposts in line comments
-	String PrepScriptForSend(const String &script);
+	String PrepScriptForSend(const String &script, bool log = false);
 	// This is a prep for actual execution by the receiving instance, not for insertion into 
 	// the control db as a saved script text.
-	String PrepOracleScriptForSend(const String &script);
+	String PrepOracleScriptForSend(const String &script, bool log = false);
+	String PrepForPostgresCopyFrom(const String scriptText);
 	//  Wrap script method implementation and error handling.  Will allow reconnects and reexecutes.
-	bool SendQueryDataScript(const char *sqlText, bool silent = false);
-	bool SendAddDataScript(const char *sqlText, bool silent = false);
-	bool SendChangeDataScript(const char *sqlText, bool silent = false);
-	bool SendRemoveDataScript(const char *sqlText, bool silent = false);
-	bool SendChangeEnvScript(const char *sqlText, bool silent = false);
-	bool SendQueryEnvScript(const char *sqlText, bool silent = false);
-	bool SendChangeStructureScript(const char *sqlText, bool silent = false);
+	bool ProcessQueryDataScript(Script &sob, bool log = false);
+	String ExpandMacros(String inputText);
+	bool SendQueryDataScript(const char *scriptText, bool silent = false, bool expandMacros = false, bool log = false);
+	bool SendAddDataScript(const char *sqlText, bool silent = false, bool expandMacros = false);
+	bool SendChangeDataScript(const char *sqlText, bool silent = false, bool expandMacros = false);
+	bool SendRemoveDataScript(const char *sqlText, bool silent = false, bool expandMacros = false);
+	bool SendChangeEnvScript(const char *sqlText, bool silent = false, bool expandMacros = false);
+	bool SendQueryEnvScript(const char *sqlText, bool silent = false, bool expandMacros = false);
+	bool SendChangeStructureScript(const char *sqlText, bool silent = false, bool expandMacros = false);
 	int GetInsertedId(String tableName, String columnName);
 	// Only works for PostgreSQL.
 	int GetPostgreSQLInsertedId(String tableName, String columnName);
 	Value Get(SqlId i) const;
 	bool GetBool(int i) const; // PostgreSQL driver does not properly deal with bool
 	Value Get(int i) const;
-	bool HandleDbError(int actioncode, String *cmd = NULL);
+	bool HandleDbError(int actioncode, String *cmd = NULL, bool log = false);
 };
 
 //==========================================================================================	
@@ -122,7 +131,7 @@ public:
 	// Assumption: connName is unique per connection.  No support for multiple connections per connection definition
 	Connection *Connect(
 		TopWindow *win, String connName, String instanceTypeName
-	,	String loginStr, String loginPwd, String instanceAddress, String dbName = Null);
+	,	String loginStr, String loginPwd, String instanceAddress, String dbName = Null, bool log = false);
 };
 
 #endif
