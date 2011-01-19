@@ -28,5 +28,9 @@ int TaskGrid::GetTaskId(int row) {
 	return Get(row, TASKID);
 }
 
+//==========================================================================================	
+String TaskGrid::GetTaskName(int row) {
+	return Get(row, TASKNAME);
+}
 
 
