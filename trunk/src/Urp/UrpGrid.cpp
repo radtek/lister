@@ -1,4 +1,5 @@
 #include "UrpGrid.h"
+#include "UrpPaint.h"
 
 UrpGrid::UrpGrid() : GridCtrl() {
 	Appending();
@@ -30,6 +31,7 @@ UrpGrid::UrpGrid() : GridCtrl() {
 	ColorRows(true);
 	FixedPaste();
 	CopyColumnNames(true);
+	//SetDisplay(Single<TightFontDisplayForGridCtrl>());
 }
 
 //==========================================================================================	
@@ -94,6 +96,13 @@ void UrpGrid::Xmlize(XmlIO xml) {
 				colWidth = 60;
 			} else {
 				colWidth = floatingColumnWidths.Get(colIdName, GetFloatingColumnWidth(i));
+				Font fnt = Draw::GetStdFont();
+				String fntnm = fnt.GetFaceName();
+				// Do not adjust the spacer bugfix column on end.
+				if (fntnm == Arial().GetFaceName() && fnt.GetHeight() == 11 && colWidth > 2) {
+					double dcolWidth = colWidth * 0.893;
+					colWidth = int(dcolWidth);
+				}
 			}
 			
 			// Check for label marked as a hidden column
