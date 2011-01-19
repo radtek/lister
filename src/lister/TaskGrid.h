@@ -56,6 +56,7 @@ public:
 	void Build();
 	void Load(Connection *pconnection);
 	int GetTaskId(int row);
+	String GetTaskName(int row);
 };
 
 
