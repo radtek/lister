@@ -18,3 +18,8 @@ LAYOUT(TestWinLayout, 580, 76)
 	ITEM(TestGrid, testGrid, LeftPosZ(4, 572).TopPosZ(4, 72))
 END_LAYOUT
 
+LAYOUT(LogWinLayout, 484, 128)
+	ITEM(DocEdit, logText, HSizePosZ(4, 64).VSizePosZ(4, 24))
+	ITEM(Button, exit, SetLabel(t_("Close")).RightPosZ(8, 52).TopPosZ(4, 20))
+END_LAYOUT
+
