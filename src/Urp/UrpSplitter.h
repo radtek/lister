@@ -5,7 +5,11 @@
 
 class UrpSplitter: public Splitter {
 public:
-
+	int savedSplitterPosition;
+	bool isExpanded; // Up to max temporarily
+	bool isShrunk; // Down to zero temporarily
+	
+	UrpSplitter();
 	void Xmlize(XmlIO xml);
 };
 
