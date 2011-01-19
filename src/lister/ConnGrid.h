@@ -70,6 +70,7 @@ public:
 	//  The main interface calls this to position and select a specific connection, usually
 	//  so it can trigger a connect event.
 	bool FindConnName(String pconnName, bool silent = false);
+	bool FindConnId(int pconnId, bool silent = false );
 
 	bool WasConnectionRequested();
 };
