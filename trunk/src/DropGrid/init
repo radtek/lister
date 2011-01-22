@@ -1,0 +1,5 @@
+#ifndef _lister_DropGrid_icpp_init_stub
+#define _lister_DropGrid_icpp_init_stub
+#include "CtrlLib/init"
+#include "lister\GridCtrl/init"
+#endif
