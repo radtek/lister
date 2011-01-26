@@ -8,6 +8,7 @@ public:
 	// Crazy idea: Function name maps to the parameters, especially their order.
 	static String ReplaceInWhatWith(const String in, const String what, const String with);
 	static String Apostrophize(String in);
+	static void TrimOff(String &in, int cnt); // Trim x number of characters off the end
 	static bool IsIntegerString(String testStr);
 	static bool IsDecimalString(String testStr);
 	// Difference of opinion between me and U++ designers: If you assign a string to an int, it

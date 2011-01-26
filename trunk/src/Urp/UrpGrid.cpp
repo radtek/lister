@@ -1,7 +1,7 @@
 #include "UrpGrid.h"
 #include "UrpPaint.h"
 
-UrpGrid::UrpGrid() : GridCtrl() {
+UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
 	Appending();
 	Removing();
 	Editing();
@@ -63,7 +63,7 @@ void UrpGrid::HideFloatingColumn(int i) {
 
 void UrpGrid::SetFloatingColumnWidth(int i, int w) {
 	// Does NOT take into account fixed colunmns
-	SetColWidth(i + fixed_cols, w);
+	SetColWidth(i + fixed_cols, w, true /* Let's try not recalcing */);
 }
 
 Id UrpGrid::GetFloatingColumnId(int n) const {
@@ -96,14 +96,11 @@ void UrpGrid::Xmlize(XmlIO xml) {
 				colWidth = 60;
 			} else {
 				colWidth = floatingColumnWidths.Get(colIdName, GetFloatingColumnWidth(i));
-				Font fnt = Draw::GetStdFont();
-				String fntnm = fnt.GetFaceName();
-				// Do not adjust the spacer bugfix column on end.
-				if (fntnm == Arial().GetFaceName() && fnt.GetHeight() == 11 && colWidth > 2) {
-					double dcolWidth = colWidth * 0.893;
-					colWidth = int(dcolWidth);
-				}
 			}
+
+			bool isFixed = GetColumn(i).IsFixed();
+			int min = GetColumn(i).min;
+			int max = GetColumn(i).max;
 			
 			// Check for label marked as a hidden column
 			if (colWidth == HIDDEN_COLUMN) {
@@ -112,11 +109,16 @@ void UrpGrid::Xmlize(XmlIO xml) {
 				SetFloatingColumnWidth(i, 0);
 				HideFloatingColumn(i);
 				colWidth = 0;
+				
+			// If its a fixed width column, we can't modify the width
+			} else if (isFixed) {
+				colWidth = min; // Actual nsize value internally not set yet since grid not drawn, so we use what the constructor requested.
 			} else {
 				SetFloatingColumnWidth(i, colWidth);
 			}
 
 			int actualColWidth = GetFloatingColumnWidth(i);
+			
 			if (actualColWidth != colWidth) {
 //					ASSERT(actualColWidth - colWidth == 1); // Any other value is unexpected
 				requestedColumnWidths.Add(colIdName, colWidth);
@@ -124,7 +126,7 @@ void UrpGrid::Xmlize(XmlIO xml) {
 				// Impossible to detect user calls to resize, since no when resize clause
 			}
 		}
-	} else {
+	} else { // Storing
 		for (int i = 0; i < GetFloatingColumnCount(); i++) {
 			String colIdName = GetFloatingColumnId(i).ToString();
 			int colWidth = GetFloatingColumnWidth(i);
@@ -141,7 +143,6 @@ void UrpGrid::Xmlize(XmlIO xml) {
 			}
 			
 			floatingColumnWidths.FindAdd(colIdName, colWidth);  // In case of dups, we only add the first one
-			LOG("HIT");
 		}
 		
 		xml("columnwidths", floatingColumnWidths); // Write to store
