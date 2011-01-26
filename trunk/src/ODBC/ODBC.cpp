@@ -81,20 +81,21 @@ private:
 	// Pointer within last fetched set for returning to caller
 	SQLSETPOSIROW            nextFetchSetRow;
 	// 100 cols x 100 rows x 100 characters.  TODO: Convert to dynamic allocation or cache
-	SQLCHAR                  fetchedRows[MAX_COL_FETCH_COUNT][ROW_FETCH_COUNT][MAX_DATA_WIDTH_FETCH];
+	//SQLCHAR                  fetchedRows[MAX_COL_FETCH_COUNT][ROW_FETCH_COUNT][MAX_DATA_WIDTH_FETCH];
 	// Tells us if the value was null
 	SQLLEN                   indicator[MAX_COL_FETCH_COUNT][ROW_FETCH_COUNT]; 
+	VectorMap<String, byte *>   rowdata;
 };
 
 bool ODBCSession::Connect(const char *cs)
 {
 	if(henv && IsOk(SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc))) {
 		// Attempt to improve speed by making all connections read-only: TODO: Parameterize
-		SQLSetConnectAttr(hdbc, SQL_ATTR_ACCESS_MODE, (SQLPOINTER)SQL_MODE_READ_ONLY, SQL_NTS);
-		SQLSetConnectAttr(hdbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER)SQL_AUTOCOMMIT_ON, SQL_NTS);
+	// MSSQL	SQLSetConnectAttr(hdbc, SQL_ATTR_ACCESS_MODE, (SQLPOINTER)SQL_MODE_READ_ONLY, SQL_NTS);
+	// MSSQL	SQLSetConnectAttr(hdbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER)SQL_AUTOCOMMIT_ON, SQL_NTS);
 		//SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (void *) SQL_OV_ODBC3, 0);
 		// For BA work, serialized data is not required.  TODO: Parameterize
-		SQLSetConnectAttr(hdbc, SQL_ATTR_TXN_ISOLATION, (SQLPOINTER)SQL_TRANSACTION_READ_UNCOMMITTED, SQL_NTS);
+	// MSSQL	SQLSetConnectAttr(hdbc, SQL_ATTR_TXN_ISOLATION, (SQLPOINTER)SQL_TRANSACTION_READ_UNCOMMITTED, SQL_NTS);
 
 		if(IsOk(SQLDriverConnect(hdbc, NULL, (SQLCHAR *)cs, SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT))) { // SQL_DRIVER_COMPLETE?
 			SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt);
@@ -106,6 +107,7 @@ bool ODBCSession::Connect(const char *cs)
 
 		// Connection failed if reached this point
 		SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
+		// Error on this; taking out.
 		hdbc = SQL_NULL_HANDLE;
 	}
 	return false;
@@ -392,6 +394,7 @@ bool ODBCConnection::Execute()
 		SQLULEN         ParameterSize;
 		SQLSMALLINT     DecimalDigits;
 		SQLSMALLINT     Nullable;
+
 		if(!IsOk(SQLDescribeParam(session->hstmt, i + 1, &DataType, &ParameterSize, &DecimalDigits, &Nullable)))
 			return false;
 		if(!IsOk(SQLBindParameter(session->hstmt, i + 1, SQL_PARAM_INPUT, p.ctype, DataType,
@@ -408,9 +411,17 @@ bool ODBCConnection::Execute()
 	}
 	session->current = this;
 	myinfo.Clear();
+	info.Clear();
 	binary.Clear();
 	
 	// Identify all properties of returned data and bind space for fetching
+
+	for(int i = 0; i < myinfo.GetCount(); i++) {
+		
+		byte *b = rowdata.Get(myinfo[i].name);
+		delete b;
+	}
+	rowdata.Clear();
 	
 	for(int i = 1; i <= ncol; i++) {
 		SQLCHAR      ColumnName[256];
@@ -432,7 +443,8 @@ bool ODBCConnection::Execute()
 		flegacy.scale = f.scale = 0;
 		flegacy.width = f.width = ColumnSize;
 		flegacy.name = f.name = (char *)ColumnName;
-		
+		String nm((char *)ColumnName);
+		 
 		// My new property
 		f.sqltype = DataType;
 		f.isbinary = false;
@@ -449,18 +461,27 @@ bool ODBCConnection::Execute()
 		case SQL_TINYINT:
 			f.type = DOUBLE_V;
 			break;
+			
 		case SQL_BIGINT:
 			f.type = INT64_V;
 			break;
+			
 		case SQL_TYPE_DATE:
-			f.type = DATE_V;
-			if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_DATE, fetchedRows[i-1], sizeof(SQL_DATE_STRUCT), indicator[i-1]))) return false;
-			break;
+			{
+				SQL_DATE_STRUCT *datedata = (SQL_DATE_STRUCT *)new SQL_DATE_STRUCT[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)datedata);
+				f.type = DATE_V;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_DATE, datedata, sizeof(SQL_DATE_STRUCT), indicator[i-1]))) return false;
+				break;
+			}
 		case SQL_TYPE_TIMESTAMP:
-			f.type = TIME_V;
-			// BUG:
-			if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_TIMESTAMP, fetchedRows[i-1], 101, indicator[i-1]))) return false;
-			break;
+			{
+				SQL_TIMESTAMP_STRUCT *timedata = (SQL_TIMESTAMP_STRUCT *)new SQL_TIMESTAMP_STRUCT[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)timedata);
+				f.type = TIME_V;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_TIMESTAMP, timedata, sizeof(SQL_TIMESTAMP_STRUCT), indicator[i-1]))) return false;
+				break;
+			}
 		case SQL_BINARY:
 		case SQL_VARBINARY:
 		case SQL_LONGVARBINARY:
@@ -468,14 +489,18 @@ bool ODBCConnection::Execute()
 			f.isbinary = true;
 			binary.Top() = true;
 			break;
+			
 		default:
-			f.type = STRING_V;
-			if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, fetchedRows[i-1], 101, indicator[i-1]))) return false;
-			break;
+			{
+				SQLCHAR *strdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT * (ColumnSize + 1)];
+				rowdata.Add(nm, (byte *)strdata);
+				f.type = STRING_V;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicator[i-1]))) return false;
+				break;
+			}
 		}
 		
 		flegacy.type = f.type; // Copy to legacy
-		
 	}
 	
 	SQLLEN rc;
@@ -500,77 +525,88 @@ bool ODBCConnection::Fetch0()
 	// Fetch a batch set for reduced latency (huge difference)
 	if (!fetchedSet) {
 		ret = SQLExtendedFetch(session->hstmt, SQL_FETCH_NEXT, 0, &rowsFetched, rowStatus);
-		if(ret == SQL_NO_DATA || !IsOk(ret))
+		if(ret == SQL_NO_DATA || !IsOk(ret)) {
+			for(int i = 0; i < myinfo.GetCount(); i++) {
+				
+				byte *b = rowdata.Get(myinfo[i].name);
+				delete b;
+			}
+			rowdata.Clear();
 			return false;
+		}
 		fetchedSet = true; // So we don't run until we've returned all these
 		nextFetchSetRow = 0; // SQLSetPos is 1-based, but return data is 0-based!
 	}
 
 	fetchrow.Clear();
-	double dbl;
-	int64 n64;
+	double                 dbl;
+	int64                  n64;
 	// Data Types Reference: http://msdn.microsoft.com/en-us/library/ms714556(v=vs.85).aspx
-	SQL_TIMESTAMP_STRUCT tmstmp;
-	SQL_DATE_STRUCT dt;
-	SQL_TIME_STRUCT tm;
-	SQLLEN li;
-	SQLGUID guid;
-	SQL_NUMERIC_STRUCT n;
-	SQL_INTERVAL_STRUCT iv;
-	SQLREAL rl; // Same as float
-	SQLFLOAT flt; // Same as double
-	SQLINTEGER lint; // long int
+	SQL_TIMESTAMP_STRUCT   tmstmp;
+	SQL_DATE_STRUCT        dt;
+	SQL_TIME_STRUCT        tm;
+	SQLLEN                 li;
+	SQLGUID                guid;
+	SQL_NUMERIC_STRUCT     n;
+	SQL_INTERVAL_STRUCT    iv;
+	SQLREAL                rl;    // Same as float
+	SQLFLOAT               flt;   // Same as double
+	SQLINTEGER             lint;  // long int
 	
 	// Walk through each column
 	
 	for(int i = 0; i < myinfo.GetCount(); i++) {
+		int ColumnSize = myinfo[i].width;
 		Value v = Null;
 
 		if (indicator[i][nextFetchSetRow] != SQL_NULL_DATA) {
 			switch(myinfo[i].type) {
 
 			case DOUBLE_V:
-				memcpy((void *)&dbl, (void *)fetchedRows[i][nextFetchSetRow], sizeof(dbl));
+				memcpy((void *)&dbl, (void *)(double *)(rowdata.Get(myinfo[i].name))[nextFetchSetRow], sizeof(dbl));
 				v = dbl;
 				break;
 
 			case INT64_V:
-				memcpy((void *)&n64, (void *)fetchedRows[i][nextFetchSetRow], sizeof(n64));
+				memcpy((void *)&n64, (void *)(int64 *)(rowdata.Get(myinfo[i].name))[nextFetchSetRow], sizeof(n64));
 				v = n64;
 				break;
 	
 			case DATE_V:
-				memcpy((void *)&dt, (void *)fetchedRows[i][nextFetchSetRow], sizeof(dt));
+				memcpy((void *)&dt, (void *)(SQL_TIME_STRUCT *)(rowdata.Get(myinfo[i].name))[nextFetchSetRow], sizeof(dt));
 				{
 					Date d;
-					d.day = (byte)dt.day;
-					d.month = (byte)dt.month;
-					d.year = dt.year;
+					d.year     = dt.year;
+					d.month    = (byte)dt.month;
+					d.day      = (byte)dt.day;
 					v = d;
 				}
 				break;
 				
 			case TIME_V: // Same for timestamps and date SQL Server types
-				memcpy((void *)&tmstmp, (void *)fetchedRows[i][nextFetchSetRow], sizeof(tmstmp));
+				memcpy((void *)&tmstmp, (void *)(SQL_TIMESTAMP_STRUCT *)(rowdata.Get(myinfo[i].name))[nextFetchSetRow], sizeof(tmstmp));
 				{	
 					Time m;
-					m.year = tmstmp.year;
-					m.month = (byte)tmstmp.month;
-					m.day = (byte)tmstmp.day;
-					m.hour = (byte)tmstmp.hour;
-					m.minute = (byte)tmstmp.minute;
-					m.second = (byte)tmstmp.second;
+					m.year       = tmstmp.year;
+					m.month      = (byte)tmstmp.month;
+					m.day        = (byte)tmstmp.day;
+					m.hour       = (byte)tmstmp.hour;
+					m.minute     = (byte)tmstmp.minute;
+					m.second     = (byte)tmstmp.second;
 					v = m;
 				}
 				break;
 
-			default:
-				if (indicator[i][nextFetchSetRow] == SQL_NULL_DATA) {
-					v = Null;
-				} else {
-					v = String((char *)fetchedRows[i][nextFetchSetRow]);
+			case STRING_V:
+				{
+					String nm = myinfo[i].name;
+					byte *b = (byte *)rowdata.Get(nm);
+					SQLCHAR *x = (SQLCHAR *)&(b[(ColumnSize + 1) * nextFetchSetRow]);
+					v = String((char *)(x));
+					break;
 				}
-				break;
+			default:
+				Exclamation("Unsupported fetch type");
 			}
 		}
 		
