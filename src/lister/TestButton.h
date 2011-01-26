@@ -8,12 +8,11 @@ using namespace Upp;
 class TestButton : public Button {
 public:
 	typedef TestButton CLASSNAME;
-	bool wasClicked;
+	bool            wasClicked;
 	
-	TestButton();
-
+	                TestButton();
 	// Only called if we use WhenCtrlsAction, NOT WhenCtrlAction.	
-	void BeginTest();
+	void            BeginTest();
 };
 
 #endif

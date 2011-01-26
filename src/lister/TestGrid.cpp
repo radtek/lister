@@ -3,6 +3,7 @@
 #include "TestState.h"
 #include "TestButton.h"
 #include "Connection.h"
+#include "shared_db.h"
 
 //==========================================================================================	
 Id IDTestState("State");
@@ -73,7 +74,7 @@ void TestGrid::RemoveTest() {
 // Create a bare-bones frame for a new test based on a script with a valid scriptid.
 void TestGrid::AddTest(String script, int scriptId, int connId) {
 	Add();
-	if (connection->SendQueryDataScript("select scriptid, script from scripts")) {
+	if (connection->SendQueryDataScript(Script::GetScriptListQuery())) {
 		scriptList.Clear();
 		while(connection->Fetch()) {
 			scriptList.Add(connection->Get(0), connection->Get(1));
@@ -157,9 +158,9 @@ void TestGrid::SaveTest() {
 		// Determine if teset already exists
 		String controlScript = Format(
 			"insert into tests(testname, note, scriptid, connid, desiredoutcome, actualoutcome, outputvalue, x,    y,    invertcomparison, comptypid, testtypid) "
-			"values(          '%s',     '%s',  %d,       %d,     %s,             %s,            '%s',        '%s', '%s', '%s',             %d,        %d)"
-				,             connection->PrepTextDataForSend(testName)
-				,                       connection->PrepTextDataForSend(testNote)
+			"values(           %s,       %s,   %d,       %d,     %s,             %s,            %s,          %s,   %s,   '%s',             %d,        %d)"
+				,              connection->PrepTextDataForSend(testName)
+				,                        connection->PrepTextDataForSend(testNote)
 				,                              testScriptId
 				,                                        testConnId
 				,                                                tokenizedDesiredOutcome // apostrophize at token level in case a NULL is required
@@ -167,7 +168,7 @@ void TestGrid::SaveTest() {
 				,                                                                               connection->PrepTextDataForSend(GetOutputValue(row))
 				,                                                                                            connection->PrepTextDataForSend(GetCompareUsingX(row))
 				,                                                                                                  connection->PrepTextDataForSend(GetCompareUsingY(row))
-				,                                                                                                        tokenizedInvertComparison
+				,                                                                                                        tokenizedInvertComparison // Not apposted:)
 				,                                                                                                                          GetCompTypId(row)
 				,                                                                                                                                     GetTestTypId(row)
 				);
@@ -190,11 +191,11 @@ void TestGrid::SaveTest() {
 		int testId = GetTestId(row);
 		String controlScript = Format(
 			"UPDATE tests set"
-		 		"  testname = '%s'"
-		 		", note = '%s', scriptid = %d, connid = %d, desiredoutcome = %s, actualoutcome = %s, outputvalue = '%s'"
-		 		", x = '%s', y = '%s', invertcomparison = '%s', comptypid = %d, testtypid = %d"
+		 		"  testname = %s"
+		 		", note = %s, scriptid = %d, connid = %d, desiredoutcome = %s, actualoutcome = %s, outputvalue = %s"
+		 		", x = %s, y = %s, invertcomparison = '%s', comptypid = %d, testtypid = %d"
 		     	" WHERE testid = %d"
-				,             connection->PrepTextDataForSend(testName)
+				,            connection->PrepTextDataForSend(testName)
 				,                       connection->PrepTextDataForSend(testNote)
 				,                              testScriptId
 				,                                        testConnId
@@ -239,7 +240,7 @@ void TestGrid::SaveTest() {
 		}
 	}
 
-	if (connection->SendQueryDataScript("select scriptid, script from scripts")) {
+	if (connection->SendQueryDataScript(Script::GetScriptListQuery())) {
 		while(connection->Fetch()) {
 			scriptList.Add(connection->Get(0), connection->Get(1));
 		}

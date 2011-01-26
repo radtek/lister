@@ -2,7 +2,11 @@
 #define _lister_TaskGrid_h_
 
 #include "shared.h"
+#include <CtrlLib/CtrlLib.h>
+#include "Task.h"
+
 class Connection;
+class TaskDefWin;
 
 // Extracted from listertables table.
 
@@ -50,14 +54,39 @@ class Connection;
 
 class TaskGrid : public UrpSqlGrid {
 public:
-	EditString taskName, taskNote, srcCode, projectName;
-
-	TaskGrid();
-	void Build();
-	void Load(Connection *pconnection);
-	int GetTaskId(int row);
-	String GetTaskName(int row);
+	typedef TaskGrid CLASSNAME; // THISBACK won't work without this
+	EditString      taskName, taskNote, srcCode, projectName;
+	Connection     *connection;
+	
+	                TaskGrid();
+	               ~TaskGrid();
+	void            Build();
+	void            Load(Connection *pconnection);
+	int             GetTaskId(int row);
+	String          GetTaskName(int row);
+	String          GetTaskDesc(int row);
+	String          GetSolutionDesc(int row);
+	String          GetSrcCode(int row);
+	String          GetProjectName(int row);
+	String          GetNote(int row);
+	int             GetAssignedToWho(int row);
+	int             GetAssignedByWho(int row);
+	Date            GetPriorityAssignedDate(int row);
+	Date            GetNextTargetDate(int row);
+	String          GetTargetDateExpectation(int row);
+	int             GetPriorityWithinProject(int row);
+	int             GetDepOnWho(int row);
+	int             GetDepOnWho2(int row);
+	int             GetDepOnWho3(int row);
+	int             GetDepOnWho4(int row);
+	int             GetDepOnWho5(int row);
+	Date            GetDepAssignedWhen(int row);
+	Date            GetDepExpectSampWhen(int row);
+	String          GetDepAssignDesc(int row);
+	String          GetDepFeedback(int row);
+	
+	Task            BuildTask(int row);
+	bool            SaveTask(Task &task);
 };
-
 
 #endif

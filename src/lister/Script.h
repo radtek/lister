@@ -2,6 +2,7 @@
 #define _lister_lister_Script_h_
 
 #include "shared.h"
+
 class OutputGrid;
 
 enum ScriptTarget { SO_UNDEF, SO_SCREEN, SO_TABLE };
@@ -12,8 +13,9 @@ public:
 	,                       originalScriptId; // Should populate so original script can bne updated when shift key is held down
 	ScriptTarget            scriptTarget; // Screen or table?
 	String                  targetName; // Table name if target is a table
-	String                  script; // text
-	RichText                richscript; // display with QTF embedded
+	String                  scriptPlainText; // text
+	String                  scriptQTFText; // Pre-RichText, which includes font information
+	RichText                scriptRichText; // display with RichText embedded
 	bool                    fastFlushTarget; // set to true if truncate target first
 	OutputGrid             *outputGrid; // For screen output
 	int                     rowLimit;
@@ -21,6 +23,20 @@ public:
 	
 	Script();
 	Script(OutputGrid *poutputGrid);
+	Script(
+		ScriptTarget              pscriptTarget
+	,	bool                      pfastFlushTarget
+	,	OutputGrid               *poutputGrid
+	,	int                       pscriptId
+	,	String                    pscriptPlainText
+	,   RichText                  pscriptRichText
+	,	int                       prowLimit
+	,	String                    ptargetName
+	);
+
+	static String          GetScriptListQuery();
+	static String          GetScriptDetailByIdQuery(int scriptId);
+	static String          FindScriptByPlainTextQuery(String pscriptPlainText);
 };
 
 #endif

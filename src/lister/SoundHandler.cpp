@@ -40,13 +40,11 @@ static int waveCurrentBlock;
 #define SOUND_SWISH "C:/Documents and Settings/nbkwdkv/My Documents/Visual Studio 2008/Projects/ora/92010NT_CLT/autorun/click.wav"
 #define SOUND_DOINK "C:/blp/Wintrv/gecko/res/samples/test.wav"
 //#define SOUND_BWZZZ "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/fs_asterisk.wav"
-#define SOUND_TWDLZP "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/C801.wav"
 #define SOUND_WCHITA "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/C802.wav"
 #define SOUND_TWEEYAH "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/C809.wav"
 #define SOUND_BOODOOP "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/C810.wav"
 #define SOUND_DDDP "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/C813.wav"
 #define SOUND_LASER "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Laser SFX.wav"
-#define SOUND_CLINK "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Clink.wav"
 #define SOUND_DIT "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Dit.wav"
 #define SOUND_GLISS "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Gliss.wav"
 #define SOUND_LASER2 "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Laser.wav"
@@ -60,16 +58,22 @@ static int waveCurrentBlock;
 #define SOUND_BEAT "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/1beat2.wav"
 #define SOUND_LOWBEAT "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/1beat1.wav"
 #define SOUND_BELL "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Ding2.wav"
-#define SOUND_BERP "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Hoot.wav"
 #define SOUND_LONGDING "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Longding.wav"
 #define SOUND_RINGNOTE "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Ringnote.wav"
 #define SOUND_QUICKDING "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Quikding.wav"
 #define SOUND_SYNTH "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Synth-3.wav"
 #define SOUND_WHISTLE "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Whistle.wav"
 
+//=========== Sounds in use ==================
 // Created by Windows XP Sound Recorder from 11Khz-16-stereo.  Same pitch, but pops at the beginning.  May be player.  More hiss added.
-#define SOUND_BWZZZ "C:/Tools/fs_asterisk.raw.44-16-stereo.wav" // Nasty pop
+#define SOUND_BWZZZ  "C:/Tools/fs_asterisk.raw.44-16-stereo.wav" // Nasty pop
+#define SOUND_TWDLZP "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/C801.wav"
+#define SOUND_BERP   "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Hoot.wav"
+#define SOUND_CLINK  "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Clink.wav"
+#define SOUND_DRESSERDRAWERCLOSE   "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/Dresser Drawer Close 01.wav"
+#define SOUND_WOOP   "C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds/fs_menu_command.wav"
 
+//"C:/Documents and Settings/nbkwdkv/Desktop/MyTool/Sounds
 // WAVPCM
 // Wav to raw PCM converter
 // Written by WolfCoder(2006)
@@ -79,6 +83,7 @@ static int waveCurrentBlock;
 #include <mmsystem.h> // Use multimedia system
 #include <iostream> // Use console IO
 using namespace std;
+
 
 //void main(int argn,char *argv[])
 //==========================================================================================	
@@ -398,9 +403,13 @@ void Speak(EnumEventSound enumEventSound) {
 		case EVS_TEST_FAILED:
 			PlaySound(SOUND_CLINK, NULL, SND_ASYNC|SND_NODEFAULT);
 			break;
+		case EVS_FETCH_COMPLETED:
+			PlaySound(SOUND_DRESSERDRAWERCLOSE, NULL, SND_ASYNC|SND_NODEFAULT);
+			break;
+		case EVS_INSERT_COMPLETED:
+			PlaySound(SOUND_WOOP, NULL, SND_ASYNC|SND_NODEFAULT);
+			break;
 		default:
 			MessageBeep(MB_OK);
 	}
 }
-
-

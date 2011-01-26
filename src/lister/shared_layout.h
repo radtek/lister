@@ -3,7 +3,13 @@
 
 using namespace Upp;
 
-#include "TestGrid.h" // Referenced from layout
+#include "ScriptGrid.h" // Referenced from layout
+#include "TestGrid.h"   // Referenced from layout
+#include "ElementGrid.h"
+#include "TaskGrid.h"
+#include "LinkGrid.h"
+
+#include <lister/Urp/UrpEdit.h> // My fix of U++ RichEdit
 
 #define LAYOUTFILE <lister/lister/lister.lay>
 #include <CtrlCore/lay.h>

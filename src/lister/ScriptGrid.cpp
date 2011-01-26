@@ -2,8 +2,7 @@
 #include "Connection.h"
 #include "shared_db.h"
 #include "Script.h"
-
-#include "shared.h"
+#include <Sql/Sql.h>
 
 //==============================================================================================
 ScriptGrid::ScriptGrid() : UrpSqlGrid() {
@@ -18,7 +17,8 @@ void ScriptGrid::Build(Connection *pconnection) {
 	AddColumn(TASKID, "taskid", 50);
 	HideColumn(TASKID); // For joining to task grid only.
 	AddColumn(WHY, "why", 160).Edit(why);
-	AddColumn(SCRIPT, "script", 200);
+	AddColumn(SCRIPTPLAINTEXT, "script", 200);
+	AddColumn(SCRIPTRICHTEXT, "rich", 200); HideColumn(SCRIPTRICHTEXT); // No need to try editing in grid
 	AddColumn(SCRIPTNOTE, "script note", 200).Edit(scriptNote);
 	AddColumn(SCRIPTID, "scriptid", 50);
 	HideColumn(SCRIPTID);
@@ -32,6 +32,7 @@ void ScriptGrid::Build(Connection *pconnection) {
 	AddColumn(PROCESSORDER, "order", 25).Edit(processOrder);
 	connectionList.SearchHideRows().Resizeable().Width(200);
 	connectionList.NotNull(); //.AddPlus(THISBACK(NewConnection));
+	built = true;
 }
 
 //==============================================================================================
@@ -41,22 +42,25 @@ void ScriptGrid::Load() {
 		return;
 	}
 	
+	connectionList.Clear();
+	
 	while(connection->Fetch()) {
 		connectionList.Add(connection->Get(0), connection->Get(1));
 	}
 
 	connectionList.Add(Null, Null); // Make sure we support a null value or we won't be able to edit other attributes without assigning a connection, which isn't what we want.
-
 	LoadScriptTargetList(scriptTargetList);
 		
 	PrepTargetFastFlush(fastFlushTargetList);
 	SetSession(*(connection->session));
 	SetOrderBy(PROCESSORDER, ADDTIMESTAMP, RELID); // If addtimestamp isn't populated, we sort by key generation order
 	Query();
+	loaded = true;
 }
 
 //==============================================================================================
 void ScriptGrid::LoadScriptTargetList(DropGrid &pscriptTargetList) {
+	pscriptTargetList.Clear();
 	pscriptTargetList.Add(SO_UNDEF, "Target Undefined");
 	pscriptTargetList.Add(SO_SCREEN, "Screen Grid");
 	pscriptTargetList.Add(SO_TABLE, "Database Table");
@@ -66,6 +70,7 @@ void ScriptGrid::LoadScriptTargetList(DropGrid &pscriptTargetList) {
 
 //==============================================================================================
 void ScriptGrid::PrepTargetFastFlush(DropGrid &fastFlushTargetList) {
+	fastFlushTargetList.Clear();
 	fastFlushTargetList.Add("0", "Don't delete target");
 	fastFlushTargetList.Add("1", "Truncate target table");
 }
@@ -97,14 +102,29 @@ int ScriptGrid::GetScriptId(int row) {
 }
 
 //==============================================================================================
-String ScriptGrid::GetScript(int row) {
-	return Get(row, SCRIPT);
+RichText ScriptGrid::GetScriptRichText(int row) {
+	Value v;
+	
+	if (v.IsNull()) {
+		v = Get(row, SCRIPTPLAINTEXT);
+		String s = v.ToString();
+		return ParseQTF(DeQtfLf(s));
+	} else {
+		v = Get(row, SCRIPTRICHTEXT);
+		return AsRichText(WString(v));
+	}
+}
+
+//==============================================================================================
+String ScriptGrid::GetScriptPlainText(int row) {
+	return Get(row, SCRIPTPLAINTEXT);
 }
 
 //==============================================================================================
 void ScriptGrid::GetScriptOb(int row, Script *psob) {
 	ASSERT(psob);
-	psob->script          = GetScript           (row);
+	psob->scriptPlainText = GetScriptPlainText  (row);
+	psob->scriptRichText  = GetScriptRichText   (row);
 	psob->scriptId        = GetScriptId         (row);
 	psob->scriptTarget    = GetScriptTarget     (row);
 	psob->targetName      = GetTargetName       (row);
@@ -141,3 +161,36 @@ bool ScriptGrid::GetFastFlushTarget(int row) {
 	String v = Get(row, FASTFLUSHTARGET);
 	return (v == "1");
 }
+
+
+//
+//BTW, speaking about it, you should be aware of Sql refactoring plan....
+//
+//The problem there now is with dialects AND using multiple engines at once (like Oracle and MySql in single app).
+//
+//There are two problems - SQL dialects differ AND of course, "implicit session" are now two...
+//
+//Well, several month ago plan was to bind the dialect with "execution" Sql - that would involve storing SqlExp into some intermediate language form and then "compiling" it for target engine. Also, implicit session and default SQL cursor (which in fact are related) would be gone in multisession apps.
+//
+//However, further thinking revealed that it would still be difficult to use - you would have to quote session when makeing any Sql cursor. So the current plan, somewhat less elegant but I believe more productive, is simply to have per-thread "current session" variable and change it using RAII push/pops, something like
+//
+//void MyFn() {
+//UseSqlSession __(MySqlSession);
+//// now until __ destructor, MySqlSession and MySQL dialect are used for everything, SQL reffers to MySqlSession
+//}
+//
+//maybe, using macro hackery, we could also introduce form
+//
+//void MyFn() {
+//SQLCONTEXT(MySqlSession) {
+//.....
+//}
+//}
+//
+//That also means that those "dialect" members of SqlS are likely to be gone in favor of single per-thread global variable.
+
+//sql * Select(SqlCountRows()).From(SqlId(sqlTable)).Where(PRODUKT=="prohibis");
+//SqlBool sqlWhere = (PRODUKT=='prohibis');
+//if(something_true){
+//    sqlWhere = sqlWhere && Like(SOME_FIELD, "a%");
+//}
