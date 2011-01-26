@@ -6,11 +6,50 @@
 // Taken using http://www.barcodeman.com/altek/mule/kbemulator/
 
 // Not defined in CtrlCore.h
-#define K_ALT_CTRL       K_ALT|K_CTRL
-#define K_ALT_SHIFT      K_ALT|K_SHIFT
-#define K_ALT_SHIFT_CTRL K_ALT|K_SHIFT|K_CTRL
-#define K_ALT_CTRL_F8    K_ALT_CTRL|K_F8
+#define K_ALT_CTRL          K_ALT|K_CTRL
+#define K_ALT_SHIFT         K_ALT|K_SHIFT
+#define K_ALT_SHIFT_CTRL    K_ALT|K_SHIFT|K_CTRL
+#define K_ALT_CTRL_F8       K_ALT_CTRL|K_F8
+#define K_ALT_SHIFT_CTRL_F8 K_ALT_SHIFT_CTRL|K_F8
+#define K_ALT_SHIFT_F8      K_ALT_SHIFT|K_F8
+#define K_CTRL_9            K_CTRL|K_9
 
+// From CtrlCore\Win32Keys.i
+
+//K_CTRL_LBRACKET  = K_CTRL|219|K_DELTA,
+//K_CTRL_RBRACKET  = K_CTRL|221|K_DELTA,
+//K_CTRL_MINUS     = K_CTRL|0xbd|K_DELTA,
+//K_CTRL_GRAVE     = K_CTRL|0xc0|K_DELTA,
+//K_CTRL_SLASH     = K_CTRL|0xbf|K_DELTA,
+//K_CTRL_BACKSLASH = K_CTRL|0xdc|K_DELTA,
+//K_CTRL_COMMA     = K_CTRL|0xbc|K_DELTA,
+//K_CTRL_PERIOD    = K_CTRL|0xbe|K_DELTA,
+//K_CTRL_SEMICOLON = K_CTRL|0xbe|K_DELTA,
+//K_CTRL_EQUAL     = K_CTRL|0xbb|K_DELTA,
+//K_CTRL_APOSTROPHE= K_CTRL|0xde|K_DELTA,
+//
+//K_BREAK      = VK_CANCEL + K_DELTA,
+
+//VK_NUMPAD0 60 Numeric keypad 0 key  
+//VK_NUMPAD1 61 Numeric keypad 1 key  
+//VK_NUMPAD2 62 Numeric keypad 2 key  
+//VK_NUMPAD3 63 Numeric keypad 3 key  
+//VK_NUMPAD4 64 Numeric keypad 4 key  
+//VK_NUMPAD5 65 Numeric keypad 5 key  
+//VK_NUMPAD6 66 Numeric keypad 6 key  
+//VK_NUMPAD7 67 Numeric keypad 7 key  
+//VK_NUMPAD8 68 Numeric keypad 8 key  
+//VK_NUMPAD9 69 Numeric keypad 9 key  
+//VK_ADD 6B
+//VK_SEPARATOR 6C Separator key  
+//VK_SUBTRACT 6D Subtract key  
+//VK_DECIMAL 6E Decimal key  
+//VK_DIVIDE 6F Divide key 
+
+#define K_ASTERISK          0x3E
+#define K_CTRL_ASTERISK     0x30038
+//K_CTRL|K_ASTERISK|K_DELTA
+#define K_PERIOD            0xbe|K_DELTA
 
 /*
 Left-Ctrl-down	'14'               # Keynumber 58 down.

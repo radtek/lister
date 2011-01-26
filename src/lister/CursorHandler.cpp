@@ -13,18 +13,11 @@ CursorHandler::CursorHandler(Connection *pcontrolConnection, Connection *pconnec
 
 //==============================================================================================
 void CursorHandler::ColSize(OutputGrid *outputGrid, Sql *cursor) {
-	int maxw = 18 * StdFont().Info().GetAveWidth();
-	int maxx = outputGrid->GetSize().cx;
-	int wx = 0;
-	for(int i = 0; i < cursor->GetColumns(); i++) {
-		int w = cw[i];
-		outputGrid->SetColWidth(i + outputGrid->indicator, cw[i]);
-	}
 }
 
 //==============================================================================================
 // Run a script and push output to the grid, or to a table
-bool CursorHandler::Run(Script &sob, bool log) {
+bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 	ASSERT(connection);
 	int x = 0;
 	WaitCursor wc;
@@ -40,10 +33,18 @@ bool CursorHandler::Run(Script &sob, bool log) {
 	}
 	
 	// We always send macros to our targets.  Only when we save scripts do we not expand the macros, elsewise we could never save them, huh?
-	if (!connection->SendQueryDataScript(sob.script, true /* silent, we'll handle errors */, true /* expand macros */, log)) {
+	if (!connection->SendQueryDataScript(sob.scriptPlainText, true /* silent, we'll handle errors */, true /* expand macros */, jobSpec.log)) {
 		// We make our own beep, so that it distintively identifies a "lister execution failure" to the user, not a generic windows failure
 		Speak(EVS_EXECUTE_FAILED);
-		Prompt(Ctrl::GetAppName(), CtrlImg::exclamation(), Format("Error: [* %s].", DeQtf(connection->GetLastError())), t_("OK"));
+		if (!jobSpec.batchMode) {
+			Prompt(Ctrl::GetAppName(), CtrlImg::exclamation(), Format("Error: [* %s].", DeQtf(connection->GetLastError())), t_("OK"));
+		}
+		LOG(connection->GetLastError());
+		
+		if (jobSpec.log) {
+			LogLine(CAT << "Execution failed: " << DeQtf(connection->GetLastError()));
+		}
+		
 		return false;
 	}
 
@@ -56,10 +57,31 @@ bool CursorHandler::Run(Script &sob, bool log) {
 	String outputTable = sob.targetName;
 	
 	int rowcount = 0;
+	
+	int adaptedRowLimit;
+	
+	// Calculate rowlimit based on if this is a test mode
+	if (jobSpec.testMode) {
+		if (sob.rowLimit != -1 && sob.rowLimit < 100) {
+			adaptedRowLimit = sob.rowLimit;
+			if (jobSpec.log) LogLine(CAT << "Test mode`: Requested limit of \1" << sob.rowLimit << "\1 is actually lower than the test limit of 100`. Using requested limit.");
+		} else {
+			adaptedRowLimit = 100;
+			if (jobSpec.log) LogLine(CAT << "Test mode`: Adapted limit from \1" << sob.rowLimit << "\1 down to " << adaptedRowLimit);
+		}
+	} else {
+		adaptedRowLimit = sob.rowLimit;
+	}
+	
+
 	//__________________________________________________________________________________________
 	if (sob.scriptTarget == SO_TABLE) {
 		// Only popup up user didn't enter an output table name
 		if (outputTable.IsEmpty()) {
+			if (jobSpec.batchMode) {
+				throw new Exc("Batch mode: no output table name");
+			}
+			
 			if (!UrpInputBox(outputTable, "Creating output table from script", "Enter unique name for table")) {
 				return false;
 			}
@@ -68,24 +90,25 @@ bool CursorHandler::Run(Script &sob, bool log) {
 		// Instead of truncating, we drop and create
 		
 		if (sob.fastFlushTarget) {
-			RebuildTableFromConnection(outputTable, log);
+			RebuildTableFromConnection(outputTable, jobSpec);
 		}
 		
-		rowcount = LoadIntoTableFromConnectionCOPY(outputTable, sob.rowLimit, log);
+		rowcount = LoadIntoTableFromConnectionCOPY(outputTable, adaptedRowLimit, jobSpec);
 		
 		String msg; msg << "Inserted " << rowcount << " rows into " << outputTable << ", took " << t.ToString();
-		Exclamation(msg);
-		if (log) LogLine(msg);
+		if (!jobSpec.batchMode) Exclamation(msg);
+		if (jobSpec.log) LogLine(msg);
 	
 	//__________________________________________________________________________________________
 	} else if (sob.scriptTarget == SO_SCREEN) { // load to screen grid
 
-		rowcount = LoadIntoScreenGridFromConnection(sob.outputGrid, log);
+		// Hmmmm, should support append to end of screen
+		rowcount = LoadIntoScreenGridFromConnection(sob.outputGrid, jobSpec);
 	}
 	
 	if (connection->WasError()) {
 		Speak(EVS_EXECUTE_FAILED);
-		connection->HandleDbError(ACTNDB_EXECSEL, &sob.script, log);
+		connection->HandleDbError(ACTNDB_EXECSEL, &sob.scriptPlainText, jobSpec.log, jobSpec.batchMode);
 		return false;
 	}
 
@@ -93,7 +116,7 @@ bool CursorHandler::Run(Script &sob, bool log) {
 }
 
 //==============================================================================================
-int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLimit, bool log) {
+int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLimit, JobSpec &jobSpec) {
 	int rowcount = 0;
 	
 	// Generate table name or input from user
@@ -134,11 +157,13 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 	
 	copyScript << "\\.\n";
 	
+	
 	FileOut fo("C:/MyApps/lister/totable.sql");
 	
 	fo.Put(copyScript);
 	fo.Close();
 	
+	Speak(EVS_FETCH_COMPLETED);
 	// Shell and execute.
 	LocalProcess lp("psql --host localhost --dbname postgres --username postgres -f C:/MyApps/lister/totable.sql");
 	
@@ -146,6 +171,8 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 		GuiSleep(0);
 		ProcessEvents();		
 	}
+
+	Speak(EVS_INSERT_COMPLETED);
 	
 	return rowcount;
 }
@@ -153,7 +180,7 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 //==============================================================================================
 // Assumes connection prepped with query already
 /*protected: */
-int CursorHandler::LoadIntoTableFromConnectionPREP(String outputTable, int rowLimit, bool log) {
+int CursorHandler::LoadIntoTableFromConnectionPREP(String outputTable, int rowLimit, JobSpec &jobSpec) {
 	int rowcount = 0;
 	
 	// Generate table name or input from user
@@ -220,7 +247,7 @@ int CursorHandler::LoadIntoTableFromConnectionPREP(String outputTable, int rowLi
 }
 
 //==============================================================================================
-void CursorHandler::RebuildTableFromConnection(String outputTable, bool log) {
+void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobSpec) {
 	String script = Format("drop table %s", outputTable);
 	controlConnection->SendChangeStructureScript(script, RUN_SILENT); // ignore errors
 	
@@ -249,9 +276,11 @@ void CursorHandler::RebuildTableFromConnection(String outputTable, bool log) {
 }
 
 //==============================================================================================
-int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, bool log) {
+int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobSpec &jobSpec) {
 	int colCount = connection->GetColumns();
-
+	bool gridStyle = false;
+	bool tabStyle = !gridStyle;
+	
 	outputGrid->Ready(false);
 	//outputGrid->Reset(); // Crashing when first column is sorted!  U++ bug.
 	outputGrid->Clear(true /* Clear all columns.  Required or internal error hitems counts show all columns still, will crash. */);
@@ -261,20 +290,54 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, bool
 
 	// Get all the column definitions, especially the column name
 
+	String logLine;
+	
+	if (gridStyle) logLine = "{{1:2 ";
+
+	if (tabStyle) {
+		logLine = "[";
+		for (int i = 0; i < colCount; i++) {
+			logLine << "~" << i * 300;
+		}
+	}
+
 	for (int i = 0; i < colCount; i++) {
 		const SqlColumnInfo& ci = connection->GetColumnInfo(i);
 		int w = GetTextSize(ci.name, StdFont()).cx + 14;
 		outputGrid->AddColumn(ci.name).Width(w);
+		outputGrid->SetColWidth(i + outputGrid->indicator, w);
 		cw[i] = w;
+		
+		if (jobSpec.log) {
+			if (gridStyle) if (i) logLine << ":: "; // Insert grid line
+			if (tabStyle) logLine << " -|";
+			// @m for dark Magenta, @R for bright red (blinking?) Really helps make the log viewer readable
+			// Use deqtf so that underscores are not eaten
+			if (gridStyle) logLine << DeQtf(ci.name);
+			if (tabStyle) logLine << "[@m " << DeQtf(ci.name) << "]";
+		}
+	}
+	
+	// Write column headers to log, so user can save
+	if (jobSpec.log && tabStyle) {
+		logLine << "]";
+		LogLineUnembellished(logLine);
 	}
 
 	// Fetch data and display
 	Progress pi;
 	pi.SetText("Fetched %d line(s)");
-	ColSize(outputGrid, connection);
 
 	int rc = 0;		
+
 	while(connection->Fetch()) {
+		if (tabStyle) {
+			logLine = "[";
+			for (int i = 0; i < colCount; i++) {
+				logLine << "~" << i * 300;
+			}
+		}
+		
 		rc++;
 		Vector<Value> row = connection->GetRow();
 		
@@ -288,25 +351,39 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, bool
 			}
 		}
 		outputGrid->Add(row);
-		if (log) {
-			String logLine = "";
-			
+		
+		// Log output columns
+		
+		if (jobSpec.log) {
+
 			for (int i = 0; i < colCount; i++) {
-				const SqlColumnInfo& ci = connection->GetColumnInfo(i);
-				if (i) logLine << ", ";
+				if (i && gridStyle) logLine << ":: ";
+				if (tabStyle) logLine << " -|";
 				Value v = row.At(i); 
-				logLine << ci.name << "=" << (v.IsNull()? "Null" : AsString(v));
+				// @m for dark Magenta, @R for bright red (blinking?) Really helps make the log viewer readable
+				//logLine << "[@m " << (v.IsNull()? "[@R Null]" : DeQtf(AsString(v))) << "]";
+				logLine << "[@m " << (v.IsNull()? "[@R Null]" : DeQtf(AsString(v))) << "]";
 			}
-			LogLine(logLine);
+			if (jobSpec.log && tabStyle) {
+				logLine << "]";
+				LogLineUnembellished(logLine); // Leave off TimeStamp prefix so users can copy/paste
+			}
 		}
 		
 		if (pi.StepCanceled()) break;
 	}
+
+	if (gridStyle) logLine << "}}";
+	
+	if (jobSpec.log && gridStyle) LogLine(logLine);
 	
 	outputGrid->Ready(true);
 
-	ColSize(outputGrid, connection);
-	
+	// Resize column based on width of first 10 rows
+	for (int i = 0; i < colCount; i++) {
+		outputGrid->SetColWidth(i + outputGrid->indicator, cw[i]);
+	}
+
 	if (outputGrid->GetCount() > 0)
 		outputGrid->SetCursor(0);
 	

@@ -1,5 +1,7 @@
 #include "ConnGrid.h"
 
+#include "shared_db.h"
+
 // THESE NAMES MUST BE UNIQUE IN ORDER TO LABEL COLUMN WIDTHS USER CUSTOMIZATIONS WHEN XMLIZING
 
 Id IDConnState("ConnState");
@@ -71,7 +73,10 @@ void ConnGrid::Build() {
 	// Hidden rows currently managed by serialization
 	// Multi selecting works in the same way as in ArrayCtrl. One can select a row by holding CTRL and pressing LMB
 				
-	AddColumn(IDConnState, "").Ctrls(MakeConnState).Default(ConnState::ConvertStateToColor(NOCON_NEVER)).Fixed(16);
+	GridCtrl::ItemRect& x = AddColumn(IDConnState, "").Ctrls(MakeConnState).Default(ConnState::ConvertStateToColor(NOCON_NEVER)).Fixed(16);
+	bool r = x.IsFixed(); // ismin ismax are not set in original GridCtrl, so I cloned it and fixed it, and made this function pubic.
+//	bool rmax = x.IsMax();
+//	bool rmin = x.IsMin();
 	AddColumn(IDConnId, "Id").Edit(fldConnId).Default(Null);
 	AddColumn(IDConnName, "Name").Edit(fldConnName);
 	AddColumn(IDLoginId, "Login Id");
@@ -112,7 +117,8 @@ void ConnGrid::NewInstance() {
 
 	// Populate the instance types
 		
-	if (connection->SendQueryDataScript("select insttypid, insttypname from insttyps")) {
+	//if (connection->SendQueryDataScript("select insttypid, insttypname from insttyps")) {
+	if (connection->SendQueryDataScript(SqlStatement(SqlSelect(INSTTYPID, INSTTYPNAME).From(INSTTYPS)).GetText())) {
 		while(connection->Fetch()) {
 			instTypList.Add(connection->Get(0), connection->Get(1));
 			newInstanceWin.instTypList.Add(connection->Get(0), connection->Get(1));

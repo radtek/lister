@@ -5,11 +5,10 @@ class Connection;
 
 class ConnectedCtrl {
 public:
-	Connection *connection;
-	ConnectedCtrl();
-	
-	virtual void Load(Connection *pconnection);
+	Connection         *connection;
 
+	                 ConnectedCtrl();
+	virtual void     Load(Connection *pconnection);
 };
 
 

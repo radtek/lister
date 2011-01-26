@@ -3,17 +3,24 @@
 #include "Script.h"
 #include "LogWin.h"
 
+#include <Oracle/Oracle7.h>
+#include <Oracle/Oracle8.h>
+#include <MSSQL/MSSQL.h>
+#include <PostgreSQL/PostgreSQL.h>
+#include <ODBC/ODBC.h>
+#include <lister/Urp/UrpInput.h>
+
 //==============================================================================================
 Connection::Connection() {
-	connId = UNKNOWN;
-	connName = Null;	
-	instanceTypeName = Null;
-	instanceType = INSTTYP_UNDEF;	
-	enumConnState = NOCON_UNDEF;
-	session = NULL;
-	topWindow = NULL;
-	cancelAnyActiveStatements = 0; // Clear any requests
-	connectErrorMessage = "";
+	connId                      = UNKNOWN;
+	connName                    = Null;	
+	instanceTypeName            = Null;
+	instanceType                = INSTTYP_UNDEF;	
+	enumConnState               = NOCON_UNDEF;
+	session                     = NULL;
+	topWindow                   = NULL;
+	cancelAnyActiveStatements   = 0; // Clear any requests
+	connectErrorMessage         = "";
 }
 
 //==============================================================================================
@@ -77,6 +84,22 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 		connected = attemptingsession->Open(connStr, NULL /* no objects (yet) */);
 		session = -attemptingsession;
 		
+		if (!connected) {
+			if (session->GetErrorCode() == 28001) {
+				// Oracle password expired
+				String newPassword;
+				
+				if (UrpInputBox(
+					newPassword
+				,	"Enter new password"
+				,	CAT << "Password of " << loginPwd << " expired for user " << loginStr << ". Enter new password.")
+				) 
+				{
+					// Call OCIPassworld
+				}
+			}
+		}
+		
 		// Tell the Execute()/Fetch() to call the main event window every so often to prevent GUI freeze
 //			((OCI8Connection *)this)->SetTopWindow(topWindow);
 
@@ -127,6 +150,22 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 //		SQLExecDirect(hstmt1, "select * from authors", SQL_NTS);
 
 
+		connected = attemptingsession->Connect(connStr);
+		session = -attemptingsession;
+	
+	//__________________________________________________________________________________________
+	} else if (instanceTypeName == INSTTYPNM_DB2) {
+		instanceType = INSTTYP_DB2;
+		connStr 
+			<< "Driver="	<< "{iSeries Access ODBC Driver}"	<< ";"
+			<< "Server=" 	<< instanceAddress			<< ";"
+			<< "UID="		<< loginStr					<< ";"
+			<< "PWD="		<< loginPwd					<< ";"
+			//<< "Database="	<< dbName					<< ";"
+			;
+			
+		One<ODBCSession> attemptingsession = new ODBCSession;
+		
 		connected = attemptingsession->Connect(connStr);
 		session = -attemptingsession;
 	
@@ -182,16 +221,17 @@ SqlSession &Connection::GetSession() {
 
 //==============================================================================================
 // Avoid breakage when the script is damaged by control characters in its data portion
+// The Prep includes apostrophizing since the E has to wrap the apostrphoies
 String Connection::PrepTextDataForSend(const String &textData) {
 	switch (instanceType) {
 		case INSTTYP_POSTGRESQL:
-			return UrpString::ReplaceInWhatWith(UrpString::ReplaceInWhatWith(textData, "\\", "\\\\"), "'", "\\'");	
+			return CAT << "E'" << UrpString::ReplaceInWhatWith(UrpString::ReplaceInWhatWith(textData, "\\", "\\\\'"), "'", "\\'") << "'";
 			break;
 		case INSTTYP_ORACLE:
-			return UrpString::ReplaceInWhatWith(textData, "'", "''");	
+			return CAT << "'" << UrpString::ReplaceInWhatWith(textData, "'", "''") << "'";
 			break;
 		default:
-			return textData;
+			return CAT << "'" << textData << "'";
 	}
 }
 
@@ -209,8 +249,8 @@ String Connection::PrepScriptForSend(const String &script, bool log /*=false*/) 
 
 //==============================================================================================
 // This is a prep for actual execution by the receiving instance, not for insertion into 
-// the control db as a saved script text.
-String Connection::PrepOracleScriptForSend(const String &script, bool log /*=false*/) {
+// the control db as a saved script text.  Must pass by COPY or you will corrupt the original.
+String Connection::PrepOracleScriptForSend(const String script, bool log /*=false*/) {
 	ASSERT(instanceType == INSTTYP_ORACLE);
 	
 	// Odd number of apostrophes in a line comment before it terminates breaks Oracle's processor
@@ -371,9 +411,9 @@ String Connection::PrepForPostgresCopyFrom(const String scriptText) {
 //==============================================================================================
 // Migrate logic from CursorHandler.  Traverse fetch and push out to screen or table.
 // Must be here because we want to push around connection pointer, not connection and cursor pointer.
-bool Connection::ProcessQueryDataScript(Script &sob, bool log) {
+bool Connection::ProcessQueryDataScript(Script &sob, JobSpec &jspec) {
 	CursorHandler cursorHandler(controlConnection, this);
-	bool ran = cursorHandler.Run(sob, log);
+	bool ran = cursorHandler.Run(sob, jspec);
 
 	return ran;
 }
@@ -455,7 +495,7 @@ String Connection::ExpandMacros(String inputText) {
 bool Connection::SendQueryDataScript(const char *scriptText, bool silent /*= false*/, bool expandMacros /*= false*/, bool log /*= false*/) {
 	ClearError();
 	static bool retry = false;
-	
+
 	// Process macros if we are pushing to a target
 	
 	String expandedScript;
@@ -465,6 +505,7 @@ bool Connection::SendQueryDataScript(const char *scriptText, bool silent /*= fal
 		if (log) {
 			if (scriptText != expandedScript) {
 				LogLine("Script altered by macros");
+				LOG(scriptText);
 			} else {
 				LogLine("Script was not altered by macros");
 			}
@@ -472,7 +513,8 @@ bool Connection::SendQueryDataScript(const char *scriptText, bool silent /*= fal
 	} else {
 		expandedScript = scriptText;
 	}
-	
+
+	LOG(expandedScript);	
 retryQuery:
 
 	// We have to prep some scripts where embedded codes break the processor
@@ -601,7 +643,7 @@ Value Connection::Get(int i) const {
 }
 
 //==============================================================================================
-bool Connection::HandleDbError(int actioncode, String *cmd/* = NULL*/, bool log) {
+bool Connection::HandleDbError(int actioncode, String *cmd/* = NULL*/, bool log, bool batchMode) {
 	
 	String errcode = GetErrorCodeString();
 	int myerrno = GetErrorCode();
@@ -620,7 +662,7 @@ bool Connection::HandleDbError(int actioncode, String *cmd/* = NULL*/, bool log)
 		msg = Format("Error: #=%d, [* \1%s\1].", myerrno, DeQtf(GetLastError()));
 	}
 	
-	Exclamation(msg);
+	if (!batchMode) Exclamation(msg);
 	if (log) LogLine(msg);
 	return false;
 }
