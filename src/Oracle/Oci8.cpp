@@ -1308,7 +1308,11 @@ bool Oracle8::Open(const String& connect_string, bool use_objects, String *warn)
 	}
 	if(*p == '@')
 		server = ++p;
-	return Login(name, pwd, server, use_objects, warn);
+	return Login(name, pwd, server, use_objects, NULL, warn);
+}
+
+bool Oracle8::OpenWithNewPassword(const String& connect_string, String user, String oldPassword, String newPassword) {
+	return false;
 }
 
 static void OCIInitError(Oracle8& ora, String infn)
@@ -1321,7 +1325,7 @@ static void OCIInitError(Oracle8& ora, String infn)
 //	OCI_LM_DEF = 0, // default login
 //	OCI_LM_NBL = 1, // non-blocking logon
 
-bool Oracle8::Login(const char *name, const char *pwd, const char *db, bool use_objects, String *warn) {
+bool Oracle8::Login(const char *name, const char *pwd, const char *db, bool use_objects, const char *newpwd, String *warn) {
 	LLOG("Oracle8::Login");
 	level = 0;
 	Logoff(); // Takes time?
@@ -1426,6 +1430,13 @@ bool Oracle8::Login(const char *name, const char *pwd, const char *db, bool use_
 	retcode = oci8.OCISessionBegin(svchp, errhp, seshp, OCI_CRED_RDBMS, OCI_DEFAULT);
 
 	if (retcode != OCI_SUCCESS && retcode != OCI_SUCCESS_WITH_INFO) {
+		if (newpwd) {
+			int errcode;
+			String error = OciError(oci8, errhp, &errcode, utf8_session);
+			if (errcode == 28001) {
+			//	OCIPasswordChange();
+			}
+		}
 		SetOciError(t_("Connecting to Oracle database."), errhp);
 		Logoff();
 		return false;
