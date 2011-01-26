@@ -4,6 +4,9 @@
 // Wyatt Earp!!!!!
 
 // This header is restricted to inclusion in applications that want to use Urp functions.
+// It is for external exposure; it is not to be included in the Urp files.  They use UrpShared.h
+// , which is not exposed. Kapeche?
+
 // Please do not put any code here.
 
 // Added support to serialize window positions over multiple screens
