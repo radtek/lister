@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE lister>
+<lister>
+	<grid1>
+		<columnwidths>
+			<key>ELEMENTID</key>
+			<value value="144"/>
+			<key>ELEMENTNAME</key>
+			<value value="200"/>
+			<key>ELEMENTDESC</key>
+			<value value="100"/>
+			<key>STATUS</key>
+			<value value="200"/>
+		</columnwidths>
+	</grid1>
+	<grid2>
+		<columnwidths>
+			<key>RELID</key>
+			<value value="-2"/>
+			<key>TASKID</key>
+			<value value="238"/>
+			<key>WHY</key>
+			<value value="200"/>
+			<key>SCRIPTPLAINTEXT</key>
+			<value value="-2"/>
+			<key>SCRIPTRICHTEXT</key>
+			<value value="200"/>
+			<key>SCRIPTNOTE</key>
+			<value value="-2"/>
+			<key>SCRIPTID</key>
+			<value value="50"/>
+			<key>RELCONNID</key>
+			<value value="20"/>
+			<key>SCRIPTTARGET</key>
+			<value value="30"/>
+			<key>TARGETNAME</key>
+			<value value="10"/>
+			<key>FASTFLUSHTARGET</key>
+			<value value="20"/>
+			<key>ROWLIMIT</key>
+			<value value="25"/>
+		</columnwidths>
+	</grid2>
+	<x value="822"/>
+	<y value="78"/>
+	<cx value="1804"/>
+	<cy value="780"/>
+</lister>
