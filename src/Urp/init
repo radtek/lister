@@ -1,5 +1,0 @@
-#ifndef _lister_Urp_icpp_init_stub
-#define _lister_Urp_icpp_init_stub
-#include "GridCtrl/init"
-#include "SqlCtrl/init"
-#endif
