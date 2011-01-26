@@ -8,12 +8,10 @@ using namespace Upp;
 class ConnButton : public Button {
 public:
 	typedef ConnButton CLASSNAME;
-	bool wasClicked;
+	bool            wasClicked;
 	
-	ConnButton();
-
-	// Only called if we use WhenCtrlsAction, NOT WhenCtrlAction.	
-	void Connect();
+	                ConnButton();
+	void            Connect(); // Only called if we use WhenCtrlsAction, NOT WhenCtrlAction.	
 };
 
 #endif

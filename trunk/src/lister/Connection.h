@@ -5,10 +5,13 @@
 #include "ConnState.h"
 #include "SoundHandler.h"
 #include "LogWin.h"
+#include "JobSpec.h"
 
 #define INSTTYPNM_POSTGRESQL       "PostgreSQL"
 #define INSTTYPNM_ORACLE           "Oracle"
 #define INSTTYPNM_MSSQLSERVER      "MS SQL"
+#define INSTTYPNM_DB2              "DB2"
+#define INSTTYPNM_SYBASE           "Sybase"
 #define INSTTYPNM_FTP              "ftp"
 #define INSTTYPNM_TELNET           "telnet"
 
@@ -18,10 +21,6 @@
 
 // List all supported connection headers
 #include <CtrlLib/CtrlLib.h>
-#include <Oracle/Oracle7.h>
-#include <Oracle/Oracle8.h>
-#include <MSSQL/MSSQL.h>
-#include <PostgreSQL/PostgreSQL.h>
 #include "Script.h"
 
 #define RUN_SILENT  true
@@ -46,7 +45,7 @@ public:
 	EnumConnState                enumConnState;  // Track the connection state
 	Vector<Callback>             WhenChange;
 	One<SqlSession>              session; // The meat.
-	int                          connId; // Needed to pass on to cmdScript and TestGrid so they can store the id with new objects
+	int                          connId; // Needed to pass on to scriptEditor and TestGrid so they can store the id with new objects
 	String                       connName; // Needed so main thread can update the title of the TopWindow
 	String                       instanceTypeName; // Needed to determine how to enumerate.  Oracle7 needs help.
 	InstanceTypes                instanceType; // Not same as insttypid in db.
@@ -90,10 +89,10 @@ public:
 	String PrepScriptForSend(const String &script, bool log = false);
 	// This is a prep for actual execution by the receiving instance, not for insertion into 
 	// the control db as a saved script text.
-	String PrepOracleScriptForSend(const String &script, bool log = false);
+	String PrepOracleScriptForSend(const String script, bool log = false);
 	String PrepForPostgresCopyFrom(const String scriptText);
 	//  Wrap script method implementation and error handling.  Will allow reconnects and reexecutes.
-	bool ProcessQueryDataScript(Script &sob, bool log = false);
+	bool ProcessQueryDataScript(Script &sob, JobSpec &jspec);
 	String ExpandMacros(String inputText);
 	bool SendQueryDataScript(const char *scriptText, bool silent = false, bool expandMacros = false, bool log = false);
 	bool SendAddDataScript(const char *sqlText, bool silent = false, bool expandMacros = false);
@@ -108,7 +107,7 @@ public:
 	Value Get(SqlId i) const;
 	bool GetBool(int i) const; // PostgreSQL driver does not properly deal with bool
 	Value Get(int i) const;
-	bool HandleDbError(int actioncode, String *cmd = NULL, bool log = false);
+	bool HandleDbError(int actioncode, String *cmd = NULL, bool log = false, bool batchMode = false);
 };
 
 //==========================================================================================	

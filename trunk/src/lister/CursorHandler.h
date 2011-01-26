@@ -3,6 +3,7 @@
 
 #include "shared.h"
 #include "Script.h"
+#include "JobSpec.h"
 
 class Connection;
 class OutputGrid;
@@ -15,15 +16,15 @@ public:
 
 protected:
 	// Internal support functions for the Run function
-	void RebuildTableFromConnection(String outputTable, bool log = false);
-	int LoadIntoTableFromConnectionPREP(String outputTable, int rowLimit, bool log = false);
-	int LoadIntoTableFromConnectionCOPY(String outputTable, int rowLimit, bool log = false);
-	int LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, bool log = false);
+	void RebuildTableFromConnection(String outputTable, JobSpec &jobSpec);
+	int LoadIntoTableFromConnectionPREP(String outputTable, int rowLimit, JobSpec &jobSpec);
+	int LoadIntoTableFromConnectionCOPY(String outputTable, int rowLimit, JobSpec &jobSpec);
+	int LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobSpec &jobSpec);
 
 public:
 	CursorHandler(Connection *pcontrolConnection, Connection *pconnection);
 	void ColSize(OutputGrid *outputGrid, Sql *cursor);
-	bool Run(Script &sob, bool log = false);
+	bool Run(Script &sob, JobSpec &jobSpec);
 };
 
 #endif
