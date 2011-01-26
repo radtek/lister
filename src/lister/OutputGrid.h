@@ -13,12 +13,11 @@ public:
 	,	SIGNALWEDIDNOTPROCESSKEY
 	};
 
-	OutputGrid();
-	void Build();
-	void Load(Connection *pconnection);
-	void ProcessCut();
-	virtual bool Key(dword key, int count);
+	                  OutputGrid();
+	void              Build();
+	void              Load(Connection *pconnection);
+	void              ProcessCut();
+	virtual bool      Key(dword key, int count);
 };
-
 
 #endif

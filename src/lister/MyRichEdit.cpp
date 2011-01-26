@@ -1,19 +1,16 @@
 #include <RichEdit/RichEdit.h>
 #include <Web/Web.h>
 
-#include "shared.h"
 #include "MyRichEdit.h"
 #include "Connection.h"
 #include "Script.h"
-
-#define K_PERIOD 0xbe|K_DELTA
+#include "KeyHandler.h"
 
 static const String MACRO = "[[INPUT]]";
 
 //==============================================================================================	
 MyRichEdit::MyRichEdit() {
 	connection = NULL;
-	sob = NULL; createdSobPresent = false; // Normally an sob is passed to us
 	scriptId = UNKNOWN;
 	connId = UNKNOWN;
 	tablelist.AddColumn("Table", 100);
@@ -28,8 +25,6 @@ MyRichEdit::MyRichEdit() {
 
 //==============================================================================================	
 /*virtual */MyRichEdit::~MyRichEdit() {
-	if (createdSobPresent && sob)
-		delete sob;
 }
 
 //==============================================================================================	
@@ -48,26 +43,11 @@ MyRichEdit::MyRichEdit() {
 
 //==============================================================================================	
 void MyRichEdit::Layout() {
+	
 	RichEdit::Layout();
 	long editor_cx = GetSize().cx;
 	long adaptive_cx = (long)(editor_cx * zoomlevel); // Smaller the number, the bigger the text
 	SetPage(Size(adaptive_cx, INT_MAX));
-}
-
-//==============================================================================================	
-void MyRichEdit::SetConn(Connection *mconnection) {
-	if (connection != mconnection) {
-		tablelist.Clear();
-	}
-	connection = mconnection;
-	
-	// If we have a connection then we log the connection id since we can't persist the actual pointer over runs
-	// By persisting the id, on startup the test can be created.
-	if (connection) {
-		connId = connection->connId;
-	} else {
-		connId = UNKNOWN;
-	}
 }
 
 //==============================================================================================	
@@ -93,6 +73,7 @@ void MyRichEdit::PasteWithApostrophe() {
 }
 
 //==============================================================================================	
+
 void MyRichEdit::PasteAsLineMacro() {
 	static String wrapperCmd = MACRO;  // Retain any changes the user makes
 	
@@ -244,10 +225,14 @@ void MyRichEdit::PasteAsWrappedUnion() {
 }
 
 //==============================================================================================	
+String MyRichEdit::GetSelectionAsPlainText() {
+	return GetSelection().GetPlainText().ToString();
+}
+
+//==============================================================================================	
 // Doesn't work.
 void MyRichEdit::SearchSharePoint() {
-	RichText txt = GetSelection();
-	String searchString = txt.GetPlainText().ToString();
+	String searchString = GetSelectionAsPlainText();
 	String proxy = "webproxy.bankofamerica.com:8080";
 	proxy = "proxy.ml.com:8083";
 	proxy = "rrwebproxy.bankofamerica.com:8080";
@@ -270,16 +255,14 @@ void MyRichEdit::SearchSharePoint() {
 //==============================================================================================	
 // Strip Qtf codes off of text.
 void MyRichEdit::DeFormatSelection() {
-	RichText txt = GetSelection();
-	String deformattedText = txt.GetPlainText().ToString();
-	WriteClipboardText(deformattedText);
+	WriteClipboardText(GetSelectionAsPlainText());
 	Paste();
 }
 
 //==============================================================================================	
 // Clean entire thing of Qtf.
 void MyRichEdit::DeFormatScript() {
-	SetScriptText(GetScriptText());
+	SetScriptPlainText(GetScriptPlainText());
 }
 
 //==============================================================================================	
@@ -682,12 +665,12 @@ bool MyRichEdit::Key(dword key, int count) {
 	{
 		// Update toolbar tips and icons to reflect the new state of keys
 		if (WhenToolBarMayBeAffected) WhenToolBarMayBeAffected();
-		
-	} else {
-		// Flush out scriptId if any changes are made, ignore control keys
-		ScriptContentChanged(key);
 	}
-			
+
+//	if (key != K_CTRL_KEY) {			
+//		Exclamation(CAT << key);
+//	}
+	
 	switch (key) {
 		
 		// Attempt to paste 
@@ -704,6 +687,22 @@ bool MyRichEdit::Key(dword key, int count) {
 		case K_CTRL_PERIOD: // Defined in AKeys.cpp and Win32Keys.i
 			return PopupRequested(true);
 		
+		// If selection, wrap in /* */, or unwrap
+		case K_CTRL_ASTERISK:
+			if (IsSelection()) {
+				String saveclip = ReadClipboardText();
+				String sel = GetSelectionAsPlainText();
+				if (sel.StartsWith("/*") && sel.EndsWith("*/")) {
+					// Strip wrapper
+					sel.Remove(0, 2); UrpString::TrimOff(sel, 2);
+				} else {
+					sel.Insert(0, "/*"); sel.Cat("*/");
+				}
+				WriteClipboardText(sel);
+				Paste();
+				WriteClipboardText(saveclip); // Restore any previous clipping
+				return true;
+			}
 		default:
 			keyProcessorResponse = ALLOWDEFAULTKEYPROCESSORTORUN;
 	}
@@ -719,20 +718,28 @@ bool MyRichEdit::Key(dword key, int count) {
 			throw Exc("Unrecognized keyProcessorResponse in MyRichEdit: " + keyProcessorResponse);
 	}
 	
-	return RichEdit::Key(key, count);
+	bool doNotProcessKey = RichEdit::Key(key, count);
+
+	if (IsModified()) {
+		// Flush out scriptId if any changes are made, ignore control keys
+		ScriptContentChanged(key);
+	}
 	
+	return doNotProcessKey;
 }
 
 //==============================================================================================	
 // User selected an item from the popup grid, which closes it and sets the Cursor to the selected item.
 // We now paste it into the script at the current script cursor.
 void MyRichEdit::SelectedPopUpTable() {
+	if (!tablelist.IsCursor()) return;
 	WString txt = tablelist.Get(0);
 	PasteText(AsRichText(txt, GetFormatInfo()));
 }
 
 //==============================================================================================	
 void MyRichEdit::SelectedPopUpColumn() {
+	if (!columnlist.IsCursor()) return;
 	WString txt = columnlist.Get(0);
 	PasteText(AsRichText(txt, GetFormatInfo()));
 }
@@ -750,12 +757,14 @@ void MyRichEdit::AddColumns(String schema, String table) {
 	
 	columnlist.Clear();
 	Vector<SqlColumnInfo> columns = connection->session->EnumColumns(schema, table);
-	//Sort(tables);
+	
 	columnlist.BackPaint();
 	columnlist.BackPaintHint();
+	columnlist.PopUpEx().ColumnSortFindKey().NoBackground();
 	for(int i = 0; i < columns.GetCount(); i++) {
 		columnlist.Add(ToLower(columns[i].name));
 	}
+	columnlist.Sort();
 	columnlist.schemaName = schema; columnlist.tableName = table; // Remember this as being cached
 
 }
@@ -798,7 +807,7 @@ void MyRichEdit::AddTables(const String &schema) { // owner?
 // Treat incoming script as plain text.  Underscores in plain text will be converted to
 // spaces if treated as QTF, and so DeQtf removes the Qtf interpretation of special
 // characters. Legacy.
-void MyRichEdit::SetScript(Connection * pconnection, int pconnId, int pscriptId, String pscriptText) {
+void MyRichEdit::SetScript(Connection * pconnection, int pconnId, int pscriptId, String pplainText) {
 	if (pconnId >= 0) {
 		connId = pconnId;
 	}
@@ -809,7 +818,8 @@ void MyRichEdit::SetScript(Connection * pconnection, int pconnId, int pscriptId,
 		scriptId = pscriptId;
 	}
 	
-	SetScriptText(pscriptText);
+	SetScriptPlainText(pplainText);
+	ClearModify(); // New script
 }
 
 //==============================================================================================
@@ -824,8 +834,88 @@ void MyRichEdit::SetScript(Connection *pconnection, int pconnId, Script &psob) {
 		scriptId = psob.scriptId;
 	}
 	
-	SetScriptText(psob.script);
-	sob = &psob; // Currently we don't own the script.  Lister main probably does.
+	//SetScriptPlainText(psob.scriptPlainText);
+	SetScriptRichText(psob.scriptRichText);
+	ClearModify(); // New script
+	(Script)*this = psob; // Currently we don't own the script.  Lister main probably does.
+}
+
+//==============================================================================================
+const RichText &MyRichEdit::GetScriptRichTextRef() {
+	return Get();
+}
+
+//==============================================================================================
+// This is called to convert the rich text to a persistent text storable form, but not plain text.
+String MyRichEdit::GetScriptRichTextInStrForm() {
+	return GetQTF();
+}
+
+//==============================================================================================
+// This is called to convert the rich text to a persistent text storable form, but not plain text.
+void MyRichEdit::SetScriptRichTextFromStrForm(String prichTextStrForm) {
+	Pick(ParseQTF(prichTextStrForm));
+	ClearModify(); // New script
+}
+
+//==============================================================================================
+// When copying from the editor, a proper copy must be made or it may disappear when a a new
+// script is loaded into the editor, and some other part of the app has a false reference.
+RichText MyRichEdit::GetScriptRichText() {
+	return Get().Copy(0, INT_MAX);
+}
+
+//==============================================================================================
+// Since we save the RichScript, we can restore it and not treat it as plain text.
+void MyRichEdit::SetScriptRichText(RichText prichText) {
+	Pick(prichText);
+}
+
+//==============================================================================================
+String MyRichEdit::GetScriptQTFText() {
+	return AsQTF(Get());
+	ClearModify(); // New script
+}
+
+//==============================================================================================
+void MyRichEdit::SetScriptQTFText(const char *pQTFText) {
+	SetQTF(pQTFText);	
+	ClearModify(); // New script
+}
+
+//==============================================================================================
+// Script is always text, not Rich text.
+String MyRichEdit::GetScriptPlainText() {
+	return TrimBoth(Get().GetPlainText().ToString());
+}
+
+//==============================================================================================
+// Set internal RichText text object from incoming plain text.  Inefficient.  Should be storing
+// the rich text version in the database, or QTF version.
+void MyRichEdit::SetScriptPlainText(const char *pplainText) {
+	//text.Insert(int pos, const RichText& p)
+	
+	//SetQTF => Pick(ParseQTF(qtf, 0, context)); 
+	//Pick => text = t; +RichPara()
+	//DeQtf => if((byte)*s > ' ' && !IsDigit(*s) && !IsAlpha(*s) && (byte)*s < 128)	r.Cat('`'); else  r.Cat(*s++);
+	//DeQtfLf => 	if(*s == '\n')	r.Cat('&');
+	
+	// The DeQtf function really converts non-QTF data into QTF format where QTF control characters
+	// are escaped.  The term "DeQtf" implies incorrectly that it REMOVES QTF codes
+	
+	SetScriptQTFText(
+		FromPlainTextToQTFText(
+			pplainText
+		)
+	);
+	ClearModify(); // New script
+
+}
+
+//==============================================================================================
+// My improved name for the DeQtfLf function
+/*static*/ String MyRichEdit::FromPlainTextToQTFText(const char *pplainText) {
+	return DeQtfLf(pplainText);
 }
 
 //==============================================================================================
@@ -833,52 +923,34 @@ int MyRichEdit::GetConnId() {
 	return connId;
 }
 
-//==============================================================================================
-// Since we save the RichScript, we can restore it and not treat it as plain text.
-void MyRichEdit::SetRichScriptText(int pscriptId, String pscriptText) {
-	if (pscriptId >= 0) {
-		scriptId = pscriptId;
+//==============================================================================================	
+void MyRichEdit::SetConn(Connection *mconnection) {
+	if (connection != mconnection) {
+		tablelist.Clear();
 	}
+	connection = mconnection;
 	
-	SetQTF(pscriptText);
-}
-
-//==============================================================================================
-// Script is always text, not Rich text.
-String MyRichEdit::GetScriptText() {
-	return TrimBoth(Get().GetPlainText().ToString());
-}
-
-//==============================================================================================
-void MyRichEdit::SetScriptText(String pscriptText) {
-	SetQTF(DeQtf(pscriptText));
-}
-
-//==============================================================================================
-void MyRichEdit::CreateSob() {
-	if (!sob && !createdSobPresent) {
-		sob = new Script();
+	// If we have a connection then we log the connection id since we can't persist the actual pointer over runs
+	// By persisting the id, on startup the test can be created.
+	if (connection) {
+		connId = connection->connId;
 	} else {
-		Exclamation("Internal error: CreateSob");
-		throw new Exc("Internal error: CreateSob");
+		connId = UNKNOWN;
 	}
 }
 
 //==============================================================================================
 void MyRichEdit::Log() {
-	LogLine(CAT << "Script #:" << scriptId << ", conn #:" << connId);
-//	if (connection) {
-//		LogLine(CAT << "Connection: " << connection->connName);
-//	} else {
-//		LogLine("Connection ptr is null");
-//	}
-//
-//	LogLine(CAT << "Script:" << sob->script);
-//	if (sob->scriptId != scriptId) {
-//		LogLine(CAT << "sob.scriptId <> scriptId: " << sob->scriptId);
-//	}
-//	LogLine(CAT << "rowlimit: " << sob->rowLimit << ", scriptTarget: " << (int)sob->scriptTarget
-//	        << ", targetname: " << sob->targetName); // << ", flush?" << sob->fastFlushTarget);
+	LogLine(CAT << "Script `#`:" << scriptId << ", conn `#`:" << connId);
+	if (connection) {
+		LogLine(CAT << "Connection`: " << connection->connName);
+	} else {
+		LogLine("Connection ptr is null");
+	}
+
+	LogLine(CAT << "Script`: [@B " << MyRichEdit::FromPlainTextToQTFText(scriptPlainText) << "]");
+	LogLine(CAT << "rowlimit`: " << rowLimit << ", scriptTarget`: " << (int)scriptTarget
+	        << ", targetname`: " << DeQtf(targetName)); // << ", flush?" << sob->fastFlushTarget);
 }
 
 //==============================================================================================

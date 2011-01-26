@@ -31,6 +31,7 @@ MultiButton::SubButton& MyDropGrid::AddPlus(const Callback &cb) {
 // User selected a script in the dropdown.
 void MyDropGrid::SelectedScript() {
 	Tip(Get(1).ToString()); // Set the tip; may help to see full script with newlines.
+
 	if (GetCtrl()) { // !!(GetKeyState(VK_CONTROL) & 0x8000);
 		if (WhenPushAddButton) WhenPushAddButton(); // Simulate button push to avoid duping code.
 	}

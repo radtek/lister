@@ -2,9 +2,12 @@
 #include "Script.h"
 #include "ContactGrid.h"
 #include <lister/Urp/UrpMain.h>
-#include <lister/Urp/UrpInput.h>
+#include <lister/Urp/UrpInput.h> // Has Ok() in it
+#include <lister/Urp/UrpConfigWindow.h>
 
 #include "KeyHandler.h"
+#include "JobSpec.h"
+#include "Task.h"
 
 #include "image_shared.h"
 #include <Draw/iml_header.h>
@@ -19,9 +22,11 @@
 // Construct all objects that have to be concretely referenced (for now)
 // Load all grids.  TODO: Move loading to lazy style.
 Lister::Lister() {
+	Init(__FILE__);
+	CtrlLayout(*this, "Lister - A SQL Connection and Execution Tool");
+
 	activeConnection = NULL;
 	
-	//Draw::SetStdFont(Font(fontname, (fontheight * xdpi) / (1024*72)));
 	//		To create such a hotkey, do this:
 	//		
 	//		ATOM hotkey = GlobalAddAtom("Your hotkey atom name");
@@ -39,7 +44,7 @@ Lister::Lister() {
 	// Main screen
 	
 	LargeIcon(MyImages::icon32());
-	CtrlLayout(*this, "Lister - A SQL Connection and Execution Tool");
+	
 	Sizeable().Zoomable();
 
 	enumScreenZoom = ZOOM_NORMALSCREEN; // Should take from config
@@ -84,13 +89,6 @@ Lister::Lister() {
 	bottomMidPane.Add(mainGrid);
 	mainGrid.SizePos();
 
-	// Construct Send Script button
-
-	Add(sendScript);
-	sendScript.TopPos(2, 19).RightPos(18, 22).SetForeground();
-	sendScript.SetImage(MyImages::runtoscreen16());
-	sendScript.WhenPush = THISBACK(RunScriptOutputToScreen);
-
 	// Connect to our metadata control database using raw params
 
 	if ((controlConnection 
@@ -121,7 +119,8 @@ Lister::Lister() {
 	int ecy = EditField::GetStdHeight();
 	topRightPane.Add(scriptDropDownList.BottomPos(0, ecy).HSizePos(0, 0)); // Cross entire pane
 
-	if (controlConnection->SendQueryDataScript("select scriptid, script, richscript from scripts order by addtimestamp")) {
+	String s = Script::GetScriptListQuery();
+	if (controlConnection->SendQueryDataScript(s)) {
 		while(controlConnection->Fetch()) {
 			scriptDropDownList.Add(controlConnection->Get(0), controlConnection->Get(1), controlConnection->Get(2));
 		}
@@ -129,9 +128,9 @@ Lister::Lister() {
 
 	// Construct Script Editor
 
-	topRightPane.Add(cmdScript.VSizePos(0, ecy).HSizePos(0,0));
-	cmdScript.WhenScriptContentChanged = THISBACK(ScriptContentChanged);
-	cmdScript.WhenToolBarMayBeAffected = THISBACK(ToolBarRefresh);
+	topRightPane.Add(scriptEditor.VSizePos(0, ecy).HSizePos(0,0));
+	scriptEditor.WhenScriptContentChanged = THISBACK(ScriptContentChanged);
+	scriptEditor.WhenToolBarMayBeAffected = THISBACK(ToolBarRefresh);
 	
 	// Construct tool bar
 	
@@ -166,7 +165,10 @@ Lister::Lister() {
 	// a script can be assigned to this task.
 
 	taskGrid.WhenCursor = THISBACK(ActiveTaskChanged);
-
+	taskGrid.WhenBar = THISBACK(TaskGridContextMenu);
+	taskGrid.WhenLeftDouble = THISBACK(OpenTaskDefWin);
+	
+	taskDefWin.WhenSaveTask = THISBACK(SaveTaskViaTaskGrid);
 	// Construct Script Grid
 	
 	scriptGrid.Description("scriptGrid");
@@ -174,6 +176,14 @@ Lister::Lister() {
 	scriptGrid.Build(controlConnection);
 	scriptGrid.Load();
 	scriptGrid.SizePos();	
+	// We need to capture when the user clicked on a script, not just when the cursor changed.
+	// Due to the Join to Task, the cursor changes whenever a task is selected.
+	// For some reason, HasFocus is not set on the first click into the script grid when
+	// WhenCursorChanged is called.  This may be a U++ bug, since the click in the grid is what
+	// triggered the event, hence focus.  But, we'll use left click, which is triggered even
+	// when the cursor (row) doesn't change, which may be a problem, but is correctable and
+	// detectable.
+	scriptGrid.WhenLeftClick = THISBACK(ActiveTaskScriptChanged);
 	
 	// Join Many table Script to One table Task
 	
@@ -191,6 +201,9 @@ Lister::Lister() {
 }
 
 //==============================================================================================	
+Lister::~Lister() {
+}
+//==============================================================================================	
 // User clicked Test! on the TestGrid. Execute the test script against the connection.
 void Lister::ClickedTest() { 
 	TestGrid &testGrid = testWin.testGrid; // Create a convenience handle
@@ -202,14 +215,15 @@ void Lister::ClickedTest() {
 	}
 	
 	// Get test connection
-	int testConnId = testGrid.GetTestConnId(testRow);
-	int testTypId = testGrid.GetTestTypId(testRow);
-	int testScriptId = testGrid.GetTestScriptId(testRow);
-	int testCompTypId = testGrid.GetCompTypId(testRow);
-	String testX = testGrid.GetCompareUsingX(testRow);
-	String testY = testGrid.GetCompareUsingY(testRow); // Note that PostgreSQL can store Arrays in a single value
-	String desiredOutcome = testGrid.GetDesiredOutcome(testRow);
-	bool invertComparison = testGrid.GetInvertComparison(testRow);
+	
+	int testConnId          = testGrid.GetTestConnId(testRow);
+	int testTypId           = testGrid.GetTestTypId(testRow);
+	int testScriptId        = testGrid.GetTestScriptId(testRow);
+	int testCompTypId       = testGrid.GetCompTypId(testRow);
+	String testX            = testGrid.GetCompareUsingX(testRow);
+	String testY            = testGrid.GetCompareUsingY(testRow); // Note that PostgreSQL can store Arrays in a single value
+	String desiredOutcome   = testGrid.GetDesiredOutcome(testRow);
+	bool invertComparison   = testGrid.GetInvertComparison(testRow);
 	
 	if (testConnId == UNKNOWN) {
 		Exclamation("No connection set for test");
@@ -229,7 +243,7 @@ void Lister::ClickedTest() {
 		return;
 	}
 	
-	String getScriptText = Format("select script from scripts where scriptid = %d", testScriptId);
+	String getScriptText = Script::GetScriptDetailByIdQuery(testScriptId);
 	
 	if (!controlConnection->SendQueryDataScript(getScriptText)) {
 		return;
@@ -244,7 +258,7 @@ void Lister::ClickedTest() {
 	bool testCompApplied = false;
 	
 	controlConnection->Fetch();
-	String testScript = controlConnection->Get(0);
+	String testScript = controlConnection->Get(0); // == SCRIPTPLAINTEXT
 
 	if (testScript.IsEmpty()) {
 		// TODO: IS TESTTYPE = "query text length"?  Length empty is a test value
@@ -301,6 +315,36 @@ void Lister::ClickedTest() {
 	// Update color state
 	
 	// TODO: IS TESTTYPE: Execution duration
+}
+
+//==============================================================================================	
+// Task Grid Options
+void Lister::TaskGridContextMenu(Bar &bar) {
+	bar.Add("Edit Task Detail", THISBACK(OpenTaskDefWin));
+}
+
+//==============================================================================================	
+void Lister::OpenTaskDefWin() {
+	if (!taskGrid.IsCursor()) return;
+	int selectedTaskRow = taskGrid.GetCursor();
+
+	if (!taskDefWin.built) {
+		taskDefWin.Build(controlConnection);
+		taskDefWin.TopMost();
+	}
+	
+	Task task = taskGrid.BuildTask(selectedTaskRow);
+	
+	taskDefWin.Load(task);
+	taskDefWin.OpenWithConfig(this, "taskdefwin");
+	taskDefWin.Show(true);
+}
+
+//==============================================================================================	
+void Lister::SaveTaskViaTaskGrid(Task &task) {
+	if (!taskGrid.SaveTask(task)) {
+		Exclamation("Failed to save task");
+	}
 }
 
 //==============================================================================================	
@@ -361,8 +405,8 @@ Connection *Lister::ConnectUsingGrid(int row, bool log) {
 //==============================================================================================
 // Add the script currently in the editor to the script database with a unique id.	
 void Lister::AddScriptToHistory() {
-	String richscript = cmdScript.GetQTF();
-	String script = TrimBoth(cmdScript.Get().GetPlainText().ToString());
+	String richTextAsStr = scriptEditor.GetScriptRichTextInStrForm();
+	String script = scriptEditor.GetScriptPlainText();
 
 	if (script.IsEmpty()) {
 		NotifyUser("Cannot add empty script to script database");
@@ -370,16 +414,16 @@ void Lister::AddScriptToHistory() {
 	}
 	
 	// A little trick to only insert into a table new scripts
-	String controlScript = Format("insert into scripts(richscript, script) select '%s', '%s' where '%s' not in(select script from scripts)"
+	String controlScript = Format("insert into scripts(scriptrichtext, scriptplaintext) select %s, %s where %s not in(select scriptplaintext from scripts)"
 	    // Not sending these as scripts to run, but to insert as text
-		, controlConnection->PrepTextDataForSend(richscript)
+		, controlConnection->PrepTextDataForSend(richTextAsStr)
 		, controlConnection->PrepTextDataForSend(script)
 		, controlConnection->PrepTextDataForSend(script)); 
 
 	if (!controlConnection->SendAddDataScript(controlScript)) {
-		cmdScript.Tip(DeQtf(controlConnection->GetLastError()));
-		cmdScript.SetData(controlScript);
-		NotifyUser("Could failed to add script to script database");
+		scriptEditor.Tip(DeQtf(controlConnection->GetLastError()));
+		scriptEditor.SetScriptPlainText(controlScript);
+		NotifyUser("Failed to add script to script database");
 		return;
 	}
 
@@ -387,25 +431,29 @@ void Lister::AddScriptToHistory() {
 	if (controlConnection->GetRowsProcessed() > 0) {		
 		int scriptid = controlConnection->GetInsertedId("scripts", "scriptid");
 		if (scriptid >= 0) {
-			scriptDropDownList.Add(scriptid, script, richscript);
-			cmdScript.scriptId = scriptid; // Link to script so that it can be uploaded to tests
+			scriptDropDownList.Add(scriptid, script, richTextAsStr);
+			scriptEditor.scriptId = scriptid; // Link to script so that it can be uploaded to tests
+			scriptEditor.ClearModify();  // Saved, or else we won't be able to attach it to a task
 			ToolBarRefresh();
 		}
 	} else {
 		
 		// Script is identical to another script, we grab its id.
-		String searchScript = Format("select scriptId from scripts where script = '%s' limit 1"
-		    // Not sending these as scripts to run, but to insert as text
-			, controlConnection->PrepTextDataForSend(script)
-			);
+		String preppedScript = controlConnection->PrepTextDataForSend(script);
+		String searchQuery = Script::FindScriptByPlainTextQuery(script);
 			
-		if (!controlConnection->SendQueryDataScript(searchScript)) {
+		if (!controlConnection->SendQueryDataScript(searchQuery)) {
 			NotifyUser("Error");
 			return;
 		}
 		
 		controlConnection->Fetch();
-		cmdScript.scriptId = controlConnection->Get(0);
+		if (controlConnection->GetRowsProcessed() > 0) {
+			scriptEditor.scriptId = controlConnection->Get(0);
+			scriptEditor.ClearModify();  // Saved, or else we won't be able to attach it to a task
+		} else {
+			throw new Exc("Error: Failed to get existing script already found in previous query");
+		}
 		ToolBarRefresh();
 	}
 }
@@ -427,36 +475,59 @@ void Lister::ProcessSelectedTaskScripts(dword key) {
 		}
 	}
 
+	JobSpec jspec;
 	
-	ActivateLogging();
-	OpenLogWin(); // User can close if they want to, later.
+	if (selections.GetCount() == 0) {
+		return;
+	} else if (selections.GetCount() == 1) {
+		jspec.log = false;
+		jspec.batchMode = false;
+	} else {
+		jspec.log = true;
+		jspec.batchMode = true;
+	}
+
+	// Holding down the shift key with all the others forces a true full batch run
+	jspec.testMode = (In(key, K_ALT_SHIFT_CTRL_F8, K_ALT_SHIFT_F8));
+	
+	if (jspec.log) {
+		ActivateLogging();
+		OpenLogWin(); // User can close if they want to, later.
+	}
 	
 	// We assume a task is selected since we are processing task scripts and tasks are one-to-many
 	// joined to script grid.
 	int taskRow = taskGrid.GetCursor(); 
 	String taskName = taskGrid.GetTaskName(taskRow);
-	LogLine(CAT << "Task: " << taskName);
-	LogSep();
+	if (jspec.log) {
+		LogLine(CAT << "Task: " << taskName);
+		LogSep();
+	}
 	
 	for (int i = 0; i < selections.GetCount(); i++) {
 		int scriptRow = selections.At(i);
 		String why = scriptGrid.GetWhy(scriptRow);
-		LogLine(CAT << "Script: " << why);
+		if (jspec.log) LogGroupHeaderLine(CAT << "Script: " << why);
 		
 		ProcessTaskScript(scriptRow
-		, In(key, K_CTRL_F8, K_ALT_CTRL_F8)  /* load into editor? */
-		, In(key, K_ALT_F8, K_ALT_CTRL_F8)   /* Connect and execute? */
-		);
+		  // In any of the F8 combinations, was the CTRL key held?
+		, In(key, K_CTRL_F8, K_ALT_CTRL_F8, K_ALT_SHIFT_CTRL_F8)  /* load into editor? */
+		  // In any of the F8 combinations, was the ALT key held?
+		, In(key, K_ALT_F8, K_ALT_CTRL_F8, K_ALT_SHIFT_CTRL_F8, K_ALT_SHIFT_F8)   /* Connect and execute? */
+		, jspec);
 	}
-	
-	LogSep();
-	LogLine("Completed Task");
-	DeactivateLogging();
+
+	if (jspec.log) {	
+		LogSep();
+		LogLine("Completed Task");
+		
+		DeactivateLogging();
+	}
 }
 
 //==============================================================================================	
 // User pressed Ctrl-F8 to load into Editor (single script selected)
-void Lister::ProcessTaskScript(int taskScriptRow, bool loadScript, bool executeScript) {
+void Lister::ProcessTaskScript(int taskScriptRow, bool loadScript, bool executeScript, JobSpec &jspec) {
 	// Labeled to indicate that this is a connection for a script attached to a specific task
 	int taskScriptConnId = scriptGrid.GetConnId(taskScriptRow); 
 	// We must pass a link to some screen output, always when creating a script object
@@ -469,41 +540,41 @@ void Lister::ProcessTaskScript(int taskScriptRow, bool loadScript, bool executeS
 	ToolBarRefresh(); // We changed connection properties, so enable some options for the user
 	
 	if (loadScript) {
-		cmdScript.SetScript(activeConnection, taskScriptConnId, sob);
-		cmdScript.Log();
+		scriptEditor.SetScript(activeConnection, taskScriptConnId, sob);
+		if (jspec.log) scriptEditor.Log();
 		targetNameList.SetData(sob.targetName);
 		scriptTargetList.SetData(sob.scriptTarget);
 		fastFlushTargetList.SetData(sob.fastFlushTarget? "1":"0");
-		fldRowLimit.SetData(sob.rowLimit);
+		fldRowLimit.SetData(sob.rowLimit); // Overridden if in batch mode and in test mode
 		// TODO:Set scriptTarget type
 		// TODO: Set limit rows
 		ToolBarRefresh(); // We changed connection properties, so enable some options for the user
 	}
 	
 	if (executeScript) {
-		LogLine("Executing...");
+		if (jspec.log) LogLine("Executing...");
 		// Shifts position of cursor on Connection grid if id found
 		if (SelectConnectionById(taskScriptConnId)) {
 			int connRow = connGrid.GetCursor();
 			// Make a local connection
 			LogLine("Connecting...");
-			Connection *lconnection = ConnectUsingGrid(connRow, true /* log */);
+			Connection *lconnection = ConnectUsingGrid(connRow, jspec.log);
 			LogLine(CAT << "Connection is " << lconnection->connName);
 			SetActiveConnection(lconnection); // Updates toolbar too, as well as passing connection to comdScript editor
 			if (lconnection && lconnection->session && lconnection->session->IsOpen()) {
-				lconnection->ProcessQueryDataScript(sob, true /*log*/);
+				lconnection->ProcessQueryDataScript(sob, jspec);
 			} else {
-				LogLine("Not running script due to connection error");
+				if (jspec.log) LogLine("Not running script due to connection error");
 				if (!lconnection) {
-					LogLine("No connection set");
+					if (jspec.log) LogLine("No connection set");
 				} else if (!lconnection->session) {
-					LogLine("No session attached to connection");
+					if (jspec.log) LogLine("No session attached to connection");
 				} else if (!lconnection->session->IsOpen()) {
-					LogLine(CAT << "Connection session is not open. Error message:" << lconnection->connectErrorMessage);
+					if (jspec.log) LogLine(CAT << "Connection session is not open. Error message:" << lconnection->connectErrorMessage);
 				}
 			}
 		}
-		LogLine("Completed Executing...");
+		if (jspec.log) LogLine("Completed Executing...");
 	}
 }
 
@@ -517,8 +588,8 @@ void Lister::GetTaskLastInsertedPkId() {
 // User pressed "+" button on script list dropdown, requesting that the script be loaded
 // into the editor.
 void Lister::PushScriptToEditor() {
-	// 3rd field (2) is RichScript.
-	cmdScript.SetRichScriptText(scriptDropDownList.GetKey(), scriptDropDownList.Get(2).ToString());
+	// 3rd field (2) is RichScript (But how is it stored?? As Value?
+	scriptEditor.SetScriptRichTextFromStrForm(scriptDropDownList.Get(2).ToString());
 	
 	Value scriptIdValue = scriptDropDownList.GetKey();
 	
@@ -532,7 +603,7 @@ void Lister::PushScriptToEditor() {
 		return;
 	}
 
-	UrpString::FromTo(scriptIdValue, cmdScript.scriptId);
+	UrpString::FromTo(scriptIdValue, scriptEditor.scriptId);
 	ToolBarRefresh();
 }
 
@@ -542,18 +613,18 @@ void Lister::PushScriptToEditor() {
 void Lister::CreateTestFromScript() {
 	
 	// Force user to establish a connection.  (Too much?)
-	if (cmdScript.connId < 0) {
+	if (scriptEditor.connId < 0) {
 		Exclamation("No connection attached to the current script editor");
 		return;
 	}
 	
-	if (cmdScript.scriptId < 0) {
+	if (scriptEditor.scriptId < 0) {
 		Exclamation("Script Id is negative. Can't save to test.");
 		return; // Don't try and save tests with no script #, meaning not in database
 	}
 	
 	testWin.Open();
-	testWin.testGrid.AddTest(TrimBoth(cmdScript.GetScriptText()), cmdScript.scriptId, cmdScript.connection->connId);
+	testWin.testGrid.AddTest(TrimBoth(scriptEditor.GetScriptPlainText()), scriptEditor.scriptId, scriptEditor.connection->connId);
 }
 
 //==============================================================================================
@@ -586,12 +657,13 @@ void Lister::ListUsers() {
 void Lister::ListContacts() {
 	// Constructs a window that manages its own configuration
 	UrpConfigWindow *w = windowFactory.Open(this, "contacts");
-	ContactGrid *g = new ContactGrid();
-	g->Load(controlConnection);
-	w->AddCtrl(g);
-	g->SizePos();
-	w->Open();
-	//UrpChild(*this, *w, "contacts", CHILDWINDOWREQSTATE_OPEN);
+	if (w->wasCreatedNew) {
+		ContactGrid *g = new ContactGrid();
+		g->Load(controlConnection);
+		w->AddCtrl(g);
+	}
+	
+	w->OpenWithConfig();
 }
 
 //==============================================================================================
@@ -635,7 +707,7 @@ void Lister::SelectedConnection() {
 void Lister::SetActiveConnection(Connection *newConnection) {
 	if (!newConnection) return;
 	activeConnection = newConnection;
-	cmdScript.connection = activeConnection;
+	scriptEditor.connection = activeConnection;
 	ActiveConnectionChanged();
 }
 
@@ -643,6 +715,36 @@ void Lister::SetActiveConnection(Connection *newConnection) {
 // When user selects a task, the script becomes eligible to be attached to it.
 void Lister::ActiveTaskChanged() {
 	ToolBarRefresh();
+}
+
+//==============================================================================================	
+// When user selects (WhenLeftClick) a task script, that script is stuffed in editor.
+void Lister::ActiveTaskScriptChanged() {
+	if (!scriptGrid.IsCursor()) return;
+	// When you select tasks, this WhenCursor is triggered, but we don't want to copy a script
+	// over unless it was actually selected.
+	
+	bool hasFocus = scriptGrid.HasFocus();
+	bool hasCapture = scriptGrid.HasCapture();
+	
+	// Activity in the Task Grid triggers cursor movement here, ignore.
+	if (!hasFocus) return;	
+
+	// Don't try to bring multiple scripts in (yet)
+	if (scriptGrid.GetSelectCount() > 1) return;
+	
+	// We don't want to lose any changes
+	if (scriptEditor.IsModified()) {
+		if (!Ok("Script modified. Overwrite?")) {
+			return;
+		}
+	}
+	
+	int scriptRow = scriptGrid.GetCursor();
+	JobSpec js;
+	WaitCursor wc; // Some scripts are slow to load, so show an hourglass
+	ProcessTaskScript(scriptRow, true /* load */, false /* don't execute */, js);
+	scriptGrid.SetFocus(); // Maintain our focus here, don't let scriptEditor capture it
 }
 
 //==============================================================================================	
@@ -654,6 +756,8 @@ void Lister::ActiveConnectionChanged() {
 	if (!activeConnection->session) return;
 	
 	activeConnection->session->WhenDatabaseActivity = THISBACK(SessionStatusChanged);
+	scriptEditor.connection = activeConnection;
+	scriptEditor.connId = activeConnection->connId; // TODO: Shift all systems to either connection pointer or id
 }
 
 //==============================================================================================	
@@ -679,10 +783,10 @@ void Lister::CancelRunningScriptOnActiveConn() {
 // If Shift key held, replace current script	
 void Lister::AttachScriptToTask() {
 	ASSERT(taskGrid.IsCursor());
-	ASSERT(cmdScript.scriptId >= 0);
+	ASSERT(scriptEditor.scriptId >= 0);
 	int taskGridRow = taskGrid.GetCursor();
 	int taskId = taskGrid.GetTaskId(taskGridRow);
-	int scriptId = cmdScript.scriptId;
+	int scriptId = scriptEditor.scriptId;
 	bool replaceCurrentlySelectedTaskScript = false;
 	int currentlySelectedTaskScript;
 	String taskName = taskGrid.GetTaskName(taskGridRow);
@@ -690,13 +794,14 @@ void Lister::AttachScriptToTask() {
 	String title;
 	String why; // User must provide a reason for the mapping.
 
+	// User requested to replace current script
 	if (GetShift()) {
 		if (!scriptGrid.IsCursor()) {
 			Exclamation("No script selected");
 			return;
 		}
 		
-		if (cmdScript.scriptId < 0) {
+		if (scriptEditor.scriptId < 0) {
 			Exclamation("No script id assned to editor");
 			return;
 		}
@@ -717,7 +822,7 @@ void Lister::AttachScriptToTask() {
 			why
 		,	title
 		,	CAT << "Enter a reason for the attachment, how the script will help close out the task. " 
-		<<	"(taskId=" << taskId << ", scriptId=" << cmdScript.scriptId)
+		<<	"(taskId=" << taskId << ", scriptId=" << scriptEditor.scriptId)
 		) 
 	{
 		return;
@@ -740,7 +845,7 @@ void Lister::AttachScriptToTask() {
 							   ", toid             = %d"
 							   ", fromtbid         = %d"
 							   ", totbid           = %d"
-							   ", why              = '%s'"
+							   ", why              = %s"
 						       ", connid           = %d"
 							   ", targetname       = '%s'"
 						       ", scripttarget     = %d"
@@ -761,17 +866,17 @@ void Lister::AttachScriptToTask() {
 									    ",                                  fastflushtarget"
 									    ",                                        rowlimit"
 									    ")"
-		                       " values(%d, %d, %d, %d, '%s', %d, '%s', %d, '%s', %d)"
+		                       " values(%d, %d, %d, %d, %s, %d, '%s', %d, '%s', %d)"
 		                       ;
 	}
 	
 	String script = Format(scriptMap
 		                       ,        taskId
-		                       ,            cmdScript.scriptId
+		                       ,            scriptEditor.scriptId
 		                       ,                OB_TASKS
 		                       ,                    OB_SCRIPTS
 		                       ,                        controlConnection->PrepTextDataForSend(why)
-		                       ,                              cmdScript.connId
+		                       ,                              scriptEditor.connId
 		                       ,                                  targetNameList.GetData()
 		                       ,                                        scriptTargetList.GetData()
 		                       ,                                            fastFlushTargetList.GetData()
@@ -786,6 +891,7 @@ void Lister::AttachScriptToTask() {
 	if (controlConnection->SendAddDataScript(script)) {
 		// Update script grid filter (joined to task table), display just added script.
 		scriptGrid.ReQuery();
+		scriptEditor.ClearModify(); // Script is no longer unattached
 	}
 }
 
@@ -793,7 +899,10 @@ void Lister::AttachScriptToTask() {
 void Lister::DeployLister() {
 	String targetProdPath = "C:/Program Files/lister/lister.exe";
 	String targetConfigDir = GetHomeDirectory();
-	FileCopy(exeFilePath, targetProdPath);
+	if (!FileCopy(exeFilePath, targetProdPath)) {
+		Exclamation(CAT << "Unable to deploy from " << exeFilePath << " to " << targetProdPath);
+		return;
+	}
 	// Only copy the dev configurations to release if the ctrl-key is hel down. 
 	// Generally we don't need to destroy our release settings.
 	if (GetCtrl()) {	
@@ -827,13 +936,13 @@ void Lister::ToolBarRefresh() {
 void Lister::MyToolBar(Bar& bar) {
 	
 	// Add Script To History
-	bar.Add(!cmdScript.GetScriptText().IsEmpty(), "File", CtrlImg::smalldown(), THISBACK(AddScriptToHistory)).Tip("Memorize Script");
+	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty(), "File", CtrlImg::smalldown(), THISBACK(AddScriptToHistory)).Tip("Memorize Script");
 	
 	// Create Test From Script if we have an id
 	bar.Add( // Only allow test creation if there is a script, a scriptid, and a connection
-		(!cmdScript.GetScriptText().IsEmpty()
-		 && cmdScript.connection
-		 && cmdScript.scriptId >= 0), "File", MyImages::addtotest16(), 
+		(!scriptEditor.GetScriptPlainText().IsEmpty()
+		 && scriptEditor.connection
+		 && scriptEditor.scriptId >= 0), "File", MyImages::addtotest16(), 
 		 THISBACK(CreateTestFromScript)).Tip("Create a Test around this Script");
 
 	// Browse existing Tests
@@ -842,32 +951,32 @@ void Lister::MyToolBar(Bar& bar) {
 		 
 	// Execute script against current connection
 	bar.Add( // Only allow execution if there is a script and a connection
-		(!cmdScript.GetScriptText().IsEmpty() 
-		 && cmdScript.connection), "File", MyImages::runtoscreen16(), 
+		(!scriptEditor.GetScriptPlainText().IsEmpty() 
+		 && scriptEditor.connection), "File", MyImages::runtoscreen16(), 
 		 THISBACK(RunScriptOutputToScreen)).Tip("Execute Script and output to a grid on the screen");
 
 	// Execute script and pass output to physical table in control db.
 	bar.Add( // Only allow execution if there is a script and a connection
-		(!cmdScript.GetScriptText().IsEmpty() 
-		 && cmdScript.connection), "File", MyImages::runtotable16(), 
+		(!scriptEditor.GetScriptPlainText().IsEmpty() 
+		 && scriptEditor.connection), "File", MyImages::runtotable16(), 
 		 THISBACK(RunScriptOutputToTable)).Tip("Execute Script and create a table in the control database");
 	        
 	// Cancel a running Script
 	bar.Add(
-		(!cmdScript.GetScriptText().IsEmpty() 
-		 && cmdScript.connection
+		(!scriptEditor.GetScriptPlainText().IsEmpty() 
+		 && scriptEditor.connection
 		 && activeConnection 
 		 && activeConnection->session 
 		 && In(activeConnection->session->GetStatus(), activeConnection->session->START_EXECUTING, activeConnection->session->START_FETCHING)
 	 	), "File", MyImages::cancelop16(), 
 		 THISBACK(CancelRunningScriptOnActiveConn)).Tip("Cancel executing script on active connection");
 
-	cmdScript.FindReplaceTool(bar);
+	scriptEditor.FindReplaceTool(bar);
 	
 /*
 	// Load list of database users/schemas from the connection
 	bar.Add(
-		(cmdScript.connection), "ListUsers", MyImages::users16(), 
+		(scriptEditor.connection), "ListUsers", MyImages::users16(), 
 		 THISBACK(ListUsers)).Tip("List users/schemas for current connection");
 
 	// Actual dropdown list, does nothing
@@ -885,7 +994,7 @@ void Lister::MyToolBar(Bar& bar) {
 
 	// Attach this Script to the selected Task
 	bar.Add(
-		!cmdScript.GetScriptText().IsEmpty() && cmdScript.scriptId >= 0
+		!scriptEditor.GetScriptPlainText().IsEmpty() && scriptEditor.scriptId >= 0
 		&& taskGrid.IsCursor()
 		, "Attach", MyImages::attachtotask16(),
 		 THISBACK(AttachScriptToTask)).Tip(
@@ -920,9 +1029,9 @@ void Lister::MyToolBar(Bar& bar) {
 
 //==============================================================================================
 void Lister::ScriptExecutionHandler(ScriptTarget pscriptTarget) {
-	String lscriptText = cmdScript.GetScriptText();
+	String lplainText = scriptEditor.GetScriptPlainText();
 
-	if (lscriptText.IsEmpty()) {
+	if (lplainText.IsEmpty()) {
 		BeepExclamation();
 		return;
 	}
@@ -936,15 +1045,31 @@ void Lister::ScriptExecutionHandler(ScriptTarget pscriptTarget) {
 		Exclamation("Disconnected");
 		return;
 	}
-	
+
+	bool executingselection = false;
+	// If a piece of text is selected, only execute that
+	if (scriptEditor.IsSelection())	{
+		lplainText = scriptEditor.GetSelection().GetPlainText().ToString();
+		executingselection = true;
+		// TODO: Enhance MyRichEdit to support multiple selections; very useful
+	}
+
+		
+	JobSpec jspec; // Take defaults for now
+	jspec.executingSelection = executingselection;  // Track that only a portion was executed, so we don't skew stats on the script
 	// TODO: Move call to cursorHandler to Connection
 	CursorHandler cursorHandler(controlConnection, activeConnection);
-	if (!cmdScript.sob) cmdScript.CreateSob();
-	cmdScript.sob->scriptTarget = pscriptTarget;
-	cmdScript.sob->fastFlushTarget = (fastFlushTargetList.GetData() == "1");
-	cmdScript.sob->outputGrid = &mainGrid;
-	cmdScript.sob->script = lscriptText;
-	bool ran = cursorHandler.Run(*cmdScript.sob);
+	Script sob(
+			pscriptTarget
+		,	(fastFlushTargetList.GetData() == "1")
+		,	&mainGrid
+		,	scriptEditor.scriptId
+		,	lplainText
+		,	scriptEditor.GetScriptRichText()
+		,	GetFieldInt(fldRowLimit)
+		,	targetNameList.GetData()
+	);
+	bool ran = cursorHandler.Run(sob, jspec);
 }
                             
 //==============================================================================================
@@ -1050,7 +1175,8 @@ void Lister::NotifyUser(String message) {
 		("grid3", scriptGrid)
 		("grid4", testWin.testGrid)
 		("win1", testWin)
-		("edit1", cmdScript) // Generically, the editor screen.
+		("win2", *GetLogWin());
+		("edit1", scriptEditor) // Generically, the editor screen.
 	;
 	
 	UrpWindow::Xmlize(xml); // Make sure and save our window position!

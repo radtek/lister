@@ -11,7 +11,7 @@
 		<isexpanded value="0"/>
 		<isshrunk value="0"/>
 		<savedpos value="-1"/>
-		<pos value="2486"/>
+		<pos value="2455"/>
 	</horzsplit1>
 	<horzsplit11>
 		<isexpanded value="0"/>
@@ -44,29 +44,29 @@
 			<key>ConnId</key>
 			<value value="-2"/>
 			<key>ConnName</key>
-			<value value="131"/>
+			<value value="123"/>
 			<key>LoginId</key>
 			<value value="-2"/>
 			<key>LoginStr</key>
-			<value value="97"/>
+			<value value="104"/>
 			<key>LoginPwd</key>
-			<value value="69"/>
+			<value value="126"/>
 			<key>InstId</key>
-			<value value="80"/>
+			<value value="90"/>
 			<key>InstanceName</key>
 			<value value="-2"/>
 			<key>InstTypID</key>
-			<value value="54"/>
+			<value value="75"/>
 			<key>InstTypName</key>
 			<value value="-2"/>
 			<key>Database</key>
-			<value value="79"/>
+			<value value="55"/>
 			<key>InstanceAddress</key>
 			<value value="-2"/>
 			<key>EnvId</key>
-			<value value="63"/>
+			<value value="48"/>
 			<key>ConnNote</key>
-			<value value="45"/>
+			<value value="26"/>
 			<key>CONNECT</key>
 			<value value="20"/>
 			<key>Dummy</key>
@@ -76,7 +76,7 @@
 	<grid2>
 		<columnwidths>
 			<key>TASKID</key>
-			<value value="216"/>
+			<value value="320"/>
 			<key>TASKNAME</key>
 			<value value="40"/>
 			<key>SRCCODE</key>
@@ -93,8 +93,10 @@
 			<value value="215"/>
 			<key>WHY</key>
 			<value value="52"/>
-			<key>SCRIPT</key>
+			<key>SCRIPTPLAINTEXT</key>
 			<value value="-2"/>
+			<key>SCRIPTRICHTEXT</key>
+			<value value="200"/>
 			<key>SCRIPTNOTE</key>
 			<value value="-2"/>
 			<key>SCRIPTID</key>
@@ -102,7 +104,7 @@
 			<key>RELCONNID</key>
 			<value value="55"/>
 			<key>SCRIPTTARGET</key>
-			<value value="130"/>
+			<value value="125"/>
 			<key>TARGETNAME</key>
 			<value value="62"/>
 			<key>FASTFLUSHTARGET</key>
@@ -114,35 +116,35 @@
 	<grid4>
 		<columnwidths>
 			<key>State</key>
-			<value value="16"/>
+			<value value="50"/>
 			<key>TestId</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>TestName</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>TestScriptId</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>TestNote</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>TestConnId</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>TestTypId</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>InvertComparison</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>CompTypId</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>X</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>Y</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>DesiredOutcome</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>ActualOutcome</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>OutputValue</key>
-			<value value="3614"/>
+			<value value="577"/>
 			<key>TEST!</key>
-			<value value="20"/>
+			<value value="50"/>
 			<key>Err</key>
 			<value value="-2"/>
 		</columnwidths>
@@ -150,21 +152,17 @@
 	<win1>
 		<x value="0"/>
 		<y value="0"/>
-		<cx value="656"/>
+		<cx value="585"/>
 		<cy value="400"/>
 	</win1>
-	<edit1 type="String">
-		<scriptid value="227"/>
-		<connid value="14"/>
-[ $$0,0#00000000000000000000000000000000:Default]
-[{_} 
-[s0; select businessdate, count(`*) from (select businessdate, ticket, 
-tradetype `|`| `&apos;`-`&apos; `|`| tradetypename as rectyp, executiondatetime, 
-tradedatetime from fi`_executions where businessdate `= trunc(sysdate) 
-`- `[`[TPLUS3`]`] and region `= `&apos;TSF`&apos; and sourceenum `= 0 and 
-account not like `&apos;MTS%`&apos;) a group by businessdate]</edit1>
-<x value="267"/>
-	<y value="65"/>
-	<cx value="2727"/>
-	<cy value="903"/>
+	<win2>
+		<x value="0"/>
+		<y value="0"/>
+		<cx value="488"/>
+		<cy value="400"/>
+	</win2>
+	<x value="227"/>
+	<y value="109"/>
+	<cx value="2892"/>
+	<cy value="795"/>
 </lister>
