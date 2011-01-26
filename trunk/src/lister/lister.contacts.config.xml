@@ -1,3 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <!DOCTYPE lister>
-<lister type="serialized_binary">6461746101656e640009000000</lister>
+<lister>
+	<ContactGrid>
+		<columnwidths>
+			<key>CONTACTID</key>
+			<value value="189"/>
+			<key>CONTACTNAME</key>
+			<value value="340"/>
+			<key>EMAILADDRESS</key>
+			<value value="100"/>
+			<key>HOMEPHONENO</key>
+			<value value="100"/>
+			<key>WORKPHONENO</key>
+			<value value="100"/>
+			<key>CELLPHONENO</key>
+			<value value="100"/>
+			<key>NONWORKEMAILADDRESS</key>
+			<value value="200"/>
+		</columnwidths>
+	</ContactGrid>
+	<x value="1784"/>
+	<y value="51"/>
+	<cx value="1174"/>
+	<cy value="890"/>
+</lister>

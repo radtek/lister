@@ -1,17 +1,21 @@
 #include "lister.h"
+#include "LogWin.h"
 
 GUI_APP_MAIN
 {
-	//Draw::SetStdFont(Font(Font::COURIER, 9));
-	//Draw::SetStdFont(Font(Font::ROMAN, 9));
-	//Draw::SetStdFont(Font(Font::SERIF, 11));
+	// Bizarre bug fix: Eventually U++ will corrupt a package's StdFont permanently (any package) 
 	Draw::SetStdFont(Font(Font::ARIAL, 11));
 	
-	// Construct first.  Some serialization/xmilization doesn't take affect when in constructor. 
+	// Create LogWin instance for global availability
+	InitLogging();
+	// Construct first.  Some xmlization doesn't take affect when in constructor. 
 	// (i.e., grid column widths)
 	
 	Lister lister; 
 
-	UrpMain(lister, __FILE__);
+	// replace with lister.Run
+	UrpMain(lister);
+	
+	TermLogging();
 }
 
