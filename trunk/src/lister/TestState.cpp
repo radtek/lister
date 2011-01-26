@@ -1,9 +1,11 @@
 #include "TestState.h"
 
+//==============================================================================================
 TestState::TestState() : ColorPusher() {
 	//	rgbactrl <<= THISBACK(ColorChanged);
 }
 
+//==============================================================================================
 /*static*/ Color TestState::ConvertStateToColor(EnumTestState enumTestState) {
 	
 	switch (enumTestState) {
