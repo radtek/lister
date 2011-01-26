@@ -5,6 +5,9 @@
 #include "OraCommon.h"
 #include "OciCommon.h"
 
+// Path issues for Postgres: Oracle Client 10.0.2 installs libeay32.dll for OpenSSH in winnt\system32 with a version 11.
+// This will break Postgres.  Oracle sucks.
+
 NAMESPACE_UPP
 
 #if defined(PLATFORM_WIN32) && defined(COMPILER_MSC)
@@ -91,8 +94,9 @@ private:
 	bool           StdMode()   { return  tmode == NORMAL; }
 
 public:
-	bool Login(const char *name, const char *password, const char *connect, bool use_objects, String *warn = NULL);
+	bool Login(const char *name, const char *password, const char *connect, bool use_objects, const char *newpassword = NULL, String *warn = NULL);
 	bool Open(const String& connect_string, bool use_objects, String *warn = NULL);
+	bool OpenWithNewPassword(const String& connect_string, String user, String oldPassword, String newPassword);
 	void Logoff();
 
 	enum TransactionMode {
