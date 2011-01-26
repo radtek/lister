@@ -3,7 +3,7 @@
 #define HIDDEN_COLUMN -2
 
 //==========================================================================================	
-UrpSqlGrid::UrpSqlGrid() {
+UrpSqlGrid::UrpSqlGrid() : SqlArray(), UrpGridCommon() {
 	HeaderObject().Absolute();
 	Appending();
 	EvenRowColor();
@@ -144,10 +144,12 @@ void UrpSqlGrid::Xmlize(XmlIO xml) {
 	static VectorMap<String, int> requestedColumnWidths;
 
 //GRIDCTRL		Absolute(); // Allows settings to take affect
-
+	HeaderObject().Absolute();
+	
 	if (xml.IsLoading()) {
 		xml("columnwidths", floatingColumnWidths); // Read from store
-		for (int i = 0; i < GetFloatingColumnCount(); i++) {
+		int floatingColumnCount = GetFloatingColumnCount();
+		for (int i = 0; i < floatingColumnCount; i++) {
 			String colIdName = GetFloatingColumnId(i).ToString();
 			
 			int colWidth = floatingColumnWidths.Get(colIdName, GetFloatingColumnWidth(i));
@@ -163,6 +165,9 @@ void UrpSqlGrid::Xmlize(XmlIO xml) {
 				HideFloatingColumn(i);
 				colWidth = 0;
 			} else {
+				
+				HeaderCtrl::Column &c = HeaderObject().Tab(i);
+				c.MinMax(0, 10000);
 				SetFloatingColumnWidth(i, colWidth);
 			}
 

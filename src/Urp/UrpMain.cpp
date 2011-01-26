@@ -79,23 +79,12 @@ void RunWithConfig(UrpWindow &win, int configAction, int windowInstancingMethod,
 }
 
 //==============================================================================================
-int UrpMain(UrpTopWindow &ctrlMain, const char *mainFilePath) {
+int UrpMain(UrpTopWindow &ctrlMain) {
 	// When the dev version is run, it uses the config files in that folder so as to avoid
 	// disturbing the useful user settings on the same computer for the app installed in 
 	// "Program Files".
 	
-	ctrlMain.exeFilePath = GetExeFilePath();
-	ctrlMain.connectAsUser = GetUserName();	
-
-	// If we are nested in the Program Files directory, we must be a proper user install and we need to use the users's configuration files
-
-	if (ctrlMain.exeFilePath.Find("Program Files") >= 0) {
-		ctrlMain.configFileFolder = GetHomeDirectory();
-	} else {
-		// We are probably in the dev env and running from the ide, and so we pull from our current directory
-		ctrlMain.configFileFolder = GetFileDirectory(mainFilePath);
-	}
-	
+	ASSERT(&ctrlMain);
 	ctrlMain.configFileNameBase = ToLower(UrpString::GetWord(ctrlMain.Name(), 1)); // Get 2nd word in string (index zero-based)
 	
 	ctrlMain.binConfigFile = AppendFileName(ctrlMain.configFileFolder, ctrlMain.configFileNameBase + BIN_TAIL);
@@ -109,6 +98,10 @@ int UrpMain(UrpTopWindow &ctrlMain, const char *mainFilePath) {
 //==============================================================================================
 // Very complicated, but MS Windows is complicated!
 void UrpChild(UrpTopWindow &ctrlMain, UrpWindow &ctrlChild, String tagName, int requestedState) {
+	ASSERT(&ctrlMain);
+	ASSERT(&ctrlChild);
+	ASSERT(!tagName.IsEmpty());
+	
 	ctrlChild.configFileNameBase = ToLower(tagName);
 	
 	ctrlChild.binConfigFile = AppendFileName(ctrlMain.configFileFolder, ctrlMain.configFileNameBase 

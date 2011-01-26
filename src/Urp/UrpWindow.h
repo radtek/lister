@@ -2,66 +2,30 @@
 #define _Urp_UrpWindow_h_
 
 #include "UrpShared.h"
+#include "UrpGridCommon.h"
 
 //==============================================================================================
-class UrpWindow : public TopWindow {
+class UrpWindow : public TopWindow, public UrpGridCommon {
 public:
-	Vector<Ctrl *> ctrls;
-	enum { MINIMIZED, MAXIMIZED, OVERLAPPED };
-	Rect        overlapped;
-	byte        state;
-	String      configFileNameBase;
-	String      binConfigFile;
-	String      xmlConfigFile;
-	Rect realPosition;
-
-	UrpWindow();
-	virtual void Run(bool appmodal = false);
-	void AddCtrl(Ctrl *ctrl);
-	void Serialize(Stream& s);
-	void SerializePlacement(Stream& s, bool reminimize = false);
-	virtual void Xmlize(XmlIO xml);
-	virtual void Close();
-	virtual void Open();
-	virtual bool OpenIfNotOpen();
-	virtual bool CloseIfNotClosed();
-};
-
-//==============================================================================================
-class UrpTopWindow : public UrpWindow {
-public:
-	String		exeFilePath;
-	String		connectAsUser;
-	String		configFileFolder;
+	enum EnvCode {
+			ENV_DEV = 1
+		,	ENV_PROD
+	};
 	
-	UrpTopWindow();
-	
-	virtual void Run(bool appmodal = false);
+	String            configFileNameBase;
+	String            binConfigFile;
+	String            xmlConfigFile;
+   
+	                  UrpWindow();
+	virtual void      Run(bool appmodal = false); // Called from main.cpp
+	virtual void      Open();
+	virtual void      Open(Ctrl *owner);
+	virtual bool      OpenIfNotOpen(Ctrl *owner = NULL);
+	virtual void      Close();
+	virtual bool      CloseIfNotClosed();
+	virtual void      Xmlize(XmlIO xml);
 };
 
-//==============================================================================================
-class UrpConfigWindow : public UrpWindow {
-public:
-	String                 configName;
-	UrpTopWindow          *topWindow;
-
-	// Construct a configurable window; take config path from topWindow
-	UrpConfigWindow(UrpTopWindow *ptopWindow, String pconfigName);
-	// Load configuration file based on 
-	virtual void Open();
-	virtual void Close();
-};
-
-
-//==============================================================================================
-// Generator for dynamic creation of configurated windows
-class UrpWindowFactory {
-public:
-	static VectorMap<String, UrpConfigWindow *>& Windows();
-	UrpWindowFactory();
-	~UrpWindowFactory();
-	UrpConfigWindow *Open(UrpTopWindow *ptopWindow, String pwindowName); // Create and open window if not open, then show it
-};
 
 #endif
 

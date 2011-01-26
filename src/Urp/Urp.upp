@@ -1,17 +1,26 @@
 description "My Repository of functions to share\377";
 
 uses
-	GridCtrl,
-	SqlCtrl;
+	SqlCtrl,
+	lister\GridCtrl;
 
 file
 	Urp.h,
+	UrpEdit.h,
+	UrpEdit.cpp,
+	UrpGridCommon.h,
 	UrpInput.h,
 	UrpInput.cpp,
 	UrpShared.h,
 	UrpShared.cpp,
 	UrpWindow.h,
 	UrpWindow.cpp,
+	UrpConfigWindow.h,
+	UrpConfigWindow.cpp,
+	UrpTopWindow.h,
+	UrpTopWindow.cpp,
+	UrpWindowFactory.h,
+	UrpWindowFactory.cpp,
 	UrpString.h,
 	UrpString.cpp,
 	UrpLineEdit.h,

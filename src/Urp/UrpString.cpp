@@ -47,6 +47,13 @@
 	}
 	
 	//==========================================================================================	
+	// Trim x number of characters off the end, (IN PLACE)
+	/*static*/ void UrpString::TrimOff(String &in, int cnt) {
+		int l = in.GetLength();
+		in.Trim(l - cnt);
+	}
+
+	//==========================================================================================	
 	/*static*/ bool UrpString::IsIntegerString(String testStr) {
 		String localizedStr = TrimBoth(testStr);
 		const char *s = localizedStr;

@@ -61,3 +61,15 @@ int GetFieldInt(EditInt &fld, int valIfEmpty /*= -1*/) {
 		return f;
 	}
 }
+
+//==========================================================================================	
+bool Ok(String question) {
+	int response = PromptYesNo(question); // Returns 1 for yes
+	
+	if (In(response, 0, IDCANCEL, IDNO)) {
+		return false;
+	} else {
+		return true;
+	}
+}
+		
