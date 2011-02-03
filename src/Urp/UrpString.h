@@ -28,6 +28,9 @@ public:
 	// that store 1 and 0, for christ's sake!
 	static bool FromTo(const unsigned int in, int &out);
 	static String GetWord(String spaceDelimStrings, int wordNo);
+	static String ToString(int in);
+	static String ToString(byte in);
 };
+
 
 #endif
