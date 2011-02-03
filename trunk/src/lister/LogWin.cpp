@@ -6,12 +6,15 @@ LogWin::LogWin() {
 	// One exit button
 	CtrlLayoutExit(*this, "Log");
 	Sizeable().Zoomable();
+	TopMost(); // Force stayontop setting
+	Transparent();
+	//logText.Transparent();
 	CenterScreen();
 	activated = false;
 	UrpEdit &re = logText;
 	
 	re.ShowCodes(Null); // Hide space/newline icon indicators http://www.ultimatepp.org/forum/index.php?t=msg&goto=2453&
-	re.SetQTF("[%00-00 [+50 LARGE]"); // Disable spell checker. http://www.ultimatepp.org/forum/index.php?t=msg&goto=2453&
+	re.SetQTF("[%00-00 "); // Disable spell checker. http://www.ultimatepp.org/forum/index.php?t=msg&goto=2453&
 }
 
 String TimeStamp() {
