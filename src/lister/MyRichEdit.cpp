@@ -73,7 +73,22 @@ void MyRichEdit::PasteWithApostrophe() {
 }
 
 //==============================================================================================	
+void MyRichEdit::PasteConcat() {
+	String ci = ReadClipboardText();
+	String co;
+	
+	Vector<String> cil = Split(ci, '\n');
+	for (int i = 0; i < cil.GetCount(); i++) {
+		co << TrimRight(cil[i]);
+	}
+	
+	WriteClipboardText(co);
+	Paste();
+	WriteClipboardText(ci); // Restore clipboard so it doesn't keep expanding
+}
 
+
+//==============================================================================================	
 void MyRichEdit::PasteAsLineMacro() {
 	static String wrapperCmd = MACRO;  // Retain any changes the user makes
 	
@@ -341,6 +356,7 @@ void MyRichEdit::DeFormatScript() {
 					menu.Separator();
 				}
 				PasteTool(menu);
+				menu.Add("Past Concat", THISBACK(PasteConcat));
 				menu.Add("Paste/Wrap w/Apostrophe", THISBACK(PasteWithApostrophe)); // Added: JSH, copied from Mouse.cpp
 				menu.Add("Paste as UNION ALL", THISBACK(PasteAsWrappedUnion)); // Added: JSH, copied from Mouse.cpp
 				menu.Add("Paste as Line Macro", THISBACK(PasteAsLineMacro));
@@ -379,7 +395,7 @@ bool MyRichEdit::IsLegalWordChar(char cc) {
 //==============================================================================================	
 String MyRichEdit::GetPreviousWord(int &pc, WordTests &wordTests) {
 	int c = pc;
-	String w = String::GetVoid();
+	String w = Null; // ERROR!String::GetVoid();
 
 	if (c <= 0) {
 		pc = 0;
@@ -476,7 +492,7 @@ MyRichEdit::KeyProcessorResponse MyRichEdit::PopupRequested(bool ShowAllColumns)
 		PopupInfoRequestType popupInfoRequestType = IR_NOMATCH;
 		
 		String aliasName, wordBefore, schemaName, tableName, ownerName;
-		for (String prevWord = GetPreviousWord(c, wordTests); !prevWord.IsVoid(); prevWord = GetPreviousWord(c, wordTests)) {
+		for (String prevWord = GetPreviousWord(c, wordTests); !prevWord.IsEmpty(); prevWord = GetPreviousWord(c, wordTests)) {
 			
 			wordsBackFromKeyWord++;
 			prevWords.Add(prevWord);
@@ -574,6 +590,7 @@ MyRichEdit::KeyProcessorResponse MyRichEdit::PopupRequested(bool ShowAllColumns)
 					Rect caretR = GetCaret();
 					Rect editorR = GetScreenView();
 					columnlist.WhenSelect = THISBACK(SelectedPopUpColumn);
+					PasteText(AsRichText(WString("."), GetFormatInfo()));
 					columnlist.PopUp(
 						this							// owner
 					,	editorR.left + caretR.left		// x
@@ -582,7 +599,7 @@ MyRichEdit::KeyProcessorResponse MyRichEdit::PopupRequested(bool ShowAllColumns)
 					,	300								// width
 					);
 				}
-				return ALLOWDEFAULTKEYPROCESSORTORUN;	// Default editor key process will print dot
+				return SIGNALWEDIDNOTPROCESSKEY;	// Leave the dot
 			}
 		} else 
 		if (popupInfoRequestType == IR_TABLESINSCHEMA) {
@@ -591,6 +608,7 @@ MyRichEdit::KeyProcessorResponse MyRichEdit::PopupRequested(bool ShowAllColumns)
 			Rect caretR = GetCaret();
 			Rect editorR = GetScreenView();
 			tablelist.WhenSelect = THISBACK(SelectedPopUpTable);
+			PasteText(AsRichText(WString("."), GetFormatInfo()));
 			tablelist.PopUp(
 						this							// owner
 					,	editorR.left + caretR.left		// x
@@ -598,7 +616,7 @@ MyRichEdit::KeyProcessorResponse MyRichEdit::PopupRequested(bool ShowAllColumns)
 					,	editorR.top + caretR.bottom		// bottom
 					,	300								// width (Show alot of the name)
 					);
-			return ALLOWDEFAULTKEYPROCESSORTORUN; // Leave the dot
+			return SIGNALWEDIDNOTPROCESSKEY; // Leave the dot
 		} else 
 			
 		// Copy all columns before the FROM clause as comma-delimited list
@@ -650,6 +668,16 @@ void MyRichEdit::ScriptContentChanged(dword key) {
 }
 
 //==============================================================================================	
+void MyRichEdit::ResetEditorState() {
+	ClearModify();
+	columnlist.Clear();
+	columnlist.schemaName = Null;
+	columnlist.tableName = Null;
+	tablelist.Clear();
+	tablelist.schemaName = Null;
+}
+
+//==============================================================================================	
 bool MyRichEdit::Key(dword key, int count) {
 	static dword style;
 	static Rect normalwindowrect;
@@ -681,11 +709,13 @@ bool MyRichEdit::Key(dword key, int count) {
 			
 		// Request for popup information
 		case K_PERIOD: 
-			return PopupRequested(false);
+			keyProcessorResponse = PopupRequested(false);
+			break;
 
 		// Request all columns spread across
 		case K_CTRL_PERIOD: // Defined in AKeys.cpp and Win32Keys.i
-			return PopupRequested(true);
+			keyProcessorResponse = PopupRequested(true);
+			break;
 		
 		// If selection, wrap in /* */, or unwrap
 		case K_CTRL_ASTERISK:
@@ -707,6 +737,14 @@ bool MyRichEdit::Key(dword key, int count) {
 			keyProcessorResponse = ALLOWDEFAULTKEYPROCESSORTORUN;
 	}
 
+	
+	bool didWeProcessKey = RichEdit::Key(key, count);
+
+	if (IsModified()) {
+		// Flush out scriptId if any changes are made, ignore control keys
+		ScriptContentChanged(key);
+	}
+
 	switch (keyProcessorResponse) {
 		case SIGNALWEPROCESSEDKEY:
 			return true;
@@ -717,15 +755,8 @@ bool MyRichEdit::Key(dword key, int count) {
 		default:
 			throw Exc("Unrecognized keyProcessorResponse in MyRichEdit: " + keyProcessorResponse);
 	}
-	
-	bool doNotProcessKey = RichEdit::Key(key, count);
 
-	if (IsModified()) {
-		// Flush out scriptId if any changes are made, ignore control keys
-		ScriptContentChanged(key);
-	}
-	
-	return doNotProcessKey;
+	return didWeProcessKey;
 }
 
 //==============================================================================================	
@@ -741,6 +772,7 @@ void MyRichEdit::SelectedPopUpTable() {
 void MyRichEdit::SelectedPopUpColumn() {
 	if (!columnlist.IsCursor()) return;
 	WString txt = columnlist.Get(0);
+	
 	PasteText(AsRichText(txt, GetFormatInfo()));
 }
 
@@ -751,7 +783,7 @@ void MyRichEdit::AddColumns(String schema, String table) {
 		// Already loaded
 		return;
 	}
-
+	
 	// TODO: Keep binary cache and let user force refresh, track age.  Use a flat file
 	if (!connection) return;
 	
@@ -760,7 +792,8 @@ void MyRichEdit::AddColumns(String schema, String table) {
 	
 	columnlist.BackPaint();
 	columnlist.BackPaintHint();
-	columnlist.PopUpEx().ColumnSortFindKey().NoBackground();
+	columnlist.PopUpEx().ColumnSortFindKey();
+	
 	for(int i = 0; i < columns.GetCount(); i++) {
 		columnlist.Add(ToLower(columns[i].name));
 	}
@@ -819,7 +852,7 @@ void MyRichEdit::SetScript(Connection * pconnection, int pconnId, int pscriptId,
 	}
 	
 	SetScriptPlainText(pplainText);
-	ClearModify(); // New script
+	ResetEditorState(); // New script
 }
 
 //==============================================================================================
@@ -836,7 +869,7 @@ void MyRichEdit::SetScript(Connection *pconnection, int pconnId, Script &psob) {
 	
 	//SetScriptPlainText(psob.scriptPlainText);
 	SetScriptRichText(psob.scriptRichText);
-	ClearModify(); // New script
+	ResetEditorState(); // New script
 	(Script)*this = psob; // Currently we don't own the script.  Lister main probably does.
 }
 
@@ -855,7 +888,7 @@ String MyRichEdit::GetScriptRichTextInStrForm() {
 // This is called to convert the rich text to a persistent text storable form, but not plain text.
 void MyRichEdit::SetScriptRichTextFromStrForm(String prichTextStrForm) {
 	Pick(ParseQTF(prichTextStrForm));
-	ClearModify(); // New script
+	ResetEditorState(); // New script
 }
 
 //==============================================================================================
@@ -869,18 +902,19 @@ RichText MyRichEdit::GetScriptRichText() {
 // Since we save the RichScript, we can restore it and not treat it as plain text.
 void MyRichEdit::SetScriptRichText(RichText prichText) {
 	Pick(prichText);
+	ResetEditorState();
 }
 
 //==============================================================================================
 String MyRichEdit::GetScriptQTFText() {
 	return AsQTF(Get());
-	ClearModify(); // New script
+	ResetEditorState(); // New script
 }
 
 //==============================================================================================
 void MyRichEdit::SetScriptQTFText(const char *pQTFText) {
 	SetQTF(pQTFText);	
-	ClearModify(); // New script
+	ResetEditorState(); // New script
 }
 
 //==============================================================================================
@@ -908,7 +942,7 @@ void MyRichEdit::SetScriptPlainText(const char *pplainText) {
 			pplainText
 		)
 	);
-	ClearModify(); // New script
+	ResetEditorState(); // New script
 
 }
 
@@ -926,7 +960,8 @@ int MyRichEdit::GetConnId() {
 //==============================================================================================	
 void MyRichEdit::SetConn(Connection *mconnection) {
 	if (connection != mconnection) {
-		tablelist.Clear();
+		tablelist.Clear(); tablelist.schemaName = Null;
+		columnlist.Clear(); columnlist.schemaName = Null; columnlist.tableName = Null;
 	}
 	connection = mconnection;
 	
@@ -964,4 +999,5 @@ void MyRichEdit::Log() {
 	Value v = GetData();
 	UPP::Xmlize(xml, v);
 	SetData(v);
+	if (xml.IsLoading()) ResetEditorState();
 }
