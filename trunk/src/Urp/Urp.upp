@@ -31,9 +31,13 @@ file
 	UrpSqlGrid.cpp,
 	UrpPaint.h,
 	UrpPaint.cpp,
+	UrpInterval.h,
+	UrpInterval.cpp,
 	UrpMain.h,
 	UrpMain.cpp,
 	UrpSplitter.h,
 	UrpSplitter.cpp,
+	UrpPane.h,
+	UrpPane.cpp,
 	Urp.lay;
 
