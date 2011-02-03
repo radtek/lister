@@ -43,4 +43,6 @@ void ContactGrid::Load(Connection *pconnection) {
 /*static*/ void ContactGrid::BuildContactList(DropGrid &contactList) {
 	contactList.Width(200);
 	contactList.SetDropLines(30);
+	contactList.SearchHideRows();
+	contactList.Resizeable();
 }
