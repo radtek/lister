@@ -55,7 +55,7 @@ bool UrpInputBox(String &inputText, const char *title, const char *label) {
 int GetFieldInt(EditInt &fld, int valIfEmpty /*= -1*/) {
 	Value f = fld.GetData();
 	
-	if (f.IsVoid()) {
+	if (f.IsVoid() || f.IsNull()) {
 		return valIfEmpty;
 	} else {
 		return f;
