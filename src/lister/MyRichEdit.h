@@ -80,6 +80,7 @@ struct MyRichEdit : public RichEdit, public Script {
 	void            Layout();
 	//  Turn a set of lines into a stream for IN clause use
 	void            PasteWithApostrophe();
+	void            PasteConcat(); // Just compress paste all together
 	void            PasteAsLineMacro();
 	//  Turn a set of lines into series of text with the clipboard text pasted in
 	String          PasteAsLineMacro(
@@ -97,6 +98,7 @@ struct MyRichEdit : public RichEdit, public Script {
 	void            ProcessPaste();
 	MyRichEdit::KeyProcessorResponse 
 	                PopupRequested(bool ShowAllColumns);
+	void            ResetEditorState();
 	virtual bool    Key(dword key, int count);
 	// User selected an item from the popup grid, which closes it and sets the Cursor to the selected item.
 	// We now paste it into the script at the current script cursor.
