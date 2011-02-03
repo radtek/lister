@@ -27,17 +27,23 @@ TaskDefWin::TaskDefWin() {
 //==============================================================================================
 void TaskDefWin::Build(Connection *pconnection) {
 	connection = pconnection;
+	ok.WhenPush = THISBACK(SaveTask);
+	
 	if (!taskScriptGrid.built) {
 		taskScriptGrid.Build(pconnection);
-		ok.WhenPush = THISBACK(SaveTask);
-		ContactGrid::LoadContact(connection, fldAssignedToWho);
-		ContactGrid::LoadContact(connection, fldAssignedByWho);
-		ContactGrid::LoadContact(connection, fldDepOnWho);
-		ContactGrid::LoadContact(connection, fldDepOnWho2);
-		ContactGrid::LoadContact(connection, fldDepOnWho3);
-		ContactGrid::LoadContact(connection, fldDepOnWho4);
-		ContactGrid::LoadContact(connection, fldDepOnWho5);
 	}
+
+	if (!linkGrid.built) {
+		linkGrid.Build(pconnection);
+	}
+
+	ContactGrid::LoadContact(connection, fldAssignedToWho);
+	ContactGrid::LoadContact(connection, fldAssignedByWho);
+	ContactGrid::LoadContact(connection, fldDepOnWho);
+	ContactGrid::LoadContact(connection, fldDepOnWho2);
+	ContactGrid::LoadContact(connection, fldDepOnWho3);
+	ContactGrid::LoadContact(connection, fldDepOnWho4);
+	ContactGrid::LoadContact(connection, fldDepOnWho5);
 	
 	ContactGrid::BuildContactList(fldAssignedByWho);
 	ContactGrid::BuildContactList(fldAssignedToWho);
