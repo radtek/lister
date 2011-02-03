@@ -5,6 +5,8 @@
 #include <lister/Urp/UrpInput.h> // Has Ok() in it
 #include <lister/Urp/UrpConfigWindow.h>
 
+#include "OutputStat.h" // Our panel
+
 #include "KeyHandler.h"
 #include "JobSpec.h"
 #include "Task.h"
@@ -321,6 +323,7 @@ void Lister::ClickedTest() {
 // Task Grid Options
 void Lister::TaskGridContextMenu(Bar &bar) {
 	bar.Add("Edit Task Detail", THISBACK(OpenTaskDefWin));
+	taskGrid.StdBar(bar); // Pickup standards
 }
 
 //==============================================================================================	
@@ -413,13 +416,30 @@ void Lister::AddScriptToHistory() {
 		return;
 	}
 	
-	// A little trick to only insert into a table new scripts
-	String controlScript = Format("insert into scripts(scriptrichtext, scriptplaintext) select %s, %s where %s not in(select scriptplaintext from scripts)"
-	    // Not sending these as scripts to run, but to insert as text
-		, controlConnection->PrepTextDataForSend(richTextAsStr)
-		, controlConnection->PrepTextDataForSend(script)
-		, controlConnection->PrepTextDataForSend(script)); 
+	
+	String controlScript;
+	bool massiveScript = false;
+	
+	// Postgres will only support an in clause if script is around 9000 or less due to a temporary index creation
+	if (script.GetLength() > 9000) {
+		massiveScript = true;
+	}
+	
+	if (massiveScript) {
 
+		// A little trick to only insert into a table new scripts
+		controlScript = Format("insert into scripts(scriptrichtext, scriptplaintext) select %s, %s where %s not in(select scriptplaintext from scripts)"
+		    // Not sending these as scripts to run, but to insert as text
+			, controlConnection->PrepTextDataForSend(richTextAsStr)
+			, controlConnection->PrepTextDataForSend(script)
+			, controlConnection->PrepTextDataForSend(script)); 
+	} else {
+		controlScript = Format("insert into scripts(scriptrichtext, scriptplaintext) values(%s, %s)"
+		    // Not sending these as scripts to run, but to insert as text
+			, controlConnection->PrepTextDataForSend(richTextAsStr)
+			, controlConnection->PrepTextDataForSend(script)); 
+	}
+	
 	if (!controlConnection->SendAddDataScript(controlScript)) {
 		scriptEditor.Tip(DeQtf(controlConnection->GetLastError()));
 		scriptEditor.SetScriptPlainText(controlScript);
@@ -437,6 +457,11 @@ void Lister::AddScriptToHistory() {
 			ToolBarRefresh();
 		}
 	} else {
+		
+		if (massiveScript) {
+			NotifyUser("Failed to add script to script database");
+			return;
+		}
 		
 		// Script is identical to another script, we grab its id.
 		String preppedScript = controlConnection->PrepTextDataForSend(script);
@@ -780,7 +805,7 @@ void Lister::CancelRunningScriptOnActiveConn() {
 }
 
 //==============================================================================================
-// If Shift key held, replace current script	
+// If Shift key held, replace current script, otherwise add as new script for task	
 void Lister::AttachScriptToTask() {
 	ASSERT(taskGrid.IsCursor());
 	ASSERT(scriptEditor.scriptId >= 0);
@@ -828,7 +853,23 @@ void Lister::AttachScriptToTask() {
 		return;
 	}
 	
+	Value isfastFlushTargetList = fastFlushTargetList.GetData();
+
+	// Convert nulls (no drop down) to false since insert function will choke
+	
+	if (isfastFlushTargetList.IsNull()) {
+		isfastFlushTargetList = "0"; // A string must be passed to the driver; 0 = false
+	}
+
+	// If user does not select a value, enforce one.
+	Value scriptTargetListSelection = scriptTargetList.GetData();
+	if (scriptTargetListSelection.IsNull()) {
+		scriptTargetListSelection = Script::SO_UNDEF;
+	}
+	
 	why = TrimBoth(why);
+	
+	// Force user to enter a semi-meaningful explanation for this script
 	if (why.IsEmpty() || why.GetLength() < 10) {
 		Exclamation("Must provide a reason for attachment so it makes sense later (when you forget)");
 		return;
@@ -861,9 +902,9 @@ void Lister::AttachScriptToTask() {
 									    ",          totbid"
 									    ",              why"
 									    ",                    connid"
-									    ",                        targetname"
-									    ",                              scripttarget"
-									    ",                                  fastflushtarget"
+									    ",                       targetname"
+									    ",                             scripttarget"
+									    ",                                 fastflushtarget" // "0" or "1"
 									    ",                                        rowlimit"
 									    ")"
 		                       " values(%d, %d, %d, %d, %s, %d, '%s', %d, '%s', %d)"
@@ -878,9 +919,9 @@ void Lister::AttachScriptToTask() {
 		                       ,                        controlConnection->PrepTextDataForSend(why)
 		                       ,                              scriptEditor.connId
 		                       ,                                  targetNameList.GetData()
-		                       ,                                        scriptTargetList.GetData()
-		                       ,                                            fastFlushTargetList.GetData()
-		                       ,											      GetFieldInt(fldRowLimit)
+		                       ,                                        scriptTargetListSelection
+		                       ,                                            isfastFlushTargetList
+		                       ,											      GetFieldInt(fldRowLimit) // Null becomes -1
 		                       );
 		         
 	if (!updateMap.IsEmpty()) {
@@ -1003,11 +1044,8 @@ void Lister::MyToolBar(Bar& bar) {
 
 	// Set the target table name
 	bar.Add(targetNameList, 150); //.Tip("Target object name (if targeting a table or spreadsheet)");
-	
 	bar.Add(scriptTargetList, 85); //.Tip("What type of target does the script output to?");
-	
 	bar.Add(fastFlushTargetList, 75); //.Tip("Truncate the target or leave as is?");
-	
 	bar.Add(fldRowLimit, 65);
 	
 	//CtrlImg::exclamation(), CtrlImg::smallright(), CtrlImg::open(), CtrlImg::undo(), CtrlImg::remove
@@ -1028,7 +1066,7 @@ void Lister::MyToolBar(Bar& bar) {
 }
 
 //==============================================================================================
-void Lister::ScriptExecutionHandler(ScriptTarget pscriptTarget) {
+void Lister::ScriptExecutionHandler(Script::ScriptTarget pscriptTarget) {
 	String lplainText = scriptEditor.GetScriptPlainText();
 
 	if (lplainText.IsEmpty()) {
@@ -1054,8 +1092,16 @@ void Lister::ScriptExecutionHandler(ScriptTarget pscriptTarget) {
 		// TODO: Enhance MyRichEdit to support multiple selections; very useful
 	}
 
+
+	OutputStat *outputStat = new OutputStat();
+	// Push on the pane stak and users can close as needed.
+	bottomRightPane.Add("OutputStat", outputStat);
 		
 	JobSpec jspec; // Take defaults for now
+	jspec.outputStat = outputStat;
+	jspec.outputStat->SetScriptId(scriptEditor.scriptId);
+	jspec.outputStat->SetConnName(activeConnection->connName);
+	
 	jspec.executingSelection = executingselection;  // Track that only a portion was executed, so we don't skew stats on the script
 	// TODO: Move call to cursorHandler to Connection
 	CursorHandler cursorHandler(controlConnection, activeConnection);
@@ -1069,6 +1115,9 @@ void Lister::ScriptExecutionHandler(ScriptTarget pscriptTarget) {
 		,	GetFieldInt(fldRowLimit)
 		,	targetNameList.GetData()
 	);
+	
+	jspec.outputStat->SetStatus("Calling runner");
+	jspec.outputStat->SetStartedWhen(GetSysTime());
 	bool ran = cursorHandler.Run(sob, jspec);
 }
                             
@@ -1076,13 +1125,13 @@ void Lister::ScriptExecutionHandler(ScriptTarget pscriptTarget) {
 // Execute the script in the script editor against the active connection and push output to a
 // table in the local database.
 void Lister::RunScriptOutputToTable() {
-	ScriptExecutionHandler(SO_TABLE /* load into table, leave grid empty */);
+	ScriptExecutionHandler(Script::SO_TABLE /* load into table, leave grid empty */);
 }
 
 //==============================================================================================
 // Execute the script in the script editor against the active connection	
 void Lister::RunScriptOutputToScreen() {
-	ScriptExecutionHandler(SO_SCREEN /* Don't load into table, load into grid */);
+	ScriptExecutionHandler(Script::SO_SCREEN /* Don't load into table, load into grid */);
 }
 
 //==============================================================================================
