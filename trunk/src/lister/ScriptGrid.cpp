@@ -61,9 +61,9 @@ void ScriptGrid::Load() {
 //==============================================================================================
 void ScriptGrid::LoadScriptTargetList(DropGrid &pscriptTargetList) {
 	pscriptTargetList.Clear();
-	pscriptTargetList.Add(SO_UNDEF, "Target Undefined");
-	pscriptTargetList.Add(SO_SCREEN, "Screen Grid");
-	pscriptTargetList.Add(SO_TABLE, "Database Table");
+	pscriptTargetList.Add(Script::SO_UNDEF, "Target Undefined");
+	pscriptTargetList.Add(Script::SO_SCREEN, "Screen Grid");
+	pscriptTargetList.Add(Script::SO_TABLE, "Database Table");
 	// Excel
 	// Log
 }
@@ -78,7 +78,7 @@ void ScriptGrid::PrepTargetFastFlush(DropGrid &fastFlushTargetList) {
 //==============================================================================================
 // Link Many table (this) to one table
 void ScriptGrid::LinkScriptToTaskGrid(ArrayCtrl &taskGrid) {
-	Join(TASKID, taskGrid);
+	Join(TASKID, taskGrid); // BUG: This seems to affect the tab key from field to field.
 }
 
 //==============================================================================================
@@ -134,10 +134,10 @@ void ScriptGrid::GetScriptOb(int row, Script *psob) {
 }
 
 //==============================================================================================
-ScriptTarget ScriptGrid::GetScriptTarget(int row) {
+Script::ScriptTarget ScriptGrid::GetScriptTarget(int row) {
 	int intScriptTarget = Get(row, SCRIPTTARGET);
-	ScriptTarget scriptTarget = (ScriptTarget)intScriptTarget;
-	return Upp::max(scriptTarget, SO_UNDEF); // Put a 0 if big negative returned for a null.
+	Script::ScriptTarget scriptTarget = (Script::ScriptTarget)intScriptTarget;
+	return Upp::max(scriptTarget, Script::SO_UNDEF); // Put a 0 if big negative returned for a null.
 }
 
 //==============================================================================================
@@ -157,6 +157,7 @@ String ScriptGrid::GetWhy(int row) {
 
 //==============================================================================================
 // Case for dealing with PostgreSQL booleans as strings "1" and "0" (Bug in U++ driver)
+// Convert them from strings to boolean
 bool ScriptGrid::GetFastFlushTarget(int row) {
 	String v = Get(row, FASTFLUSHTARGET);
 	return (v == "1");
