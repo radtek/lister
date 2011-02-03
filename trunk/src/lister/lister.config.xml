@@ -11,7 +11,7 @@
 		<isexpanded value="0"/>
 		<isshrunk value="0"/>
 		<savedpos value="-1"/>
-		<pos value="2455"/>
+		<pos value="1992"/>
 	</horzsplit1>
 	<horzsplit11>
 		<isexpanded value="0"/>
@@ -23,19 +23,19 @@
 		<isexpanded value="0"/>
 		<isshrunk value="0"/>
 		<savedpos value="-1"/>
-		<pos value="4463"/>
+		<pos value="4064"/>
 	</horzsplit12>
 	<horzsplit2>
 		<isexpanded value="0"/>
 		<isshrunk value="0"/>
 		<savedpos value="-1"/>
-		<pos value="382"/>
+		<pos value="321"/>
 	</horzsplit2>
 	<horzsplit21>
 		<isexpanded value="0"/>
 		<isshrunk value="0"/>
 		<savedpos value="-1"/>
-		<pos value="9092"/>
+		<pos value="9125"/>
 	</horzsplit21>
 	<grid1>
 		<columnwidths>
@@ -44,13 +44,13 @@
 			<key>ConnId</key>
 			<value value="-2"/>
 			<key>ConnName</key>
-			<value value="123"/>
+			<value value="103"/>
 			<key>LoginId</key>
 			<value value="-2"/>
 			<key>LoginStr</key>
-			<value value="104"/>
+			<value value="81"/>
 			<key>LoginPwd</key>
-			<value value="126"/>
+			<value value="76"/>
 			<key>InstId</key>
 			<value value="90"/>
 			<key>InstanceName</key>
@@ -78,7 +78,7 @@
 			<key>TASKID</key>
 			<value value="320"/>
 			<key>TASKNAME</key>
-			<value value="40"/>
+			<value value="38"/>
 			<key>SRCCODE</key>
 			<value value="100"/>
 			<key>PROJECTNAME</key>
@@ -90,13 +90,13 @@
 			<key>RELID</key>
 			<value value="-2"/>
 			<key>TASKID</key>
-			<value value="215"/>
+			<value value="251"/>
 			<key>WHY</key>
-			<value value="52"/>
+			<value value="31"/>
 			<key>SCRIPTPLAINTEXT</key>
 			<value value="-2"/>
 			<key>SCRIPTRICHTEXT</key>
-			<value value="200"/>
+			<value value="43"/>
 			<key>SCRIPTNOTE</key>
 			<value value="-2"/>
 			<key>SCRIPTID</key>
@@ -110,7 +110,7 @@
 			<key>FASTFLUSHTARGET</key>
 			<value value="48"/>
 			<key>ROWLIMIT</key>
-			<value value="36"/>
+			<value value="53"/>
 		</columnwidths>
 	</grid3>
 	<grid4>
@@ -118,31 +118,31 @@
 			<key>State</key>
 			<value value="50"/>
 			<key>TestId</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>TestName</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>TestScriptId</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>TestNote</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>TestConnId</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>TestTypId</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>InvertComparison</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>CompTypId</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>X</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>Y</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>DesiredOutcome</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>ActualOutcome</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>OutputValue</key>
-			<value value="577"/>
+			<value value="814"/>
 			<key>TEST!</key>
 			<value value="50"/>
 			<key>Err</key>
@@ -156,13 +156,13 @@
 		<cy value="400"/>
 	</win1>
 	<win2>
-		<x value="0"/>
-		<y value="0"/>
-		<cx value="488"/>
+		<x value="1882"/>
+		<y value="464"/>
+		<cx value="588"/>
 		<cy value="400"/>
 	</win2>
-	<x value="227"/>
-	<y value="109"/>
-	<cx value="2892"/>
+	<x value="206"/>
+	<y value="86"/>
+	<cx value="3096"/>
 	<cy value="795"/>
 </lister>
