@@ -9,6 +9,7 @@ UrpSqlGrid::UrpSqlGrid() : SqlArray(), UrpGridCommon() {
 	EvenRowColor();
 	Removing();
 	AllSorting();
+	// Tab doesn't seem to work when they are joined.
 	MultiSelect(); // ArrayCtrl
 //GRIDCTRL		Editing();
 //GRIDCTRL		EditsInNewRow();
