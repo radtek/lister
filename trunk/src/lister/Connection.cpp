@@ -240,6 +240,7 @@ String Connection::PrepTextDataForSend(const String &textData) {
 String Connection::PrepScriptForSend(const String &script, bool log /*=false*/) {
 	switch (instanceType) {
 		case INSTTYP_ORACLE:
+			// Double wrap a script.  Embedded textdata in insert as values and constants will be double-wrapped from their call to PrepText.
 			return PrepOracleScriptForSend(script, log);
 			break;
 		default:
