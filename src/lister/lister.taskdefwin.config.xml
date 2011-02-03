@@ -8,9 +8,9 @@
 			<key>ELEMENTNAME</key>
 			<value value="200"/>
 			<key>ELEMENTDESC</key>
-			<value value="100"/>
+			<value value="74"/>
 			<key>STATUS</key>
-			<value value="200"/>
+			<value value="488"/>
 		</columnwidths>
 	</grid1>
 	<grid2>
@@ -41,8 +41,18 @@
 			<value value="25"/>
 		</columnwidths>
 	</grid2>
-	<x value="822"/>
-	<y value="78"/>
+	<grid3>
+		<columnwidths>
+			<key>LINKID</key>
+			<value value="254"/>
+			<key>LINKNAME</key>
+			<value value="78"/>
+			<key>LINKURL</key>
+			<value value="149"/>
+		</columnwidths>
+	</grid3>
+	<x value="1311"/>
+	<y value="77"/>
 	<cx value="1804"/>
 	<cy value="780"/>
 </lister>
