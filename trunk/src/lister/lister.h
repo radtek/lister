@@ -20,6 +20,8 @@
 #include "TaskDefWin.h"
 #include <lister/Urp/UrpTopWindow.h>
 #include <lister/Urp/UrpWindowFactory.h>
+#include <lister/Urp/UrpPane.h>
+
 #include "OutputStat.h"
 
 #define APP_TITLE "lister"
@@ -39,7 +41,8 @@ public:
 	UrpSplitter       horizTopSplitter, horizTopMidAndRightSplitter, horizTopMidSplitter;
 	UrpSplitter       horizBottomSplitter, horizBottomMidAndRightSplitter, horizBottomMidSplitter;
 	StaticRect        topLeftPane, topMidLeftPane, topMidRightPane, topRightPane;
-	StaticRect        bottomLeftPane, bottomMidPane, bottomRightPane;
+	StaticRect        bottomLeftPane, bottomMidPane;
+	UrpPane           bottomRightPane;
 	ToolBar           toolbar;
 	OutputGrid        mainGrid; // Not currently using UrpGrid since the outputGrid's column specs are not saved (they change constantly)
 	OutputStat        outputStat;
@@ -100,7 +103,7 @@ public:
 	void              ToolBarRefresh(); // Update the toolbar active/inactive state of each button when connection or something changes.
 	void              MyToolBar(Bar& bar); // Define the toolbar over the script editor.
 	virtual void      Run(bool appmodal = false); // Called from main.cpp. to open the main window
-	void              ScriptExecutionHandler(ScriptTarget pscriptTarget);
+	void              ScriptExecutionHandler(Script::ScriptTarget pscriptTarget);
 	void              RunScriptOutputToScreen(); // Load to grid only
 	void              RunScriptOutputToTable(); // Load output of script into a table in control db.
 	bool              Key(dword key, int count);
