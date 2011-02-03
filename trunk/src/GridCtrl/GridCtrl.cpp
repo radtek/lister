@@ -667,13 +667,20 @@ void GridCtrl::SetClipboard(bool all, bool silent)
 		
 		if(i == fixed_rows && copy_column_names)
 		{
-			for(int j = fixed_cols; j < total_cols; j++)
-				if(all || IsSelected(i, j, false))
-					tc += hitems[j].GetName() + '\t';
+			bool haveoutedfirstcol = false;
+			for(int j = fixed_cols; j < total_cols; j++) {
+				if(all || IsSelected(i, j, false)) {
+					if (haveoutedfirstcol) tc += '\t';
+					haveoutedfirstcol = true;
+					tc += hitems[j].GetName(); // Removed from original code since it places an annoying trailing tab on everything, which causes problems in search pattern lists on unix grep. // + '\t';
+				}
+			}
 				
 			tc += "\r\n";			
 		}
 
+		bool haveoutedfirstcol = false;
+		
 		for(int j = fixed_cols; j < total_cols; j++)
 			if(all || row_selected || IsSelected(i, j, false))
 			{
@@ -695,7 +702,10 @@ void GridCtrl::SetClipboard(bool all, bool silent)
 					tc += "\r\n";
 					prev_row = i;
 				}
-				tc += d.v.ToString() + '\t';
+				
+				if (haveoutedfirstcol) tc += '\t';
+				haveoutedfirstcol = true;
+				tc += d.v.ToString(); // Removed. + '\t';
 			}
 	}
 
