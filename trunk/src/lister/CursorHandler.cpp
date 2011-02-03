@@ -2,6 +2,7 @@
 #include "SoundHandler.h"
 #include "Connection.h"
 #include "OutputGrid.h"
+#include "OutputStat.h"
 
 //==============================================================================================
 CursorHandler::CursorHandler(Connection *pcontrolConnection, Connection *pconnection) {
@@ -16,7 +17,7 @@ void CursorHandler::ColSize(OutputGrid *outputGrid, Sql *cursor) {
 }
 
 //==============================================================================================
-// Run a script and push output to the grid, or to a table
+// Run a script and push output to the grid, or to a table. Update the stats.
 bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 	ASSERT(connection);
 	int x = 0;
@@ -26,15 +27,27 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 	t.Reset();
 	
 	if (connection->instanceTypeName == INSTTYPNM_ORACLE) {
+		if (jobSpec.outputStat) {
+			jobSpec.outputStat->SetStatus("Configuring instance");
+		}
 		if (!connection->SendChangeEnvScript("alter session set nls_date_format='DD-MON-RR'", true /* silent */)) {
 			Speak(EVS_EXECUTE_FAILED);
+			if (jobSpec.outputStat) {
+				jobSpec.outputStat->SetStatus("Configuring instance failed.");
+			}
 			return false;
 		}
 	}
 	
+	if (jobSpec.outputStat) {
+		jobSpec.outputStat->SetStatus("Sending script to instance for processing");
+	}
 	// We always send macros to our targets.  Only when we save scripts do we not expand the macros, elsewise we could never save them, huh?
 	if (!connection->SendQueryDataScript(sob.scriptPlainText, true /* silent, we'll handle errors */, true /* expand macros */, jobSpec.log)) {
 		// We make our own beep, so that it distintively identifies a "lister execution failure" to the user, not a generic windows failure
+		if (jobSpec.outputStat) {
+			jobSpec.outputStat->SetStatus("Script processing failed");
+		}
 		Speak(EVS_EXECUTE_FAILED);
 		if (!jobSpec.batchMode) {
 			Prompt(Ctrl::GetAppName(), CtrlImg::exclamation(), Format("Error: [* %s].", DeQtf(connection->GetLastError())), t_("OK"));
@@ -48,8 +61,14 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 		return false;
 	}
 
+	if (jobSpec.outputStat) {
+		jobSpec.outputStat->SetStatus("Script processing succeeded");
+	}
 	Speak(EVS_EXECUTE_SUCCEEDED);
 	int colCount = connection->GetColumns();
+	if (jobSpec.outputStat) {
+		jobSpec.outputStat->SetColumnCount(colCount);
+	}
 	
 	cw.Clear();
 	cw.SetCount(colCount);
@@ -73,9 +92,8 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 		adaptedRowLimit = sob.rowLimit;
 	}
 	
-
 	//__________________________________________________________________________________________
-	if (sob.scriptTarget == SO_TABLE) {
+	if (sob.scriptTarget == Script::SO_TABLE) {
 		// Only popup up user didn't enter an output table name
 		if (outputTable.IsEmpty()) {
 			if (jobSpec.batchMode) {
@@ -90,6 +108,9 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 		// Instead of truncating, we drop and create
 		
 		if (sob.fastFlushTarget) {
+			if (jobSpec.outputStat) {
+				jobSpec.outputStat->SetStatus("Rebuilding target");
+			}
 			RebuildTableFromConnection(outputTable, jobSpec);
 		}
 		
@@ -100,10 +121,20 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 		if (jobSpec.log) LogLine(msg);
 	
 	//__________________________________________________________________________________________
-	} else if (sob.scriptTarget == SO_SCREEN) { // load to screen grid
+	} else if (sob.scriptTarget == Script::SO_SCREEN) { // load to screen grid
 
 		// Hmmmm, should support append to end of screen
 		rowcount = LoadIntoScreenGridFromConnection(sob.outputGrid, jobSpec);
+	}
+	
+	if (jobSpec.outputStat) {
+		jobSpec.outputStat->SetStatus("Completed fetch");
+		jobSpec.outputStat->SetRowCount(rowcount);
+		Time stoppedWhen = GetSysTime();
+		jobSpec.outputStat->SetStoppedWhen(stoppedWhen);
+		Time startedWhen = jobSpec.outputStat->GetStartedWhen();
+		Interval runtime(startedWhen, stoppedWhen);
+		jobSpec.outputStat->SetFetchTime(runtime);
 	}
 	
 	if (connection->WasError()) {
