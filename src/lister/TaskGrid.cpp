@@ -17,13 +17,10 @@ TaskGrid::TaskGrid() {
 	AddIndex(SOLUTIONDESC);
 	AddIndex(ASSIGNEDBYWHO);
 	AddIndex(ASSIGNEDTOWHO);
-	AddIndex(PROJECTNAME);
 	AddIndex(PRIORITYASSIGNEDDATE);
 	AddIndex(NEXTTARGETDATE);
 	AddIndex(TARGETDATEEXPECTATION);
 	AddIndex(PRIORITYWITHINPROJECT);
-	AddIndex(TASKDESC);
-	AddIndex(SOLUTIONDESC);
 	AddIndex(DEPONWHO);
 	AddIndex(DEPONWHO2);
 	AddIndex(DEPONWHO3);
@@ -35,6 +32,7 @@ TaskGrid::TaskGrid() {
 	AddIndex(DEPFEEDBACK);
 }
 
+//==========================================================================================	
 TaskGrid::~TaskGrid() {
 }
 
