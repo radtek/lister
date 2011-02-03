@@ -37,5 +37,11 @@
 // Splitter remembers its position on screen
 #include "UrpSplitter.h"
 
+// Pane that remembers items added in vector and takes ownership
+#include "UrpPane.h"
+
+// Interval management that supports Time
+#include "UrpInterval.h"
+
 #endif
 
