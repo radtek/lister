@@ -29,7 +29,7 @@ public:
 	int             GetProcessOrder(int row);
 	RichText        GetScriptRichText(int row);
 	String          GetScriptPlainText(int row);
-	ScriptTarget    GetScriptTarget(int row);
+	Script::ScriptTarget    GetScriptTarget(int row);
 	String          GetTargetName(int row);
 	int             GetRelId(int row);
 	String          GetWhy(int row);
