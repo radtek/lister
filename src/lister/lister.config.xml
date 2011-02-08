@@ -23,7 +23,7 @@
 		<isexpanded value="0"/>
 		<isshrunk value="0"/>
 		<savedpos value="-1"/>
-		<pos value="4064"/>
+		<pos value="4754"/>
 	</horzsplit12>
 	<horzsplit2>
 		<isexpanded value="0"/>
@@ -90,7 +90,7 @@
 			<key>RELID</key>
 			<value value="-2"/>
 			<key>TASKID</key>
-			<value value="251"/>
+			<value value="440"/>
 			<key>WHY</key>
 			<value value="31"/>
 			<key>SCRIPTPLAINTEXT</key>
@@ -104,7 +104,7 @@
 			<key>RELCONNID</key>
 			<value value="55"/>
 			<key>SCRIPTTARGET</key>
-			<value value="125"/>
+			<value value="195"/>
 			<key>TARGETNAME</key>
 			<value value="62"/>
 			<key>FASTFLUSHTARGET</key>
@@ -118,31 +118,31 @@
 			<key>State</key>
 			<value value="50"/>
 			<key>TestId</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>TestName</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>TestScriptId</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>TestNote</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>TestConnId</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>TestTypId</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>InvertComparison</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>CompTypId</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>X</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>Y</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>DesiredOutcome</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>ActualOutcome</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>OutputValue</key>
-			<value value="814"/>
+			<value value="878"/>
 			<key>TEST!</key>
 			<value value="50"/>
 			<key>Err</key>
@@ -156,13 +156,13 @@
 		<cy value="400"/>
 	</win1>
 	<win2>
-		<x value="1882"/>
-		<y value="464"/>
+		<x value="2832"/>
+		<y value="74"/>
 		<cx value="588"/>
 		<cy value="400"/>
 	</win2>
-	<x value="206"/>
-	<y value="86"/>
+	<x value="11"/>
+	<y value="76"/>
 	<cx value="3096"/>
 	<cy value="795"/>
 </lister>
