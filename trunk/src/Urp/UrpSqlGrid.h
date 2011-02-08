@@ -10,7 +10,6 @@ class UrpSqlGrid: public SqlArray, public UrpGridCommon {
 public:
 	int           lastinsertedpkid;
 	Callback      WhenNeedLastInsertedPkId;
-	
 	              UrpSqlGrid();
 	// Override since the standard function expects the pk to be named "id" in order to fetch
 	// from Postgre sequence.
@@ -29,6 +28,11 @@ public:
 	Id            GetFloatingColumnId(int n) const;
 	bool          IsColumnHidden(int i);
 	void          SetColumnMinWidth(int i, int w);
+	int           SelectionCount();
+	// Useful for when grid is not active and cursor is -1, but an item is selected
+	int           GetFirstSelection();
+	Value         GetMaxValue(Id column);
+		
 	//	GridCtrl::ItemRect& GetFloatingColumn(int n);
 	//  GridCtrl is supposed to Xmlize, but I don't see it doing anything, so I've written my own.
 	//  Have to save by name so that code changes that add/subtract columns will not cause confusion.
