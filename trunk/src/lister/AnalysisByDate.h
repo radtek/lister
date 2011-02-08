@@ -9,8 +9,9 @@ class AnalysisByDateGrid : public UrpSqlGrid {
 public:
 	typedef AnalysisByDateGrid CLASSNAME;
 	
-	int            analysisId, scriptId;
+	int            analysisId, scriptId, taskId;
 	EditString     analysisName, totalCount, note;
+	EditDate       byDate;
 	Connection    *connection; // Our metadata about the query we will be running
 	
 	               AnalysisByDateGrid();
