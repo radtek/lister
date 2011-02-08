@@ -409,6 +409,9 @@ void Speak(EnumEventSound enumEventSound) {
 		case EVS_INSERT_COMPLETED:
 			PlaySound(SOUND_WOOP, NULL, SND_ASYNC|SND_NODEFAULT);
 			break;
+		case EVS_INSERT_FAILED:
+			PlaySound(SOUND_CLINK, NULL, SND_ASYNC|SND_NODEFAULT);
+			break;
 		default:
 			MessageBeep(MB_OK);
 	}
