@@ -7,11 +7,6 @@
 //==============================================================================================
 class UrpWindow : public TopWindow, public UrpGridCommon {
 public:
-	enum EnvCode {
-			ENV_DEV = 1
-		,	ENV_PROD
-	};
-	
 	String            configFileNameBase;
 	String            binConfigFile;
 	String            xmlConfigFile;
