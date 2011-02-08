@@ -45,6 +45,7 @@ void       ConnGrid::SetConnId          (int row, int pconnId)	{ Set(row, IDConn
 String     ConnGrid::GetConnName        (int row)				{ return TrimBoth(Get(row, IDConnName)); }
 String     ConnGrid::GetInstanceTypeName(int row)				{ return TrimBoth(Get(row, IDInstTypName)); }
 int        ConnGrid::GetInstanceId      (int row)				{ return Get(row, IDInstanceId); }
+void       ConnGrid::SetInstanceId      (int row, int pinstId)	{ Set(row, IDInstanceId, pinstId); }
 String     ConnGrid::GetInstanceName    (int row)				{ return TrimBoth(Get(row, IDInstanceName)); }
 String     ConnGrid::GetInstanceAddress (int row)				{ return TrimBoth(Get(row, IDInstanceAddress)); }
 int        ConnGrid::GetInstTypId       (int row)			    { return Get(row, IDInstTypId); }
@@ -97,10 +98,28 @@ void ConnGrid::Build() {
 //==========================================================================================	
 // Popup to let user enter new connection instance details
 void ConnGrid::NewInstance() {
+	int row = GetCurrentRow(); // Save our place
+	
 	switch(newInstanceWin.Run()) {
 	case IDOK:
 		Exclamation("Adding");
-		// Insert into database
+		{
+			String newInstanceName = newInstanceWin.GetInstanceName();
+			String script = SqlStatement
+				(
+					SqlInsert(INSTANCES)(INSTANCENAME, newInstanceName)
+						(INSTANCEADDRESS, newInstanceWin.instanceAddress.GetData().ToString())
+						(INSTTYPID, newInstanceWin.instTypList.GetKey())
+				)
+				.GetText();
+					
+			if (connection->SendAddDataScript(script)) {
+				// Fetch id
+				int id = connection->GetInsertedId("instances", "instanceid");
+				instTypList.Add(id, newInstanceName);
+				SetInstanceId(row, id);
+			}
+		}
 		break;
 
 	case IDCANCEL:
