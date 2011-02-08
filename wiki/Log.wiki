@@ -2,5 +2,6 @@
 
 = Details =
 
-  * February - Fixed DB2/AS400 connectivity using iSeries ODBC driver.
-    - Got more data types to work with fetch arrays SQLINTEGER
+  * February, 2011
+    - Fixed DB2/AS400 connectivity using iSeries ODBC driver.
+    - Got more data types to work with fetch arrays, SQLINTEGER.
