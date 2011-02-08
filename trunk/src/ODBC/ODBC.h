@@ -9,6 +9,17 @@ NAMESPACE_UPP
 
 bool   ODBCPerformScript(const String& text, StatementExecutor& executor, Gate2<int, int> progress_canceled = false);
 
+struct MySqlColumnInfo : Moveable<MySqlColumnInfo> {
+	String      name;
+	int         type; // Value type in U++
+	SQLSMALLINT sqltype;
+	int         width;
+	int         precision; //number of total digits in numeric types
+	int         scale;     //number of digits after comma in numeric types
+	bool        nullable;  //true - column can hold null values
+	bool		isbinary;
+};
+
 class ODBCConnection;
 
 class ODBCSession : public SqlSession {
