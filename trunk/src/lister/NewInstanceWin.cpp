@@ -6,3 +6,8 @@ NewInstanceWin::NewInstanceWin() {
 	CtrlLayoutOKCancel(*this, "Enter");
 	Sizeable().Zoomable();
 }
+
+//==========================================================================================	
+String NewInstanceWin::GetInstanceName() {
+	return instanceName.GetData().ToString();
+}
