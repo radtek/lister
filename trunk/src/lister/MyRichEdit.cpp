@@ -714,10 +714,10 @@ bool MyRichEdit::Key(dword key, int count) {
 
 		// Request all columns spread across
 		case K_CTRL_PERIOD: // Defined in AKeys.cpp and Win32Keys.i
-			keyProcessorResponse = PopupRequested(true);
+			keyProcessorResponse = PopupRequested(true /* ShowAllColumns */);
 			break;
 		
-		// If selection, wrap in /* */, or unwrap
+		// If selection, wrap in asterisk slashes (comments) or unwrap
 		case K_CTRL_ASTERISK:
 			if (IsSelection()) {
 				String saveclip = ReadClipboardText();
