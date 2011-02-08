@@ -584,7 +584,12 @@ void Lister::ProcessTaskScript(int taskScriptRow, bool loadScript, bool executeS
 			// Make a local connection
 			LogLine("Connecting...");
 			Connection *lconnection = ConnectUsingGrid(connRow, jspec.log);
-			LogLine(CAT << "Connection is " << lconnection->connName);
+			LogLine(CAT << "Connection is " << lconnection->connName << ", " 
+				<< (lconnection->connName != lconnection->instanceAddress ? lconnection->instanceAddress : "")
+				<< ", " << lconnection->loginStr
+				<< (lconnection->dbName.IsEmpty()? "" : lconnection->dbName)
+				<< (lconnection->instanceTypeName)
+			); // TODO: Add port for sybase
 			SetActiveConnection(lconnection); // Updates toolbar too, as well as passing connection to comdScript editor
 			if (lconnection && lconnection->session && lconnection->session->IsOpen()) {
 				lconnection->ProcessQueryDataScript(sob, jspec);
@@ -788,14 +793,25 @@ void Lister::ActiveConnectionChanged() {
 //==============================================================================================	
 // This must be called when a connection changes or you won't be able to execute scripts.
 void Lister::ConnectionStatusRefresh() {
+	String envName;
+	
+	switch (envCode) {
+	case ENV_DEV: envName = "Dev"; break;
+	case ENV_PROD: envName = "Release"; break;
+	default: envName = "?";
+	}
+	
+	String envLabel = ", Env=";
+	envLabel << envName;
+	
 	if (activeConnection) {
 		if (!In(activeConnection->enumConnState, CON_SUCCEED, CON_STALE)) {
-			Title(CAT << APP_TITLE << " - Not connected to " << activeConnection->connName);	
+			Title(CAT << APP_TITLE << " - Not connected to " << activeConnection->connName << envLabel);
 		} else {
-			Title(CAT << APP_TITLE << " - Connected to " << activeConnection->connName);	
+			Title(CAT << APP_TITLE << " - Connected to " << activeConnection->connName << envLabel);
 		}
 	} else {
-		Title(CAT << APP_TITLE << " - Not connected");
+		Title(CAT << APP_TITLE << " - Not connected" << envLabel);
 	}
 }
 
@@ -818,10 +834,13 @@ void Lister::AttachScriptToTask() {
 	int relId;
 	String title;
 	String why; // User must provide a reason for the mapping.
-
+	int processorder;
+	
 	// User requested to replace current script
 	if (GetShift()) {
-		if (!scriptGrid.IsCursor()) {
+		// Allow for user to have left the script grid at some time and still want to
+		// update the visible script selected
+		if (!scriptGrid.IsCursor() && !scriptGrid.IsSelection()) {
 			Exclamation("No script selected");
 			return;
 		}
@@ -830,15 +849,26 @@ void Lister::AttachScriptToTask() {
 			Exclamation("No script id assned to editor");
 			return;
 		}
+
+		if (scriptGrid.SelectionCount() > 1) {
+			Exclamation("Can't replace multiple scripts with the same script");
+			return;
+		}
 		
 		replaceCurrentlySelectedTaskScript = true;
-		currentlySelectedTaskScript = scriptGrid.GetCursor();
+		if (!scriptGrid.IsCursor()) {
+			currentlySelectedTaskScript = scriptGrid.GetCursor();
+		} else {
+			currentlySelectedTaskScript = scriptGrid.GetFirstSelection();
+		}
+		
 		title = "Replace script currently selected for task:";
 		relId = scriptGrid.GetRelId(currentlySelectedTaskScript);
 		why = scriptGrid.GetWhy(currentlySelectedTaskScript); // Display the current why so user can edit
-		
+		processorder = scriptGrid.GetProcessOrder(currentlySelectedTaskScript);
 	} else {
 		title = "New Task-Script Attachment to task:";
+		processorder = scriptGrid.GetMaxProcessOrder();
 	}
 	
 	title << taskName;
