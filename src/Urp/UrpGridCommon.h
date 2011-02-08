@@ -9,6 +9,7 @@ public:
 	UrpGridCommon() {
 		built = loaded = false;
 	}
+	
 };
 
 #endif
