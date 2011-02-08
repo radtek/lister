@@ -12,17 +12,6 @@ NAMESPACE_UPP
 #define MAX_COL_FETCH_COUNT 100
 #define MAX_DATA_WIDTH_FETCH 101
 
-struct MySqlColumnInfo : Moveable<MySqlColumnInfo> {
-	String      name;
-	int         type; // Value type in U++
-	SQLSMALLINT sqltype;
-	int         width;
-	int         precision; //number of total digits in numeric types
-	int         scale;     //number of digits after comma in numeric types
-	bool        nullable;  //true - column can hold null values
-	bool		isbinary;
-};
-
 class ODBCConnection : public SqlConnection
 {
 public:
@@ -84,7 +73,8 @@ private:
 	//SQLCHAR                  fetchedRows[MAX_COL_FETCH_COUNT][ROW_FETCH_COUNT][MAX_DATA_WIDTH_FETCH];
 	// Tells us if the value was null
 	SQLLEN                   indicator[MAX_COL_FETCH_COUNT][ROW_FETCH_COUNT]; 
-	VectorMap<String, byte *>   rowdata;
+	// Actual data created as each column is identified
+	VectorMap<String, byte *> rowdata;
 };
 
 bool ODBCSession::Connect(const char *cs)
@@ -292,15 +282,13 @@ ODBCConnection::ODBCConnection(ODBCSession *session_)
 	rowcount = rowi = 0;
 }
 
-ODBCConnection::~ODBCConnection()
-{
+ODBCConnection::~ODBCConnection() {
 	if(IsCurrent())
 		session->current = NULL;
 	LLOG("~ODBCConnection " << (void *)this << " " << (void *)session);
 }
 
-bool ODBCConnection::IsOk(SQLRETURN ret) const
-{
+bool ODBCConnection::IsOk(SQLRETURN ret) const {
 	if(SQL_SUCCEEDED(ret) || ret == SQL_NO_DATA)
 		return true;
 	SQLCHAR       SqlState[6], Msg[SQL_MAX_MESSAGE_LENGTH];
@@ -318,8 +306,7 @@ bool ODBCConnection::IsOk(SQLRETURN ret) const
 	return false;
 }
 
-void ODBCConnection::SetParam(int i, const Value& r)
-{
+void ODBCConnection::SetParam(int i, const Value& r) {
 	Param& p = param.At(i);
 	if(IsNumber(r)) {
 		if(r.Is<int64>()) {
@@ -436,35 +423,29 @@ bool ODBCConnection::Execute()
 			return false;
 		binary.Add(false);
 		MySqlColumnInfo& f = myinfo.Add();
-		SqlColumnInfo flegacy = info.Add(); // Maintain old version ;)
+		SqlColumnInfo &flegacy = info.Add(); // Maintain old version ;)
 		
 		flegacy.nullable = f.nullable = Nullable != SQL_NO_NULLS;
 		flegacy.precision = f.precision = DecimalDigits;
 		flegacy.scale = f.scale = 0;
 		flegacy.width = f.width = ColumnSize;
-		flegacy.name = f.name = (char *)ColumnName;
+		flegacy.name = (char *)ColumnName;
+		f.name = (char *)ColumnName;
 		String nm((char *)ColumnName);
 		 
 		// My new property
 		f.sqltype = DataType;
 		f.isbinary = false;
 		
-		switch(DataType) {
-		case SQL_DECIMAL:
-		case SQL_NUMERIC:
-		case SQL_SMALLINT:
+		switch(DataType) { // http://msdn.microsoft.com/en-us/library/ms710150(v=vs.85).aspx
 		case SQL_INTEGER:
-		case SQL_REAL:
-		case SQL_FLOAT:
-		case SQL_DOUBLE:
-		case SQL_BIT:
-		case SQL_TINYINT:
-			f.type = DOUBLE_V;
-			break;
-			
-		case SQL_BIGINT:
-			f.type = INT64_V;
-			break;
+			{   // http://msdn.microsoft.com/en-us/library/ms714556(v=vs.85).aspx shows relationship between typedefs and identifiers
+				SQLINTEGER *numdata = (SQLINTEGER *)new SQLINTEGER[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)numdata);
+				f.type = INT_V;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SLONG, numdata, sizeof(SQL_INTEGER), indicator[i-1]))) return false;
+				break;
+			}
 			
 		case SQL_TYPE_DATE:
 			{
@@ -482,15 +463,8 @@ bool ODBCConnection::Execute()
 				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_TIMESTAMP, timedata, sizeof(SQL_TIMESTAMP_STRUCT), indicator[i-1]))) return false;
 				break;
 			}
-		case SQL_BINARY:
-		case SQL_VARBINARY:
-		case SQL_LONGVARBINARY:
-			f.type = STRING_V;
-			f.isbinary = true;
-			binary.Top() = true;
-			break;
-			
-		default:
+
+		case SQL_VARCHAR: // Variable-length character string with a maximum string length n.
 			{
 				SQLCHAR *strdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT * (ColumnSize + 1)];
 				rowdata.Add(nm, (byte *)strdata);
@@ -498,6 +472,61 @@ bool ODBCConnection::Execute()
 				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicator[i-1]))) return false;
 				break;
 			}
+		case SQL_CHAR:			
+			{
+				SQLCHAR *strdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT * (ColumnSize + 1)];
+				rowdata.Add(nm, (byte *)strdata);
+				f.type = STRING_V;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicator[i-1]))) return false;
+				break;
+			}
+		case SQL_LONGVARCHAR: Exclamation("SQL_LONGVARCHAR not supported"); break;
+		case SQL_WCHAR: // Unicode character string of fixed string length n
+			Exclamation("SQL_WCHAR not supported"); break;
+		case SQL_WVARCHAR: Exclamation("SQL_WVARCHAR not supported"); break;
+		case SQL_WLONGVARCHAR: Exclamation("SQL_WLONGVARCHAR not supported"); break;
+		case SQL_DOUBLE: // Signed, approximate, numeric value with a binary precision 53 (zero or absolute value 10[–308] to 10[308]).
+		case SQL_REAL: // Signed, approximate, numeric value with a binary precision 24 (zero or absolute value 10[–38] to 10[38]).
+		case SQL_FLOAT: // Signed, approximate, numeric value with a binary precision of at least p. (The maximum precision is driver-defined.)[5]
+		case SQL_DECIMAL: // Signed, exact, numeric value with a precision of at least p and scale s. (The maximum precision is driver-defined.) (1 <= p <= 15; s <= p).[4]
+		case SQL_NUMERIC: // Signed, exact, numeric value with a precision p and scale s  (1 <= p <= 15; s <= p).[4]
+			{
+				SQLDOUBLE *dbldata = (SQLDOUBLE *)new SQLDOUBLE[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)dbldata);
+				f.type = DOUBLE_V;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_DOUBLE, dbldata, sizeof(SQLDOUBLE), indicator[i-1]))) return false;
+				break;
+			}
+		case SQL_SMALLINT: // Exact numeric value with precision 5 and scale 0 (signed: –32,768 <= n <= 32,767, unsigned: 0 <= n <= 65,535)[3].
+			Exclamation("SQL_SMALLINT not supported"); break;
+		case SQL_BIT: // Single bit binary
+			Exclamation("SQL_BIT not supported"); break;
+		case SQL_TINYINT: // Exact numeric value with precision 3 and scale 0 (signed: –128 <= n <= 127, unsigned: 0 <= n <= 255)[3].
+			Exclamation("SQL_TINYINT not supported"); break;
+		case SQL_BIGINT: // Exact numeric value with precision 19 (if signed) or 20 (if unsigned) and scale 0 (signed: –2[63] <= n <= 2[63] – 1, unsigned: 0 <= n <= 2[64] – 1)[3],[9].
+			{
+				SQLBIGINT *intdata = (SQLBIGINT *)new SQLBIGINT[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)intdata);
+				f.type = INT64_V;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SBIGINT, intdata, sizeof(SQLBIGINT), indicator[i-1]))) return false;
+				break;
+			}
+		case SQL_BINARY: // Binary data of fixed length n.[9]
+			Exclamation("SQL_BINARY not supported"); break;
+		case SQL_VARBINARY: // Variable length binary data of maximum length n. The maximum is set by the user.[9]
+			Exclamation("SQL_VARBINARY not supported"); break;
+		case SQL_LONGVARBINARY: // Variable length binary data. Maximum length is data source–dependent.[9]
+			Exclamation("SQL_LONGVARBINARY not supported"); break;
+		case SQL_TYPE_TIME: // Hour, minute, and second fields, with valid values for hours of 00 to 23, valid values for minutes of 00 to 59, and valid values for seconds of 00 to 61. Precision p indicates the seconds precision.
+			Exclamation("SQL_TYPE_TIME not supported"); break;
+//		case SQL_TYPE_UTCDATETIME: // Year, month, day, hour, minute, second, utchour, and utcminute fields. The utchour and utcminute fields have 1/10 microsecond precision.
+//			Exclamation("SQL_UTCDATETIME not supported"); break;
+//		case SQL_TYPE_UTCTIME: // Hour, minute, second, utchour, and utcminute fields. The utchour and utcminute fields have 1/10 microsecond precision..
+//			Exclamation("SQL_UTCTIME not supported"); break;
+		case SQL_INTERVAL_MONTH:
+			Exclamation("SQL_INTERVAL_MONTH not supported"); break;
+		default:
+			Exclamation("Unsupported type");
 		}
 		
 		flegacy.type = f.type; // Copy to legacy
@@ -562,37 +591,40 @@ bool ODBCConnection::Fetch0()
 		if (indicator[i][nextFetchSetRow] != SQL_NULL_DATA) {
 			switch(myinfo[i].type) {
 
-			case DOUBLE_V:
-				memcpy((void *)&dbl, (void *)(double *)(rowdata.Get(myinfo[i].name))[nextFetchSetRow], sizeof(dbl));
-				v = dbl;
-				break;
-
-			case INT64_V:
-				memcpy((void *)&n64, (void *)(int64 *)(rowdata.Get(myinfo[i].name))[nextFetchSetRow], sizeof(n64));
-				v = n64;
-				break;
-	
-			case DATE_V:
-				memcpy((void *)&dt, (void *)(SQL_TIME_STRUCT *)(rowdata.Get(myinfo[i].name))[nextFetchSetRow], sizeof(dt));
-				{
-					Date d;
-					d.year     = dt.year;
-					d.month    = (byte)dt.month;
-					d.day      = (byte)dt.day;
-					v = d;
+			case INT_V:
+				{	
+					String nm = myinfo[i].name;
+					byte *b = (byte *)rowdata.Get(nm);
+					SQLINTEGER *x = (SQLINTEGER *)&(b[(sizeof(SQLINTEGER)) * nextFetchSetRow]);
+					v = (int64)*x;
 				}
 				break;
 				
-			case TIME_V: // Same for timestamps and date SQL Server types
-				memcpy((void *)&tmstmp, (void *)(SQL_TIMESTAMP_STRUCT *)(rowdata.Get(myinfo[i].name))[nextFetchSetRow], sizeof(tmstmp));
+			case DATE_V:
 				{	
+					String nm = myinfo[i].name;
+					byte *b = (byte *)rowdata.Get(nm);
+					SQL_DATE_STRUCT *x = (SQL_DATE_STRUCT *)&(b[(sizeof(SQL_DATE_STRUCT)) * nextFetchSetRow]);
+					Date d;
+					d.year       = x->year;
+					d.month      = (byte)x->month;
+					d.day        = (byte)x->day;
+					v = d;
+				}
+				break;
+			
+			case TIME_V: // Same for timestamps and date SQL Server types
+				{	
+					String nm = myinfo[i].name;
+					byte *b = (byte *)rowdata.Get(nm);
+					SQL_TIMESTAMP_STRUCT *x = (SQL_TIMESTAMP_STRUCT *)&(b[(sizeof(SQL_TIMESTAMP_STRUCT)) * nextFetchSetRow]);
 					Time m;
-					m.year       = tmstmp.year;
-					m.month      = (byte)tmstmp.month;
-					m.day        = (byte)tmstmp.day;
-					m.hour       = (byte)tmstmp.hour;
-					m.minute     = (byte)tmstmp.minute;
-					m.second     = (byte)tmstmp.second;
+					m.year       = x->year;
+					m.month      = (byte)x->month;
+					m.day        = (byte)x->day;
+					m.hour       = (byte)x->hour;
+					m.minute     = (byte)x->minute;
+					m.second     = (byte)x->second;
 					v = m;
 				}
 				break;
