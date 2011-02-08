@@ -51,6 +51,7 @@ file
 	ElementGrid.h,
 	ElementGrid.cpp,
 	AnalysisByDate.h,
+	AnalysisByDate.cpp,
 	ConnGrid.h,
 	ConnGrid.cpp,
 	TaskGrid.h,
