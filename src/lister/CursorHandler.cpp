@@ -92,6 +92,8 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 		adaptedRowLimit = sob.rowLimit;
 	}
 	
+	bool failed = false;
+	
 	//__________________________________________________________________________________________
 	if (sob.scriptTarget == Script::SO_TABLE) {
 		// Only popup up user didn't enter an output table name
@@ -111,12 +113,20 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 			if (jobSpec.outputStat) {
 				jobSpec.outputStat->SetStatus("Rebuilding target");
 			}
+			LogLine(CAT << "Rebuilding target: " << outputTable);
 			RebuildTableFromConnection(outputTable, jobSpec);
 		}
 		
+		LogLine(CAT << "Beginning load into " << outputTable << " using Postgres COPY command");
 		rowcount = LoadIntoTableFromConnectionCOPY(outputTable, adaptedRowLimit, jobSpec);
 		
-		String msg; msg << "Inserted " << rowcount << " rows into " << outputTable << ", took " << t.ToString();
+		String msg; 
+		if (rowcount < 0) { 
+			msg << "Target may be corrupted due to copy error";
+			failed = true;
+		} else {
+			msg << "Inserted " << rowcount << " rows into " << outputTable << ", took " << t.ToString();
+		}
 		if (!jobSpec.batchMode) Exclamation(msg);
 		if (jobSpec.log) LogLine(msg);
 	
@@ -125,16 +135,26 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 
 		// Hmmmm, should support append to end of screen
 		rowcount = LoadIntoScreenGridFromConnection(sob.outputGrid, jobSpec);
+		LogLine(CAT << "Output " << rowcount << " to screen.");
 	}
 	
 	if (jobSpec.outputStat) {
-		jobSpec.outputStat->SetStatus("Completed fetch");
-		jobSpec.outputStat->SetRowCount(rowcount);
+		if (failed) {
+			jobSpec.outputStat->SetStatus("Output operation failed");
+		} else {
+			jobSpec.outputStat->SetStatus("Completed fetch");
+		}
+		
+		jobSpec.outputStat->SetRowCount(rowcount); // rowcount may be an error code in negative range
 		Time stoppedWhen = GetSysTime();
 		jobSpec.outputStat->SetStoppedWhen(stoppedWhen);
 		Time startedWhen = jobSpec.outputStat->GetStartedWhen();
 		Interval runtime(startedWhen, stoppedWhen);
 		jobSpec.outputStat->SetFetchTime(runtime);
+	}
+
+	if (failed) {
+		return false; // Allow any batches to cancel
 	}
 	
 	if (connection->WasError()) {
@@ -194,18 +214,48 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 	fo.Put(copyScript);
 	fo.Close();
 	
+	LogLine("COPY staging script complete.");
 	Speak(EVS_FETCH_COMPLETED);
 	// Shell and execute.
-	LocalProcess lp("psql --host localhost --dbname postgres --username postgres -f C:/MyApps/lister/totable.sql");
+	String shellLine = "psql --host localhost --dbname postgres --username postgres -f C:/MyApps/lister/totable.sql";
+	LogLine(CAT << "Shell: " << DeQtf(shellLine));
+	LocalProcess lp(shellLine);
+	GuiSleep(10);
+	int e = lp.GetExitCode();
+	String estr = lp.Get();
+	bool errorincopy = false;
+	bool isrunning = lp.IsRunning();
+		
+	if (!isrunning) {
+		LogLine(CAT << "Never even started! e=" << e << ", stdout=" << estr);
+	}
 	
-	while (lp.IsRunning()) {
-		GuiSleep(0);
+	while (isrunning) {
+		GuiSleep(10);
 		ProcessEvents();		
+		estr = lp.Get();
+		if (estr.Find("ERROR:") >= 0) {
+			errorincopy = true;
+			lp.Kill();
+			LogLine(CAT <<"Copy error: " << estr);
+			break;
+		}
+		
+		e = lp.GetExitCode(); // Appears to be useless
+		isrunning = lp.IsRunning();
 	}
 
-	Speak(EVS_INSERT_COMPLETED);
+	if (errorincopy) {
+		LOG(CAT << "Error in copy proc:" << estr);
+		LogLine(CAT << "Error in copy proc:" << estr);
+		Speak(EVS_INSERT_FAILED);
+		return -1;
+	} else {
+		LogLine("Copy complete");
+		Speak(EVS_INSERT_COMPLETED);
+		return rowcount;
+	}
 	
-	return rowcount;
 }
 
 //==============================================================================================
@@ -291,15 +341,20 @@ void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobS
 		if (i) script << ", ";
 		
 		int actualwidth = ci.width;
-		
+		String datadef;
+
 		// The data width in ci does not define the expanded string width needed to store these
 		if (ci.type == TIME_V) {
-			actualwidth = 32;
+			datadef = "timestamp with time zone";
 		} else if(ci.type == DATE_V) {
-			actualwidth = 10;
+			datadef = "date";
+		} else if(ci.type == INT_V) {
+			datadef = "integer";
+		} else {
+			datadef = Format("character varying(%d)", actualwidth);
 		}
 		
-		script << ci.name << " character varying(" << actualwidth << ")\n";
+		script << ci.name << " " << datadef <<"\n";
 	}
 	script << ")";
 	
