@@ -39,6 +39,7 @@ public:
 	String GetConnName(int row);
 	String GetInstanceTypeName(int row);
 	int GetInstanceId(int row);
+	void SetInstanceId(int row, int pinstId);
 	String GetInstanceName(int row);
 	String GetInstanceAddress(int row);
 	int GetInstTypId(int row);
