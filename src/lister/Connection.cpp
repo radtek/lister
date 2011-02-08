@@ -157,18 +157,36 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 	} else if (instanceTypeName == INSTTYPNM_DB2) {
 		instanceType = INSTTYP_DB2;
 		connStr 
-			<< "Driver="	<< "{iSeries Access ODBC Driver}"	<< ";"
-			<< "Server=" 	<< instanceAddress			<< ";"
-			<< "UID="		<< loginStr					<< ";"
-			<< "PWD="		<< loginPwd					<< ";"
-			//<< "Database="	<< dbName					<< ";"
+			<< "Driver="				<< "{iSeries Access ODBC Driver}"	<< ";" // Note: For iSeries Access for Windows, V5R2 or later installs, two ODBC drivers are registered. Both the Client Access ODBC Driver (32-bit) and the iSeries Access ODBC Driver names are registered, however, both of these registered names point to the same ODBC driver. These two registered names do not indicate that two different ODBC drivers are installed. The older name of Client Access ODBC Driver (32-bit) is registered to support backward compatibility.
+			//<< "Provider="				<< "DB2OLEDB"						<< ";"
+			//<< "Cache Authentication="	<< "False"							<< ";"
+			<< "System="				<< instanceAddress					<< ";" // Requirement of iSeries driver
+			<< "UserID="				<< loginStr							<< ";"
+			<< "Password="				<< loginPwd							<< ";"
+			//<<SIGNON= 0=windows user name
+/*
+			<< "Data Source=" 			<< instanceAddress					<< ";"
+			<< "Network Address="		<< instanceAddress					<< ".bankofamerica.com;"
+			//<< "Initial Catalog="		<< catalogName						<< ";"
+			<< "Default Schema="		<< dbName							<< ";"
+			//<< "Extended Properties="Default Isolation Level=NC;Auto Commit Mode=True;";
+			<< "APPC Remote LU Alias=DRDADEMO;APPC Local LU Alias=LOCAL;APPC Mode Name=QPCSUPP;Network Transport Library=TCPIP;Host CCSID=37;PC Code Page=1252;"
+			<< "Network Port=446;"
+			<< "Package Collection=QGPL;"
+			<< "Alternate TP Name=0X07F9F9F9;"
+			<< "Process Binary as Character=False;"
+			<< "Persist Security Info=True;"
+*/
 			;
-			
+		//Looks like you haven't set userID password for datasource using mqsisetdbparms
 		One<ODBCSession> attemptingsession = new ODBCSession;
-		
+		//OLE DB Provider for DB2:strConnect = _T("Provider=DB2OLEDB;APPC Local LU Alias=MyLocalLUAlias;"        "APPC Remote LU Alias=MyRemoteLUAlias;Initial Catalog=MyCatalog;"        "Package Collection=MyPackageCollection;Default Schema=MySchema;"        "User ID=MyUsername;Password=MyPassword;");
+		//OLE DB Provider for DB2:strConnect = _T("Provider=DB2OLEDB;Network Transport Library=TCPIP;"        "Network Address=130.120.110.001;"        "Initial Catalog=MyCatalog;Package Collection=MyPackageCollection;"        "Default Schema=MySchema;User ID=MyUsername;Password=MyPassword;");
+		//OLE DB Provider for AS400strConnect = _T("Provider=IBMDA400;Data source=myAS400;User Id=myUsername;"     "Password=myPassword;");
 		connected = attemptingsession->Connect(connStr);
 		session = -attemptingsession;
 	
+	//Driver=Sybase ASE OLE DB Provider   Initial Catalog=irp;Connect Timeout=15;Server Name=CHIADVSPDB05;Network Protocol=Winsock;Server Port Address=2510;Optimize Prepare=Partial;Select Method=Direct;Raise Error Behavior=MS Compatible;Print Statement Behavior=MS Compatible;Extended ErrorInfo=FALSE;Stored Proc Row Count=Last Statement Only;Row Cache Size=50;Enable Quoted Identifiers=0;Packet Size=1;Default Length For Long Data=1024
 	//__________________________________________________________________________________________
 	} else if (instanceTypeName == INSTTYPNM_FTP) {
 		instanceType = INSTTYP_FTP;
@@ -205,6 +223,8 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 	} else {
 		enumConnState = CON_SUCCEED;
 	}
+
+	LOG(connStr);
 
 	if (connected) {
 		connectThreadStatus = CONNECTSTATUS_SUCCEED;
@@ -399,6 +419,9 @@ String Connection::PrepForPostgresCopyFrom(const String scriptText) {
 			break;
 		case '\r':
 			outText+= "\\R";
+			break;
+		case '\\': // Will break loader: psql:C:/MyApps/lister/totable.sql:47697: ERROR:  invalid byte sequence for encoding "UTF8": 0x82
+			outText+= "\\\\";
 			break;
 		default:
 			outText+= s[i];
@@ -604,9 +627,13 @@ int Connection::GetInsertedId(String tableName, String columnName) {
 //==============================================================================================
 // Only works for PostgreSQL.
 int Connection::GetPostgreSQLInsertedId(String tableName, String columnName) {
-			
-	// PostgreSQL constructs a default sequence for serial columns
 	String sequenceName = CAT << tableName << "_" << columnName << "_" << "seq";
+	return GetPostgreSQLInsertedId(sequenceName);
+}
+
+//==============================================================================================
+int Connection::GetPostgreSQLInsertedId(String sequenceName) {			
+	// PostgreSQL constructs a default sequence for serial columns
 	String script = CAT << "select currval('" << sequenceName << "')";
 	if (!SendQueryDataScript(script)) { // ERROR: currval of sequence "connections_connid_seq" is not yet defined in this session
 		return -1;
