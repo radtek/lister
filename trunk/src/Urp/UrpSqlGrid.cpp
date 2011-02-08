@@ -2,7 +2,7 @@
 
 #define HIDDEN_COLUMN -2
 
-//==========================================================================================	
+//==============================================================================================
 UrpSqlGrid::UrpSqlGrid() : SqlArray(), UrpGridCommon() {
 	HeaderObject().Absolute();
 	Appending();
@@ -41,7 +41,7 @@ UrpSqlGrid::UrpSqlGrid() : SqlArray(), UrpGridCommon() {
 //	.SetDisplay()
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Override since the standard function expects the pk to be named "id" in order to fetch
 // from Postgre sequence.  We let creator of grid control getting last pk id.
 bool UrpSqlGrid::UpdateRow() {
@@ -55,7 +55,7 @@ bool UrpSqlGrid::UpdateRow() {
 	return updated;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Obviously, U++ developer Uno was being a total dickwad when he refused to give a function
 // to extract column widths, so I've created it.
 int UrpSqlGrid::GetFloatingColumnWidth(int colno) {
@@ -67,31 +67,32 @@ int UrpSqlGrid::GetFloatingColumnWidth(int colno) {
 	return HeaderObject().GetTabWidth(colno);
 }
 
-//==========================================================================================	
+//==============================================================================================
 void UrpSqlGrid::SetSortColumn(Id id, bool desc/* = false*/) {
 	ArrayCtrl::SetSortColumn(FindColumnWithId(id), desc); // ARRAYCTL
 }
 
-//==========================================================================================	
+//==============================================================================================
 int UrpSqlGrid::GetColumnNo(Id id) {
 	return FindColumnWithId(id);
 }
 
-//==========================================================================================	
-// Series of corrective functions to deal with Lamo Uno's confusion about when and when not to adjust references for fixed columns
+//==============================================================================================
+// Series of corrective functions to deal with Lamo Uno's confusion about when and when not to 
+// adjust references for fixed columns.
 int UrpSqlGrid::GetFloatingColumnCount() {
 	// Takes into account the fixed columns
 	return GetColumnCount();
 }
 
-//==========================================================================================	
+//==============================================================================================
 void UrpSqlGrid::UnhideFloatingColumnSilently(int i) {
 	// Does NOT take into account fixed colunmns
 //GRIDCTRL		ShowColumn(i + fixed_cols, false /* Don't Repaint */);
 	HeaderObject().ShowTab(i);
 }
 
-//==========================================================================================	
+//==============================================================================================
 void UrpSqlGrid::HideFloatingColumn(int i) {
 	// Does NOT take into account fixed colunmns
 //GRIDCTRL		HideColumn(i + fixed_cols, true /* Repaint */);
@@ -99,7 +100,7 @@ void UrpSqlGrid::HideFloatingColumn(int i) {
 
 }
 
-//==========================================================================================	
+//==============================================================================================
 void UrpSqlGrid::HideColumn(Id id) {
 	// Does NOT take into account fixed colunmns
 //GRIDCTRL		HideColumn(i + fixed_cols, true /* Repaint */);
@@ -107,26 +108,26 @@ void UrpSqlGrid::HideColumn(Id id) {
 
 }
 
-//==========================================================================================	
+//==============================================================================================
 void UrpSqlGrid::SetFloatingColumnWidth(int i, int w) {
 	// Does NOT take into account fixed colunmns
 //GRIDCTRL		SetColWidth(i + fixed_cols, w);
 	HeaderObject().SetTabWidth(i, w);
 }
 
-//==========================================================================================	
+//==============================================================================================
 Id UrpSqlGrid::GetFloatingColumnId(int n) const {
 	// Takes into account the fixed columns
 //GRIDCTRL		return GetColumnId(n);
 	return GetId(n);
 }
 
-//==========================================================================================	
+//==============================================================================================
 bool UrpSqlGrid::IsColumnHidden(int i) {
 	return !HeaderObject().IsTabVisible(i);
 }
 
-//==========================================================================================	
+//==============================================================================================
 void UrpSqlGrid::SetColumnMinWidth(int i, int w) {
 	HeaderTab(i).Min(w);
 }
@@ -136,7 +137,46 @@ void UrpSqlGrid::SetColumnMinWidth(int i, int w) {
 //		return GetColumn(n);
 //	}
 
-//==========================================================================================	
+//==============================================================================================
+int UrpSqlGrid::SelectionCount() {
+	int count = 0;
+	for (int i = 0; i < GetCount(); i++) {
+		if (IsSelected(i)) {
+			count++;
+		}
+	}
+	
+	return count;
+}
+
+//==============================================================================================
+// Useful for when grid is not active and cursor is -1, but an item is selected
+int UrpSqlGrid::GetFirstSelection() {
+	for (int i = 0; i < GetCount(); i++) {
+		if (IsSelected(i)) {
+			return i;
+		}
+	}
+	
+	return -1;
+}
+
+//==============================================================================================
+Value UrpSqlGrid::GetMaxValue(Id column) {
+	Value max = Null;
+	
+	for (int i = 0; i < GetCount(); i++) {
+		Value v = Get(i, column);
+		
+		if (max.IsNull() || (!v.IsNull() && v > max)) {
+			max = v;
+		}
+	}
+	
+	return max;
+}
+
+//==============================================================================================
 //  GridCtrl is supposed to Xmlize, but I don't see it doing anything, so I've written my own.
 //  Have to save by name so that code changes that add/subtract columns will not cause confusion.
 //  Also, we save hidden state by name instead of position, which can really mess with a grid.
