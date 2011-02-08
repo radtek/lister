@@ -34,6 +34,11 @@ GUI_APP_MAIN
 
 class UrpTopWindow : public UrpWindow {
 public:
+	enum EnvCode {
+			ENV_DEV = 1 // Always skip zero to avoid default errors
+		,	ENV_PROD
+	};
+	
 	UrpTopWindow();
 	String		exeFilePath;
 	String		connectAsUser;
