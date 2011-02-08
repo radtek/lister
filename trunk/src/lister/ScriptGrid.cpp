@@ -92,6 +92,18 @@ int ScriptGrid::GetProcessOrder(int row) {
 }
 
 //==============================================================================================
+int ScriptGrid::GetMaxProcessOrder() {
+	int max = -1;
+	
+	for (int i = 0; i < GetCount(); i++) {
+		int v = GetProcessOrder(i);
+		if (max == -1) || (v > -1 && v > max) {
+			max = v;
+		}
+	}
+}
+
+//==============================================================================================
 int ScriptGrid::GetConnId(int row) {
 	return Upp::max((int)Get(row, RELCONNID), UNKNOWN);
 }
