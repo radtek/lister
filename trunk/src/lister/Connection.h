@@ -6,6 +6,7 @@
 #include "SoundHandler.h"
 #include "LogWin.h"
 #include "JobSpec.h"
+#include "lister/ODBC/ODBC.h"
 
 #define INSTTYPNM_POSTGRESQL       "PostgreSQL"
 #define INSTTYPNM_ORACLE           "Oracle"
@@ -104,6 +105,7 @@ public:
 	int GetInsertedId(String tableName, String columnName);
 	// Only works for PostgreSQL.
 	int GetPostgreSQLInsertedId(String tableName, String columnName);
+	int GetPostgreSQLInsertedId(String sequenceName);
 	Value Get(SqlId i) const;
 	bool GetBool(int i) const; // PostgreSQL driver does not properly deal with bool
 	Value Get(int i) const;
