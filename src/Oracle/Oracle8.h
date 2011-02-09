@@ -1,7 +1,7 @@
 #ifndef ORACLE8_H
 #define ORACLE8_H
 
-#include <Sql/Sql.h>
+#include <lister/Sql/Sql.h>
 #include "OraCommon.h"
 #include "OciCommon.h"
 
