@@ -89,11 +89,14 @@ void Oracle8::SetOciError(String text, OCIError *from_errhp)
 }
 
 class OCI8Connection : public Link<OCI8Connection>, public OciSqlConnection {
+public:
+	int                 positionofparseerror; // Set by Execute if error, -1 if no error
 protected:
 	virtual void        SetParam(int i, const Value& r);
 	virtual void        SetParam(int i, OracleRef r);
 	virtual bool        Execute(); // Implements abstract function from Sqls.h SqlConnection
 	virtual int         GetRowsProcessed() const;
+	virtual int         GetParseErrorPosition() const;
 	virtual bool        Fetch();
 	virtual void        GetColumn(int i, Ref f) const;
 	virtual void        Cancel();
@@ -159,6 +162,7 @@ protected:
 		Item(T_OCI8& oci8);
 		~Item();
 	};
+
 
 	Oracle8           *session;
 	T_OCI8&            oci8;
@@ -642,6 +646,7 @@ bool OCI8Connection::Execute() {
 	int time = msecs();
 	int args = 0;
 	sword retval;
+	positionofparseerror = -1;
 	
 	if (parse) {
 
@@ -660,6 +665,7 @@ bool OCI8Connection::Execute() {
 		if (oci8.OCIStmtPrepare(stmthp, errhp, (byte *)~parsed_cmd, parsed_cmd.GetLength(), OCI_NTV_SYNTAX, OCI_DEFAULT)) {
 			// TODO: Get location of parse failure
 			SetError();
+			//OCI_ATTR_PARSE_ERROR_OFFSET or OCI_ATTR_ERRONEOUS_COLUMN
 			return false;
 		}
 
@@ -764,9 +770,29 @@ bool OCI8Connection::Execute() {
 		// Trap User cancel "Error" Do OCI Reset?
 		SetError();
 		session->PostError();
-		if (session->GetErrorCode() == 1013) {
+		int errcode = session->GetErrorCode();
+		if (errcode == 1013) {
 			oci8.OCIReset(SvcCtx(), errhp); // This is required if an OCIBreak has been issued.
-			session->ClearError();
+			session->ClearError(); 
+		} else { // #918 = column ambiguously defined
+			ub2 lpositionofparseerror;
+			// Try to fetch the position of the error if there was one returned
+			if (
+					oci8.OCIAttrGet(
+						stmthp
+					,	OCI_HTYPE_STMT
+					,	&lpositionofparseerror
+					,	NULL
+					,	OCI_ATTR_PARSE_ERROR_OFFSET
+					,	errhp
+					)
+				)
+			{
+				return false;
+			} else {
+				// return position to caller
+				positionofparseerror = lpositionofparseerror;
+			}
 		}
 		return false;
 	}
@@ -845,10 +871,12 @@ bool OCI8Connection::GetColumnInfo() {
 		oci8.OCIAttrGet(pd, OCI_DTYPE_PARAM, &prec, NULL,  OCI_ATTR_PRECISION, errhp);
 		oci8.OCIAttrGet(pd, OCI_DTYPE_PARAM, &scale, NULL,  OCI_ATTR_SCALE, errhp);
 		SqlColumnInfo& ii = info.Add();
-		ii.width = width;
-		ii.precision = prec;
-		ii.scale = scale;
-		ii.name = ToUpper(TrimRight(String(name, name_len)));
+
+		ii.width           = width;
+		ii.precision       = prec;
+		ii.scale           = scale;
+		ii.name            = ToUpper(TrimRight(String(name, name_len)));
+		
 		bool blob = false;
 		switch(type) {
 		case SQLT_NUM:
@@ -908,6 +936,10 @@ int OCI8Connection::GetRowsProcessed() const {
 	ub4 rp = 0;
 	oci8.OCIAttrGet(stmthp, OCI_HTYPE_STMT, &rp, NULL, OCI_ATTR_ROW_COUNT, errhp);
 	return rp;
+}
+
+int OCI8Connection::GetParseErrorPosition() const {
+	return positionofparseerror;
 }
 
 bool OCI8Connection::Fetch() {
