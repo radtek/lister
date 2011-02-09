@@ -1149,6 +1149,13 @@ void Lister::ScriptExecutionHandler(Script::ScriptTarget pscriptTarget) {
 	jspec.outputStat->SetStatus("Calling runner");
 	jspec.outputStat->SetStartedWhen(GetSysTime());
 	bool ran = cursorHandler.Run(sob, jspec);
+	if (!ran) {
+		int parseErrorPos = activeConnection->GetParseErrorPosition();
+		if (parseErrorPos >= 0) {
+			
+			scriptEditor.SetSelection(parseErrorPos, parseErrorPos);
+		}
+	}
 }
                             
 //==============================================================================================
