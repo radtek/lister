@@ -1,7 +1,8 @@
 description "Generic ODBC interface\377";
 
 uses
-	Sql;
+	lister\Sql,
+	lister\Sql;
 
 library(WIN32) odbc32;
 
