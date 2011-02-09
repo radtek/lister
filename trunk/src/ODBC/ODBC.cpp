@@ -1,7 +1,7 @@
 #include "ODBC.h"
 
 #include <CtrlLib/CtrlLib.h>
-#include <Sql/Sql.h>
+#include <lister/Sql/Sql.h>
 
 NAMESPACE_UPP
 
