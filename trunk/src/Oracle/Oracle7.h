@@ -1,7 +1,7 @@
 #ifndef ORACLE7_H
 #define ORACLE7_H
 
-#include <Sql/Sql.h>
+#include <lister/Sql/Sql.h>
 #include "OraCommon.h"
 #include "OciCommon.h"
 
