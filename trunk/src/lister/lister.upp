@@ -2,22 +2,21 @@ description "Manage all kinds of connections, SQL, FTP, telnet, http, https and 
 
 uses
 	CtrlLib,
-	PostgreSQL,
 	RichEdit,
 	plugin\ftp,
 	plugin\bmp,
 	plugin\png,
-	plugin\sqlite3,
 	plugin\dbf,
 	Ole,
-	OleDB,
 	Web,
 	lister\Urp,
 	lister\Oracle,
 	lister\MSSQL,
 	lister\ODBC,
 	lister\GridCtrl,
-	lister\DropGrid;
+	lister\DropGrid,
+	lister\PostgreSQL,
+	lister\SqlCtrl;
 
 file
 	Question.h,
