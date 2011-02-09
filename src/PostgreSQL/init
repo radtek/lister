@@ -1,0 +1,4 @@
+#ifndef _lister_PostgreSQL_icpp_init_stub
+#define _lister_PostgreSQL_icpp_init_stub
+#include "lister\Sql/init"
+#endif
