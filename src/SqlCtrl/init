@@ -1,0 +1,9 @@
+#ifndef _lister_SqlCtrl_icpp_init_stub
+#define _lister_SqlCtrl_icpp_init_stub
+#include "CtrlLib/init"
+#include "Report/init"
+#include "lister\Sql/init"
+#define BLITZ_INDEX__ F08908F2837CD0D006EDF105713694C1E
+#include "SqlCtrl_init.icpp"
+#undef BLITZ_INDEX__
+#endif
