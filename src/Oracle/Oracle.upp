@@ -1,8 +1,5 @@
 description "Oracle interface\377";
 
-uses
-	Sql;
-
 link(SOLARIS SPARC) "-Wl,-R -Wl,/usr/local/bin";
 
 file
@@ -10,7 +7,6 @@ file
 	Oracle.t charset "UTF-8",
 	Oracle_init.icpp,
 	OracleSchema.h,
-	Oci8.h,
 	OraCommon.h,
 	OraCommon.cpp,
 	Oracle7.h,
