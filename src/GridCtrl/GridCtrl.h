@@ -2,7 +2,7 @@
 #define _GridCtrl_GridCtrl_h_
 #include <CtrlLib/CtrlLib.h>
 #ifdef flagGRIDSQL
-#include <Sql/Sql.h>
+#include <lister/Sql/Sql.h>
 #endif
 
 NAMESPACE_UPP
