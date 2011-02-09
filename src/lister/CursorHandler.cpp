@@ -52,6 +52,7 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 		if (!jobSpec.batchMode) {
 			Prompt(Ctrl::GetAppName(), CtrlImg::exclamation(), Format("Error: [* %s].", DeQtf(connection->GetLastError())), t_("OK"));
 		}
+		
 		LOG(connection->GetLastError());
 		
 		if (jobSpec.log) {
