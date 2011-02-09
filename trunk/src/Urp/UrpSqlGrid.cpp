@@ -1,4 +1,5 @@
 #include "UrpSqlGrid.h"
+#include <float.h>
 
 #define HIDDEN_COLUMN -2
 
@@ -164,12 +165,59 @@ int UrpSqlGrid::GetFirstSelection() {
 //==============================================================================================
 Value UrpSqlGrid::GetMaxValue(Id column) {
 	Value max = Null;
+	int maxi = INT_MIN; // http://en.wikipedia.org/wiki/Limits.h
+	double maxd = DBL_MIN; // http://en.wikipedia.org/wiki/Float.h
+	String maxs = "";
+	dword vtype;
+	
+	// Cache the data type once (All columns same type??)
 	
 	for (int i = 0; i < GetCount(); i++) {
 		Value v = Get(i, column);
 		
-		if (max.IsNull() || (!v.IsNull() && v > max)) {
-			max = v;
+		// If a non-null value, we'll test against the various values we have
+		if (!v.IsNull()) {
+			// Bug: If datatype changes over rows, final value may be inconsistent
+			switch (v.GetType()) {
+				case INT_V: { 
+					int vi = v; // Convert the value to an int since Value doesn't support ><
+					double vd = v;
+					
+					if (vi > maxi) {
+						maxi = vi;
+						maxd = vd;
+						max = vi;
+					}
+					break;
+				}
+				case DOUBLE_V: {
+					double vd = v; // Convert the value to a double since Value doesn't support ><
+					int vi = INT_MIN;
+					if (vd > maxd) {
+						if (vd > INT_MAX) {
+							vi = INT_MAX;
+						} else if (vd < INT_MAX) {
+							vi = INT_MIN;
+						} else {
+							vi = (int)vd; // truncation warning
+						}
+						
+						maxd = vd;
+						max = vd;
+					}
+					break;
+				}
+				case STRING_V: {
+					String vs = v; // Convert the value to a string since Value doesn't support ><
+					if (vs > maxs) {
+						maxs = vs;
+						max = vs;
+						// TODO: if is a number, then set maxi and maxd
+					}
+					break;
+				}
+				// TODO: Support BOOL_V and other types
+			}
 		}
 	}
 	
