@@ -2,7 +2,7 @@
 #include "Connection.h"
 #include "shared_db.h"
 #include "Script.h"
-#include <Sql/Sql.h>
+#include <lister/Sql/Sql.h>
 
 //==============================================================================================
 ScriptGrid::ScriptGrid() : UrpSqlGrid() {
@@ -97,10 +97,12 @@ int ScriptGrid::GetMaxProcessOrder() {
 	
 	for (int i = 0; i < GetCount(); i++) {
 		int v = GetProcessOrder(i);
-		if (max == -1) || (v > -1 && v > max) {
+		if (v > max) {
 			max = v;
 		}
 	}
+	
+	return max;
 }
 
 //==============================================================================================
