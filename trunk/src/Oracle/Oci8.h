@@ -6,9 +6,11 @@
 
 #include <CtrlLib/CtrlLib.h>
 
+/*
 class OCI8Connection : public Link<OCI8Connection>, public OciSqlConnection {
 public:
 	virtual void		SetTopWindow(TopWindow *ptopWindow); // Handle to allow async processing by calling back to ProcessEvents
+	int                 positionoferroneouscol; // Set by 
 
 protected:
 	virtual void        SetParam(int i, const Value& r);
@@ -125,5 +127,6 @@ protected:
 
 	friend class Oracle8;
 };
+*/
 
 #endif
