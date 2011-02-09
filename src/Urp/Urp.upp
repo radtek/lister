@@ -1,8 +1,8 @@
 description "My Repository of functions to share\377";
 
 uses
-	SqlCtrl,
-	lister\GridCtrl;
+	lister\GridCtrl,
+	lister\SqlCtrl;
 
 file
 	Urp.h,
