@@ -1,7 +1,7 @@
 #ifndef _ODBC_ODBC_h
 #define _ODBC_ODBC_h
 
-#include <Sql/Sql.h>
+#include <lister/Sql/Sql.h>
 #include <sql.h>
 #include <sqlext.h>
 
