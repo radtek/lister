@@ -1,7 +1,8 @@
 #include "ODBC.h"
-
+#include "../lister/shared.h"
 #include <CtrlLib/CtrlLib.h>
 #include <lister/Sql/Sql.h>
+#include <lister/Urp/UrpShared.h>
 
 NAMESPACE_UPP
 
@@ -9,8 +10,119 @@ NAMESPACE_UPP
 
 // Set some tunable amount
 #define ROW_FETCH_COUNT 100
-#define MAX_COL_FETCH_COUNT 100
-#define MAX_DATA_WIDTH_FETCH 101
+
+bool In(SQLCHAR *i
+	,	const char *in1
+	) { 
+	String x((char *)i);
+	if (false
+	||	x.IsEqual(in1)
+	) return true; return false; }
+bool In(SQLCHAR *i
+	,	const char *in1
+	,	const char *in2
+	) { 
+	String x((char *)i);
+	if (false
+	||	x.IsEqual(in1)
+	||	x.IsEqual(in2)
+	) return true; return false; }
+bool In(SQLCHAR *i
+	,	const char *in1
+	,	const char *in2
+	,	const char *in3
+	) { 
+	String x((char *)i);
+	if (false
+	||	x.IsEqual(in1)
+	||	x.IsEqual(in2)
+	||	x.IsEqual(in3)
+	) return true; return false; }
+bool In(SQLCHAR *i
+	,	const char *in1
+	,	const char *in2
+	,	const char *in3
+	,	const char *in4
+	) { 
+	String x((char *)i);
+	if (false
+	||	x.IsEqual(in1)
+	||	x.IsEqual(in2)
+	||	x.IsEqual(in3)
+	||	x.IsEqual(in4)
+	) return true; return false; }
+bool In(SQLCHAR *i
+	,	const char *in1
+	,	const char *in2
+	,	const char *in3
+	,	const char *in4
+	,	const char *in5
+	) { 
+	String x((char *)i);
+	if (false
+	||	x.IsEqual(in1)
+	||	x.IsEqual(in2)
+	||	x.IsEqual(in3)
+	||	x.IsEqual(in4)
+	||	x.IsEqual(in5)
+	) return true; return false; }
+bool In(SQLCHAR *i
+	,	const char *in1
+	,	const char *in2
+	,	const char *in3
+	,	const char *in4
+	,	const char *in5
+	,	const char *in6
+	) { 
+	String x((char *)i);
+	if (false
+	||	x.IsEqual(in1)
+	||	x.IsEqual(in2)
+	||	x.IsEqual(in3)
+	||	x.IsEqual(in4)
+	||	x.IsEqual(in5)
+	||	x.IsEqual(in6)
+	) return true; return false; }
+bool In(SQLCHAR *i
+	,	const char *in1
+	,	const char *in2
+	,	const char *in3
+	,	const char *in4
+	,	const char *in5
+	,	const char *in6
+	,	const char *in7
+	) { 
+	String x((char *)i);
+	if (false
+	||	x.IsEqual(in1)
+	||	x.IsEqual(in2)
+	||	x.IsEqual(in3)
+	||	x.IsEqual(in4)
+	||	x.IsEqual(in5)
+	||	x.IsEqual(in6)
+	||	x.IsEqual(in7)
+	) return true; return false; }
+bool In(SQLCHAR *i
+	,	const char *in1
+	,	const char *in2
+	,	const char *in3
+	,	const char *in4
+	,	const char *in5
+	,	const char *in6
+	,	const char *in7
+	,	const char *in8
+	) { 
+	String x((char *)i);
+	if (false
+	||	x.IsEqual(in1)
+	||	x.IsEqual(in2)
+	||	x.IsEqual(in3)
+	||	x.IsEqual(in4)
+	||	x.IsEqual(in5)
+	||	x.IsEqual(in6)
+	||	x.IsEqual(in7)
+	||	x.IsEqual(in8)
+	) return true; return false; }
 
 class ODBCConnection : public SqlConnection
 {
@@ -23,6 +135,7 @@ public:
 	virtual void            SetParam(int i, const Value& r);
 	virtual bool            Execute();
 	virtual int             GetRowsProcessed() const;
+	virtual int             GetParseErrorPosition() const;
 	virtual bool            Fetch();
 	virtual void            GetColumn(int i, Ref r) const;
 	virtual void            Cancel();
@@ -72,13 +185,14 @@ private:
 	// 100 cols x 100 rows x 100 characters.  TODO: Convert to dynamic allocation or cache
 	//SQLCHAR                  fetchedRows[MAX_COL_FETCH_COUNT][ROW_FETCH_COUNT][MAX_DATA_WIDTH_FETCH];
 	// Tells us if the value was null
-	SQLLEN                   indicator[MAX_COL_FETCH_COUNT][ROW_FETCH_COUNT]; 
+	//SQLLEN                   indicator[MAX_COL_FETCH_COUNT][ROW_FETCH_COUNT]; 
+	SQLLEN                   *indicator;
 	// Actual data created as each column is identified
 	VectorMap<String, byte *> rowdata;
 };
 
-bool ODBCSession::Connect(const char *cs)
-{
+//==============================================================================================
+bool ODBCSession::Connect(const char *cs) {
 	if(henv && IsOk(SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc))) {
 		// Attempt to improve speed by making all connections read-only: TODO: Parameterize
 	// MSSQL	SQLSetConnectAttr(hdbc, SQL_ATTR_ACCESS_MODE, (SQLPOINTER)SQL_MODE_READ_ONLY, SQL_NTS);
@@ -103,13 +217,13 @@ bool ODBCSession::Connect(const char *cs)
 	return false;
 }
 
-bool ODBCSession::IsOpen() const
-{
+//==============================================================================================
+bool ODBCSession::IsOpen() const {
 	return hdbc != SQL_NULL_HANDLE;
 }
 
-void ODBCSession::Close()
-{
+//==============================================================================================
+void ODBCSession::Close() {
 	if(hdbc != SQL_NULL_HANDLE) {
 		current = NULL;
 		FlushConnections();
@@ -121,8 +235,8 @@ void ODBCSession::Close()
 	}
 }
 
-void ODBCSession::FlushConnections()
-{
+//==============================================================================================
+void ODBCSession::FlushConnections() {
 	LLOG("FlushConnections");
 	if(current) {
 		current->Flush();
@@ -131,8 +245,8 @@ void ODBCSession::FlushConnections()
 	SQLFreeStmt(hstmt, SQL_CLOSE);
 }
 
-bool ODBCSession::IsOk(SQLRETURN ret)
-{
+//==============================================================================================
+bool ODBCSession::IsOk(SQLRETURN ret) {
 	if(SQL_SUCCEEDED(ret))
 		return true;
 	SQLCHAR       SqlState[6], Msg[SQL_MAX_MESSAGE_LENGTH];
@@ -150,8 +264,8 @@ bool ODBCSession::IsOk(SQLRETURN ret)
 	return false;
 }
 
-ODBCSession::ODBCSession()
-{
+//==============================================================================================
+ODBCSession::ODBCSession() {
 	hdbc = SQL_NULL_HANDLE;
 	hstmt = SQL_NULL_HANDLE;
 	SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &henv);
@@ -162,8 +276,8 @@ ODBCSession::ODBCSession()
 	current = NULL;
 }
 
-ODBCSession::~ODBCSession()
-{
+//==============================================================================================
+ODBCSession::~ODBCSession() {
 	if(henv)
 		SQLFreeHandle(SQL_HANDLE_ENV, henv);
 }
@@ -270,24 +384,25 @@ bool   ODBCPerformScript(const String& text, StatementExecutor& executor, Gate2<
 	return true;
 }
 
-SqlConnection *ODBCSession::CreateConnection()
-{
+//==============================================================================================
+SqlConnection *ODBCSession::CreateConnection() {
 	return new ODBCConnection(this);
 }
 
-ODBCConnection::ODBCConnection(ODBCSession *session_)
-:	session(session_)
-{
+//==============================================================================================
+ODBCConnection::ODBCConnection(ODBCSession *session_) : session(session_) {
 	LLOG("ODBCConnection " << (void *)this << " " << (void *)session);
 	rowcount = rowi = 0;
 }
 
+//==============================================================================================
 ODBCConnection::~ODBCConnection() {
 	if(IsCurrent())
 		session->current = NULL;
 	LLOG("~ODBCConnection " << (void *)this << " " << (void *)session);
 }
 
+//==============================================================================================
 bool ODBCConnection::IsOk(SQLRETURN ret) const {
 	if(SQL_SUCCEEDED(ret) || ret == SQL_NO_DATA)
 		return true;
@@ -306,6 +421,7 @@ bool ODBCConnection::IsOk(SQLRETURN ret) const {
 	return false;
 }
 
+//==============================================================================================
 void ODBCConnection::SetParam(int i, const Value& r) {
 	Param& p = param.At(i);
 	if(IsNumber(r)) {
@@ -369,6 +485,18 @@ bool ODBCConnection::Execute()
 	
 	// Set up the call to ExtendedFetch.  Required SQLBindCol, cannot use SQLGetData.
 	int rtnc = SQLSetStmtOption (session->hstmt, SQL_ROWSET_SIZE, ROW_FETCH_COUNT);
+//	rtnc = SQLSetStmtOption (session->hstmt, SQL_CURSOR_TYPE, SQL_CURSOR_FORWARD_ONLY);
+
+	// Required For SQL Server only
+//	String setEnv = "SET NOCOUNT ON";
+//	if(!IsOk(SQLPrepare(session->hstmt, (SQLCHAR *)~setEnv, setEnv.GetCount())))
+//		return false;
+//
+//	if(!IsOk(SQLExecute(session->hstmt))) {
+//		SQLFreeStmt(session->hstmt, SQL_CLOSE);
+//		return false;
+//	}
+
 	fetchedSet = false;
 	if(!IsOk(SQLPrepare(session->hstmt, (SQLCHAR *)~statement, statement.GetCount())))
 		return false;
@@ -392,10 +520,18 @@ bool ODBCConnection::Execute()
 
 	SQLSMALLINT ncol;
 	
-	if(!IsOk(SQLExecute(session->hstmt)) || !IsOk(SQLNumResultCols(session->hstmt, &ncol))) {
+	if(!IsOk(SQLExecute(session->hstmt))) {
 		SQLFreeStmt(session->hstmt, SQL_CLOSE);
 		return false;
 	}
+
+	if(!IsOk(SQLNumResultCols(session->hstmt, &ncol))) {
+		SQLFreeStmt(session->hstmt, SQL_CLOSE);
+		return false;
+	}
+
+	// Allocate a 2-dimensional array for the indicators col x row.
+	indicator = (SQLLEN *)new SQLLEN[ncol * ROW_FETCH_COUNT];
 	session->current = this;
 	myinfo.Clear();
 	info.Clear();
@@ -410,6 +546,8 @@ bool ODBCConnection::Execute()
 	}
 	rowdata.Clear();
 	
+	String collist; // Create a list of all columns for debugging
+
 	for(int i = 1; i <= ncol; i++) {
 		SQLCHAR      ColumnName[256];
 		SQLSMALLINT  NameLength;
@@ -421,7 +559,13 @@ bool ODBCConnection::Execute()
 		if(!IsOk(SQLDescribeCol(session->hstmt, i, ColumnName, 255, &NameLength, &DataType,
 		                        &ColumnSize, &DecimalDigits, &Nullable)))
 			return false;
-		binary.Add(false);
+
+		if (i > 1) collist << ", ";
+		collist << "\"" << (char *)ColumnName << "\"";
+
+//		if (!In(ColumnName, "source_system", "trade_id"//, "admin_id", "book", "branch", "bs_flag", "cpty", "cpty_entity", "ccy_pay_ml", "ccy_pay_cpty", "cob_date", "coper_id", "creation_date", "derivative_type", "end_date", "entity", "ex_venue", "int_book", "int_book_entity", "intra_company_trade", "latest_version", "notif_date", "notional_amt", "orig_trade_id", "orig_trade_status", "payment_amt", "price", "price_multiplier", "product_code", "product_subcode", "quantity", "rate", "region", "risk_entity_name", "settlement_date", "specialist_system_id", "start_date", "trade_date", "trade_status", "trade_time", "trade_ref", "trader_id", "trading_capacity", "update_count", "leg_parent_trade_id", "leg_type", "CUSIP", "ISIN", "u_ISIN", "MLInstrument", "sec_id_flag", "index_ticker", "security_description", "basket_name", "MIFID_reportable", "u_instrument_type", "cp_code", "system_reportable_flag", "risk_book", "bbg_agency_link_ref", "put_call", "strike_price", "option_premium", "spread", "option_premium_ccy", "coupon_rate", "accrued_interest", "ai_days", "coupon", "yield", "cancel_amend_reason", "cancel_amend_trader_name", "u_MLInstrument", "u_CUSIP", "rec_type", "description", "Desk_Name", "ticker", "Original_Source_System", "SubProductTypeName", "SubProductTypeDesc", "trade_type", "commodity_type", "coper_le_guid", "notional_1", "notional_ccy_1", "notional_2", "notional_ccy_2", "coverage", "deliverable", "contra_fwd_rate", "contra_spot_rate", "assignment_cpty", "broker_id", "option_premium_date", "option_style", "first_lower_barrier", "first_upper_barrier", "sourceSystemLegId", "cust_account_trader", "account_short_name", "mortgage_flag", "master_ticket_number", "slate_time", "ticket_time", "long_trade_time", "transaction_type", "usd_amount", "trans_no", "sec_id", "Note", "cancel_date", "capRate", "floorRate", "optionType", "GCINumber", "orig_trans_no", "quote_basis", "MTM", "MTM_USD", "MTM_CCY"
+
+		//binary.Add(false);
 		MySqlColumnInfo& f = myinfo.Add();
 		SqlColumnInfo &flegacy = info.Add(); // Maintain old version ;)
 		
@@ -436,6 +580,7 @@ bool ODBCConnection::Execute()
 		// My new property
 		f.sqltype = DataType;
 		f.isbinary = false;
+		SQLLEN *indicatorptr = indicator + ((i-1) * ROW_FETCH_COUNT);
 		
 		switch(DataType) { // http://msdn.microsoft.com/en-us/library/ms710150(v=vs.85).aspx
 		case SQL_INTEGER:
@@ -443,7 +588,7 @@ bool ODBCConnection::Execute()
 				SQLINTEGER *numdata = (SQLINTEGER *)new SQLINTEGER[ROW_FETCH_COUNT];
 				rowdata.Add(nm, (byte *)numdata);
 				f.type = INT_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SLONG, numdata, sizeof(SQL_INTEGER), indicator[i-1]))) return false;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SLONG, numdata, sizeof(SQLINTEGER), indicatorptr))) return false;
 				break;
 			}
 			
@@ -452,7 +597,7 @@ bool ODBCConnection::Execute()
 				SQL_DATE_STRUCT *datedata = (SQL_DATE_STRUCT *)new SQL_DATE_STRUCT[ROW_FETCH_COUNT];
 				rowdata.Add(nm, (byte *)datedata);
 				f.type = DATE_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_DATE, datedata, sizeof(SQL_DATE_STRUCT), indicator[i-1]))) return false;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_DATE, datedata, sizeof(SQL_DATE_STRUCT), indicatorptr))) return false;
 				break;
 			}
 		case SQL_TYPE_TIMESTAMP:
@@ -460,24 +605,27 @@ bool ODBCConnection::Execute()
 				SQL_TIMESTAMP_STRUCT *timedata = (SQL_TIMESTAMP_STRUCT *)new SQL_TIMESTAMP_STRUCT[ROW_FETCH_COUNT];
 				rowdata.Add(nm, (byte *)timedata);
 				f.type = TIME_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_TIMESTAMP, timedata, sizeof(SQL_TIMESTAMP_STRUCT), indicator[i-1]))) return false;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_TIMESTAMP, timedata, sizeof(SQL_TIMESTAMP_STRUCT), indicatorptr))) return false;
 				break;
 			}
 
 		case SQL_VARCHAR: // Variable-length character string with a maximum string length n.
 			{
-				SQLCHAR *strdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT * (ColumnSize + 1)];
+				//DB2 Note: After a fetch for an SQL_VARCHAR column, DB2 for i5/OS CLI returns the bytes that are fetched in the first 2 bytes of the VARCHAR structure that is bound. DB2 for i5/OS CLI does not return the length in pcbValue as it does for SQL_CHAR.
+				//http://publib.boulder.ibm.com/infocenter/iseries/v6r1m0/index.jsp?topic=/cli/rzadpfnbindc.htm
+				SQLCHAR *strdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT * (ColumnSize + 1)]; 
 				rowdata.Add(nm, (byte *)strdata);
+				
 				f.type = STRING_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicator[i-1]))) return false;
-				break;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicatorptr))) return false;
 			}
+			break;
 		case SQL_CHAR:			
 			{
 				SQLCHAR *strdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT * (ColumnSize + 1)];
 				rowdata.Add(nm, (byte *)strdata);
 				f.type = STRING_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicator[i-1]))) return false;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicatorptr))) return false;
 				break;
 			}
 		case SQL_LONGVARCHAR: Exclamation("SQL_LONGVARCHAR not supported"); break;
@@ -494,21 +642,36 @@ bool ODBCConnection::Execute()
 				SQLDOUBLE *dbldata = (SQLDOUBLE *)new SQLDOUBLE[ROW_FETCH_COUNT];
 				rowdata.Add(nm, (byte *)dbldata);
 				f.type = DOUBLE_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_DOUBLE, dbldata, sizeof(SQLDOUBLE), indicator[i-1]))) return false;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_DOUBLE, dbldata, sizeof(SQLDOUBLE), indicatorptr))) return false;
 				break;
 			}
+			break;
 		case SQL_SMALLINT: // Exact numeric value with precision 5 and scale 0 (signed: –32,768 <= n <= 32,767, unsigned: 0 <= n <= 65,535)[3].
 			Exclamation("SQL_SMALLINT not supported"); break;
 		case SQL_BIT: // Single bit binary
-			Exclamation("SQL_BIT not supported"); break;
+			{
+				SQLCHAR *bitdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)bitdata);
+				f.type = BOOL_V;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_BIT, bitdata, sizeof(SQLCHAR), indicatorptr))) return false;
+				break;
+			}
+			break;
 		case SQL_TINYINT: // Exact numeric value with precision 3 and scale 0 (signed: –128 <= n <= 127, unsigned: 0 <= n <= 255)[3].
-			Exclamation("SQL_TINYINT not supported"); break;
+			{
+				SQLCHAR *intdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)intdata);
+				f.type = INT_V;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_STINYINT, intdata, sizeof(SQLCHAR), indicatorptr))) return false;
+				break;
+			}
+			break;
 		case SQL_BIGINT: // Exact numeric value with precision 19 (if signed) or 20 (if unsigned) and scale 0 (signed: –2[63] <= n <= 2[63] – 1, unsigned: 0 <= n <= 2[64] – 1)[3],[9].
 			{
 				SQLBIGINT *intdata = (SQLBIGINT *)new SQLBIGINT[ROW_FETCH_COUNT];
 				rowdata.Add(nm, (byte *)intdata);
 				f.type = INT64_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SBIGINT, intdata, sizeof(SQLBIGINT), indicator[i-1]))) return false;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SBIGINT, intdata, sizeof(SQLBIGINT), indicatorptr))) return false;
 				break;
 			}
 		case SQL_BINARY: // Binary data of fixed length n.[9]
@@ -531,7 +694,8 @@ bool ODBCConnection::Execute()
 		
 		flegacy.type = f.type; // Copy to legacy
 	}
-	
+
+	LOG(collist);
 	SQLLEN rc;
 	SQLRowCount(session->hstmt, &rc);
 	rowsprocessed = rc;
@@ -539,27 +703,32 @@ bool ODBCConnection::Execute()
 }
 
 //==============================================================================================
-int ODBCConnection::GetRowsProcessed() const
-{
+int ODBCConnection::GetRowsProcessed() const {
 	return rowsprocessed;
 }
 
 //==============================================================================================
+int ODBCConnection::GetParseErrorPosition() const {
+	return -1;
+}
+
+//==============================================================================================
 // Extended support from U++ version: High-performance fetch
-bool ODBCConnection::Fetch0()
-{
+bool ODBCConnection::Fetch0() {
 	LLOG("Fetch0 " << (void *)this << " " << (void *)session);
 	int ret;
-	
 	// Fetch a batch set for reduced latency (huge difference)
 	if (!fetchedSet) {
 		ret = SQLExtendedFetch(session->hstmt, SQL_FETCH_NEXT, 0, &rowsFetched, rowStatus);
 		if(ret == SQL_NO_DATA || !IsOk(ret)) {
 			for(int i = 0; i < myinfo.GetCount(); i++) {
-				
-				byte *b = rowdata.Get(myinfo[i].name);
-				delete b;
+				if (rowdata.Find(myinfo[i].name) >= 0) {
+					byte *b = rowdata.Get(myinfo[i].name);
+					
+					delete b;
+				}
 			}
+			delete indicator;
 			rowdata.Clear();
 			return false;
 		}
@@ -587,14 +756,23 @@ bool ODBCConnection::Fetch0()
 	for(int i = 0; i < myinfo.GetCount(); i++) {
 		int ColumnSize = myinfo[i].width;
 		Value v = Null;
-
-		if (indicator[i][nextFetchSetRow] != SQL_NULL_DATA) {
+		SQLLEN ind = indicator[nextFetchSetRow + (ROW_FETCH_COUNT * i)];
+		String nm = myinfo[i].name;
+		
+		if (ind != SQL_NULL_DATA) {
+			byte *b = (byte *)rowdata.Get(nm);
+			
 			switch(myinfo[i].type) {
 
+			case DOUBLE_V:
+				{	
+					SQLDOUBLE *x = (SQLDOUBLE *)&(b[(sizeof(SQLDOUBLE)) * nextFetchSetRow]);
+					v = (double)*x;
+				}
+				break;
+				
 			case INT_V:
 				{	
-					String nm = myinfo[i].name;
-					byte *b = (byte *)rowdata.Get(nm);
 					SQLINTEGER *x = (SQLINTEGER *)&(b[(sizeof(SQLINTEGER)) * nextFetchSetRow]);
 					v = (int64)*x;
 				}
@@ -602,8 +780,6 @@ bool ODBCConnection::Fetch0()
 				
 			case DATE_V:
 				{	
-					String nm = myinfo[i].name;
-					byte *b = (byte *)rowdata.Get(nm);
 					SQL_DATE_STRUCT *x = (SQL_DATE_STRUCT *)&(b[(sizeof(SQL_DATE_STRUCT)) * nextFetchSetRow]);
 					Date d;
 					d.year       = x->year;
@@ -615,8 +791,6 @@ bool ODBCConnection::Fetch0()
 			
 			case TIME_V: // Same for timestamps and date SQL Server types
 				{	
-					String nm = myinfo[i].name;
-					byte *b = (byte *)rowdata.Get(nm);
 					SQL_TIMESTAMP_STRUCT *x = (SQL_TIMESTAMP_STRUCT *)&(b[(sizeof(SQL_TIMESTAMP_STRUCT)) * nextFetchSetRow]);
 					Time m;
 					m.year       = x->year;
@@ -631,14 +805,19 @@ bool ODBCConnection::Fetch0()
 
 			case STRING_V:
 				{
-					String nm = myinfo[i].name;
-					byte *b = (byte *)rowdata.Get(nm);
 					SQLCHAR *x = (SQLCHAR *)&(b[(ColumnSize + 1) * nextFetchSetRow]);
 					v = String((char *)(x));
 					break;
 				}
+
+			case BOOL_V:
+				{
+					SQLCHAR *x = (SQLCHAR *)&(b[sizeof(SQLCHAR) * nextFetchSetRow]);
+					v = *((bool *)(x));
+					break;
+				}
 			default:
-				Exclamation("Unsupported fetch type");
+				v = "err";
 			}
 		}
 		
