@@ -63,11 +63,16 @@ public:
 			,		  fastFlushTargetList;
 	EditInt           fldRowLimit;
 	TaskDefWin        taskDefWin;
+	MenuBar           mainMenu;
 	
 	                  Lister();
 	                 ~Lister();
+	void              ViewMappings();
+	void              MainMenu(Bar& bar);
+	void              FileMenu(Bar& bar);
 	void              ClickedTest(); // User clicked Test! on the TestGrid.
 	void              TaskGridContextMenu(Bar &bar);
+	void              HideSelectedTasks();
 	void              OpenTaskDefWin();
 	void              SaveTaskViaTaskGrid(Task &task); // All writing is done in taskgrid
 	void              ClickedConnect(); // User clicked Connect! on the ConnGrid.
