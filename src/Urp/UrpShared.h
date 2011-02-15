@@ -19,6 +19,14 @@ using namespace Upp;
 #define LAYOUTFILE <lister/Urp/Urp.lay>
 #include <CtrlCore/lay.h>
 
+// The following String functions have to be segregated from the templates due to compiler errors
+// Compiler confuses these with T, T2 args, but won't use those functions!
+namespace More {
+	bool In(String i, const char *in1);
+	bool In(String i, const char *in1, const char *in2);
+	bool In(String i, const char *in1, const char *in2, const char *in3);
+	bool In(String i, const char *in1, const char *in2, const char *in3, const char *in4);
+};
 template <typename T>
 bool In(T i, T in1, T in2) { if (i == in1 || i == in2) return true;	return false; }
 
@@ -81,6 +89,7 @@ bool In(int i, int in1, int in2, int in3, int in4, int in5, int in6, int in7, in
 template <typename T>
 bool In(T i, T in1, T in2, T in3, T in4, T in5, T in6, T in7, T in8, T in9, T in10, T in11, T in12, T in13, T in14) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8 || i == in9 || i == in10 || i == in11 || i == in12 || i == in13 || i == in14) return true; return false; }
 bool In(int i, int in1, int in2, int in3, int in4, int in5, int in6, int in7, int in8, int in9, int in10, int in11, int in12, int in13, int in14);
+
 
 bool None(bool b1, bool b2);
 bool None(bool b1, bool b2, bool b3);
