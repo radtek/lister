@@ -50,7 +50,12 @@ Lister::Lister() {
 	Sizeable().Zoomable();
 
 	enumScreenZoom = ZOOM_NORMALSCREEN; // Should take from config
+
+	// Menu
 	
+	AddFrame(mainMenu);
+	
+	mainMenu.Set(THISBACK(MainMenu));
 	// Vertical Splitter
 	
 	Add(vertSplitter);
@@ -205,6 +210,30 @@ Lister::Lister() {
 //==============================================================================================	
 Lister::~Lister() {
 }
+
+//==============================================================================================	
+void Lister::ViewMappings() {
+	// Constructs a window that manages its own configuration
+//	UrpConfigWindow *w = windowFactory.Open(this, "mappings");
+//	if (w->wasCreatedNew) {
+//		MappingGrid *g = new MappingGrid();
+//		g->Load(controlConnection);
+//		w->AddCtrl(g);
+//	}
+//	
+//	w->OpenWithConfig();
+}
+
+//==============================================================================================	
+void Lister::FileMenu(Bar& bar) {
+	bar.Add("Mappings", THISBACK(ViewMappings));
+}
+
+//==============================================================================================	
+void Lister::MainMenu(Bar& bar) {
+	bar.Add("File", THISBACK(FileMenu));
+}
+
 //==============================================================================================	
 // User clicked Test! on the TestGrid. Execute the test script against the connection.
 void Lister::ClickedTest() { 
@@ -320,10 +349,37 @@ void Lister::ClickedTest() {
 }
 
 //==============================================================================================	
-// Task Grid Options
+// Task Grid Options (context menu)
 void Lister::TaskGridContextMenu(Bar &bar) {
 	bar.Add("Edit Task Detail", THISBACK(OpenTaskDefWin));
+	bar.Add("Hide", THISBACK(HideSelectedTasks));
 	taskGrid.StdBar(bar); // Pickup standards
+}
+
+//==============================================================================================	
+void Lister::HideSelectedTasks() {
+	Vector<int> tasksToHide;
+	if (taskGrid.IsSelection()) {
+		for (int i = taskGrid.GetCount() - 1; i >= 0; i--) {
+			if (taskGrid.IsSelected(i)) {
+				tasksToHide.Add(i);
+				taskGrid.Remove(i);
+			}
+		}
+	}
+
+	if (tasksToHide.GetCount() == 0) return;
+	
+	String controlScript;
+	
+	controlScript = "update tasks set hidden = true where taskid in(";
+	for (int i=0; i < tasksToHide.GetCount(); i++) {
+		if (i) controlScript << ",";
+		controlScript << tasksToHide.At(i);
+	}
+	controlScript << ")";
+	
+	controlConnection->SendChangeDataScript(controlScript);
 }
 
 //==============================================================================================	
@@ -835,12 +891,27 @@ void Lister::AttachScriptToTask() {
 	String title;
 	String why; // User must provide a reason for the mapping.
 	int processorder;
+
+	// Whether new or replacement, we want to use the current selection 
+	if (scriptGrid.IsCursor()) {
+		currentlySelectedTaskScript = scriptGrid.GetCursor();
+	} else if (scriptGrid.IsSelection()) {
+		currentlySelectedTaskScript = scriptGrid.GetFirstSelection();
+	} else {
+		currentlySelectedTaskScript = UNKNOWN;
+	}
+	
+	if (currentlySelectedTaskScript != UNKNOWN) {
+		why = scriptGrid.GetWhy(currentlySelectedTaskScript); // Display the current why so user can edit
+		processorder = scriptGrid.GetProcessOrder(currentlySelectedTaskScript);
+		relId = scriptGrid.GetRelId(currentlySelectedTaskScript);
+	}
 	
 	// User requested to replace current script
 	if (GetShift()) {
 		// Allow for user to have left the script grid at some time and still want to
 		// update the visible script selected
-		if (!scriptGrid.IsCursor() && !scriptGrid.IsSelection()) {
+		if (currentlySelectedTaskScript == UNKNOWN) {
 			Exclamation("No script selected");
 			return;
 		}
@@ -856,16 +927,10 @@ void Lister::AttachScriptToTask() {
 		}
 		
 		replaceCurrentlySelectedTaskScript = true;
-		if (!scriptGrid.IsCursor()) {
-			currentlySelectedTaskScript = scriptGrid.GetCursor();
-		} else {
-			currentlySelectedTaskScript = scriptGrid.GetFirstSelection();
-		}
 		
 		title = "Replace script currently selected for task:";
-		relId = scriptGrid.GetRelId(currentlySelectedTaskScript);
-		why = scriptGrid.GetWhy(currentlySelectedTaskScript); // Display the current why so user can edit
-		processorder = scriptGrid.GetProcessOrder(currentlySelectedTaskScript);
+		
+	// No shift key, so we are a new script attachment
 	} else {
 		title = "New Task-Script Attachment to task:";
 		processorder = scriptGrid.GetMaxProcessOrder();
@@ -1006,6 +1071,7 @@ void Lister::ToolBarRefresh() {
 // Define the toolbar over the script editor.
 void Lister::MyToolBar(Bar& bar) {
 	
+	//__________________________________________________________________________________________
 	// Add Script To History
 	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty(), "File", CtrlImg::smalldown(), THISBACK(AddScriptToHistory)).Tip("Memorize Script");
 	
@@ -1150,10 +1216,13 @@ void Lister::ScriptExecutionHandler(Script::ScriptTarget pscriptTarget) {
 	jspec.outputStat->SetStartedWhen(GetSysTime());
 	bool ran = cursorHandler.Run(sob, jspec);
 	if (!ran) {
+		// Identify if it was a parsing (during execution) error.  If so, place cursor
+		// in script text on point of error.
 		int parseErrorPos = activeConnection->GetParseErrorPosition();
+		
 		if (parseErrorPos >= 0) {
-			
 			scriptEditor.SetSelection(parseErrorPos, parseErrorPos);
+			scriptEditor.SetFocus();
 		}
 	}
 }
