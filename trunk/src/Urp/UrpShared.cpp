@@ -30,3 +30,10 @@ bool None(bool b1, bool b2) { return (!b1 && !b2); }
 bool None(bool b1, bool b2, bool b3) { return (!b1 && !b2 && !b3); }
 bool None(bool b1, bool b2, bool b3, bool b4) { return (!b1 && !b2 && !b3 && !b4); }
 bool None(bool b1, bool b2, bool b3, bool b4, bool b5) { return (!b1 && !b2 && !b3 && !b4 && !b5); }
+
+namespace More {
+	bool In(String i, const char *in1) { if (i.IsEqual(in1)) return true; return false; }
+	bool In(String i, const char *in1, const char *in2) { if (i.IsEqual(in1) || i.IsEqual(in2)) return true; return false; }
+	bool In(String i, const char *in1, const char *in2, const char *in3) { if (i.IsEqual(in1) || i.IsEqual(in2) || i.IsEqual(in3)) return true; return false; }
+	bool In(String i, const char *in1, const char *in2, const char *in3, const char *in4) { if (i.IsEqual(in1) || i.IsEqual(in2) || i.IsEqual(in3) || i.IsEqual(in4)) return true; return false; }
+};
