@@ -63,6 +63,7 @@ protected:
 	virtual void        SetParam(int i, const Value& r);
 	virtual bool        Execute();
 	virtual int         GetRowsProcessed() const;
+	virtual int         GetParseErrorPosition() const;
 	virtual Value       GetInsertedId() const;
 	virtual bool        Fetch();
 	virtual void        GetColumn(int i, Ref f) const;
@@ -546,13 +547,16 @@ bool PostgreSQLConnection::Execute()
 	return false;
 }
 
-int PostgreSQLConnection::GetRowsProcessed() const
-{
+int PostgreSQLConnection::GetRowsProcessed() const {
 	return rows;
 }
 
-Value PostgreSQLConnection::GetInsertedId() const
-{
+int PostgreSQLConnection::GetParseErrorPosition() const {
+	return -1;
+}
+
+
+Value PostgreSQLConnection::GetInsertedId() const {
 	Sql sql("select currval('" + last_insert_table + "_id_seq')", session);
 	if(sql.Execute() && sql.Fetch())
 		return sql[0];
