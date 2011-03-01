@@ -493,8 +493,62 @@ Connection *Lister::ConnectUsingGrid(int row, bool log) {
 }
 
 //==============================================================================================
+// Save script in editor to its current script id, don't make a new script record.  This will
+// cut down on wasted new records.  Plus easy to keep modifying.
+void Lister::SaveScript() {
+
+	String richTextAsStr = scriptEditor.GetScriptRichTextInStrForm();
+	String script = scriptEditor.GetScriptPlainText();
+
+	if (script.IsEmpty()) {
+		NotifyUser("No point adding an empty script");
+		return;
+	}
+
+	String controlScript;
+
+	// If the scriptId is -1, then it probably is an edited script.
+	if (scriptEditor.scriptId == UNKNOWN && scriptEditor.originalScriptId == UNKNOWN) {
+		AddScriptToHistory();
+		// It's new, so we just automagically attach it!  (See if this works, may never be called)
+		AttachScriptToTask();
+	} else {
+		int scriptId;
+		if (scriptEditor.scriptId != UNKNOWN) {
+			scriptId = scriptEditor.scriptId;
+		} else if(scriptEditor.originalScriptId != UNKNOWN) {
+			scriptId = scriptEditor.originalScriptId;
+		} else {
+			throw new Exc("Error: Code error on scriptEditor.scriptId expected value");
+		}
+		
+		controlScript = Format("update scripts set scriptrichtext = %s, scriptplaintext = %s where scriptid = %d"
+		    // Not sending these as scripts to run, but to update as text
+			, controlConnection->PrepTextDataForSend(richTextAsStr)
+			, controlConnection->PrepTextDataForSend(script)
+			, scriptId
+		); 
+
+		if (!controlConnection->SendChangeDataScript(controlScript)) {
+			scriptEditor.Tip(DeQtf(controlConnection->GetLastError()));
+			scriptEditor.SetScriptPlainText(controlScript);
+			NotifyUser("Failed to update script to script database");
+			return;
+		}
+		
+		scriptEditor.scriptId = scriptId;
+		Speak(EVS_SAVE_SUCCEEDED);
+		scriptEditor.ClearModify();  // Saved, or else we won't be able to attach it to a task
+		ToolBarRefresh();
+	}
+	
+	
+}
+
+//==============================================================================================
 // Add the script currently in the editor to the script database with a unique id.	
 void Lister::AddScriptToHistory() {
+
 	String richTextAsStr = scriptEditor.GetScriptRichTextInStrForm();
 	String script = scriptEditor.GetScriptPlainText();
 
@@ -502,7 +556,6 @@ void Lister::AddScriptToHistory() {
 		NotifyUser("Cannot add empty script to script database");
 		return;
 	}
-	
 	
 	String controlScript;
 	bool massiveScript = false;
@@ -519,12 +572,14 @@ void Lister::AddScriptToHistory() {
 		    // Not sending these as scripts to run, but to insert as text
 			, controlConnection->PrepTextDataForSend(richTextAsStr)
 			, controlConnection->PrepTextDataForSend(script)
-			, controlConnection->PrepTextDataForSend(script)); 
+			, controlConnection->PrepTextDataForSend(script)
+		); 
 	} else {
 		controlScript = Format("insert into scripts(scriptrichtext, scriptplaintext) values(%s, %s)"
 		    // Not sending these as scripts to run, but to insert as text
 			, controlConnection->PrepTextDataForSend(richTextAsStr)
-			, controlConnection->PrepTextDataForSend(script)); 
+			, controlConnection->PrepTextDataForSend(script)
+		); 
 	}
 	
 	if (!controlConnection->SendAddDataScript(controlScript)) {
@@ -1108,9 +1163,17 @@ void Lister::ToolBarRefresh() {
 void Lister::MyToolBar(Bar& bar) {
 	
 	//__________________________________________________________________________________________
-	// Add Script To History
-	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty(), "File", CtrlImg::smalldown(), THISBACK(AddScriptToHistory)).Tip("Memorize Script");
+	// Save editor text to its Script Id, regardless of selection to left
+	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty()
+			&& scriptEditor.IsModified(), "File", MyImages::save16(), THISBACK(SaveScript)).Tip("Save Script")
+		.Key(K_CTRL_S);
 	
+	//__________________________________________________________________________________________
+	// Add Script To History
+	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty()
+			&& scriptEditor.IsModified(), "File", CtrlImg::smalldown(), THISBACK(AddScriptToHistory)).Tip("Memorize Script");
+	
+	//__________________________________________________________________________________________
 	// Create Test From Script if we have an id
 	bar.Add( // Only allow test creation if there is a script, a scriptid, and a connection
 		(!scriptEditor.GetScriptPlainText().IsEmpty()
@@ -1118,22 +1181,26 @@ void Lister::MyToolBar(Bar& bar) {
 		 && scriptEditor.scriptId >= 0), "File", MyImages::addtotest16(), 
 		 THISBACK(CreateTestFromScript)).Tip("Create a Test around this Script");
 
+	//__________________________________________________________________________________________
 	// Browse existing Tests
 	bar.Add( true, "", MyImages::browsetests16(), 
 		 THISBACK(BrowseTests)).Tip("Browse and edit tests");
 		 
-	// Execute script against current connection
+	//__________________________________________________________________________________________
+	// Execute Script against current connection
 	bar.Add( // Only allow execution if there is a script and a connection
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && scriptEditor.connection), "File", MyImages::runtoscreen16(), 
 		 THISBACK(RunScriptOutputToScreen)).Tip("Execute Script and output to a grid on the screen");
 
-	// Execute script and pass output to physical table in control db.
+	//__________________________________________________________________________________________
+	// Execute Script and pass output to physical table in control db.
 	bar.Add( // Only allow execution if there is a script and a connection
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && scriptEditor.connection), "File", MyImages::runtotable16(), 
 		 THISBACK(RunScriptOutputToTable)).Tip("Execute Script and create a table in the control database");
 	        
+	//__________________________________________________________________________________________
 	// Cancel a running Script
 	bar.Add(
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
@@ -1146,25 +1213,18 @@ void Lister::MyToolBar(Bar& bar) {
 
 	scriptEditor.FindReplaceTool(bar);
 	
-/*
-	// Load list of database users/schemas from the connection
-	bar.Add(
-		(scriptEditor.connection), "ListUsers", MyImages::users16(), 
-		 THISBACK(ListUsers)).Tip("List users/schemas for current connection");
-
-	// Actual dropdown list, does nothing
-	bar.Add(userList, 100);
-*/
-
-	// Quirky popup for list of contacts
+	//__________________________________________________________________________________________
+	// Popup list of Contacts
 	bar.Add(
 		true, "ListContacts", MyImages::contacts16(), 
 		 THISBACK(ListContacts)).Tip("Browse and edit contact details");
 
+	//__________________________________________________________________________________________
 	// Deploy application to Program Files folder
 	bar.Add(true, "Deploy", MyImages::deploylister16(), 
 		 THISBACK(DeployLister)).Tip("Deploy lister to program files");
 
+	//__________________________________________________________________________________________
 	// Attach this Script to the selected Task
 	bar.Add(
 		!scriptEditor.GetScriptPlainText().IsEmpty() && scriptEditor.scriptId >= 0
@@ -1174,6 +1234,7 @@ void Lister::MyToolBar(Bar& bar) {
 		    // If the shift key is held down, attachment replaces the current script selected
 		 	GetShift()? "Update selected script currently assigned to selected task" : "Add script to selected task");
 
+	//__________________________________________________________________________________________
 	// Set the target table name
 	bar.Add(targetNameList, 150); //.Tip("Target object name (if targeting a table or spreadsheet)");
 	bar.Add(scriptTargetList, 85); //.Tip("What type of target does the script output to?");
@@ -1372,7 +1433,7 @@ void Lister::NotifyUser(String message) {
 		("grid3", scriptGrid)
 		("grid4", testWin.testGrid)
 		("win1", testWin)
-		("win2", *GetLogWin());
+		("win2", *GetLogWin())
 		("edit1", scriptEditor) // Generically, the editor screen.
 	;
 	
