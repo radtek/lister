@@ -17,6 +17,9 @@ Script::Script(
 	,	RichText                  pscriptRichText
 	,	int                       prowLimit
 	,	String                    ptargetName
+	,	bool                      paddSepToOutput
+	,	String                    poutFldSepWhenValChange
+	,	int                       psepRowCount
 	)
 {
 	scriptTarget                = pscriptTarget;
@@ -26,6 +29,9 @@ Script::Script(
 	scriptPlainText             = pscriptPlainText; // No QTF codes present
 	rowLimit                    = prowLimit;
 	targetName                  = ptargetName;
+	addSepToOutput              = paddSepToOutput;
+	outFldSepWhenValChange      = poutFldSepWhenValChange;
+	sepRowCount                 = psepRowCount;
 }
 
 //==============================================================================================
