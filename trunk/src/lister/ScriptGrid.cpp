@@ -27,6 +27,7 @@ void ScriptGrid::Build(Connection *pconnection) {
 	AddColumn(RELCONNID, "connection", 50).Edit(connectionList).SetConvert(connectionList); 
 	AddColumn(SCRIPTTARGET, "output to", 20).Edit(scriptTargetList).SetConvert(scriptTargetList);
 	AddColumn(TARGETNAME, "targetname", 30).Edit(targetName);
+	// Example of a boolean handler
 	AddColumn(FASTFLUSHTARGET, "truncate target", 10).Edit(fastFlushTargetList).SetConvert(fastFlushTargetList);
 	AddColumn(ROWLIMIT, "rowlimit", 20).Edit(rowLimit);
 	AddColumn(PROCESSORDER, "order", 25).Edit(processOrder);
