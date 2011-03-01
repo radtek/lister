@@ -1,4 +1,5 @@
 #include <RichEdit/RichEdit.h>
+#include <lister/Urp/UrpString.h>
 #include <Web/Web.h>
 
 #include "MyRichEdit.h"
@@ -51,8 +52,74 @@ void MyRichEdit::Layout() {
 }
 
 //==============================================================================================	
+void MyRichEdit::SplitOnComma() {
+	String ci = ReadClipboardText();
+	String co;
+
+	Vector<String> elems = Split(ci, ","); // In Util.cpp: Vector<String> Split(const char *s, const String& delim, bool ignoreempty)
+	
+	for (int i = 0; i < elems.GetCount(); i++) {
+		if (i) co << "\n";
+		String elem = StripWrapper(Trim(elems.At(i)), "'");
+		co << elem;
+	}
+	
+	WriteClipboardText(co);
+	Paste();
+	WriteClipboardText(ci); // Restore clipboard so it doesn't keep expanding
+
+}
+
+//==============================================================================================	
+// Our system is partitioned by date, with no global indexes, so to search across dates,
+// You need to supply a list of dates across the range
+void MyRichEdit::PasteRunOfOraDates() {
+	VectorMap<String, Date> limits;
+	String inputDate; // Manually?
+	bool ok = UrpDateInputBox(inputDate, "Enter range of dates", "Enter range of dates to generate an in clause of oracle formatted strings", limits);
+	if (ok) {
+		if (limits.Find("fromdate") < 0 || limits.Find("todate") < 0) {
+			Exclamation("Must enter from and to dates");
+			return;
+		}
+		
+		Date fromdate = limits.Get("fromdate");
+		Date todate = limits.Get("todate");
+		
+		String ci = ReadClipboardText();
+		String co;
+		int i = 0;
+		while (fromdate <= todate) {
+			if (!In(DayOfWeek(fromdate), 0, 6)) { // Don't generate dates for the weekend
+				if (!i) co << "IN(";
+				if (i) co << ", ";
+				co << Format("'%02d-%s-%04d'", fromdate.day, ToUpper(MonName(fromdate.month-1 /* MonName is zero-based! */)), fromdate.year);
+				i++;
+			}
+			if (i && fromdate == todate) co << ")";
+			fromdate+= 1;
+		}
+		
+		WriteClipboardText(co);
+		Paste();
+		WriteClipboardText(ci); // Restore clipboard so it doesn't keep expanding
+	}
+}
+
+//==============================================================================================	
+void MyRichEdit::PasteWithNoWrapper() {
+	PasteJoinLinesWithWrapper();
+}
+
+//==============================================================================================	
 //  Turn a set of lines into a stream for IN clause use
 void MyRichEdit::PasteWithApostrophe() {
+	PasteJoinLinesWithWrapper("'", "'");
+}
+
+//==============================================================================================	
+void MyRichEdit::PasteJoinLinesWithWrapper(const String& wrapper, const String &wrapperRight) {
+	
 	String ci = ReadClipboardText();
 	String co;
 	
@@ -61,10 +128,10 @@ void MyRichEdit::PasteWithApostrophe() {
 		Sort(cil);
 		for (int i = 0; i < cil.GetCount(); i++) {
 			if (i) co << ", ";
-			co << "'" << TrimRight(cil[i]) << "'";
+			co << wrapper << TrimRight(cil[i]) << wrapperRight;
 		}
 	} else {
-		co << "'" << ci << "'";
+		co << wrapper << ci << wrapperRight;
 	}
 	
 	WriteClipboardText(co);
@@ -356,10 +423,13 @@ void MyRichEdit::DeFormatScript() {
 					menu.Separator();
 				}
 				PasteTool(menu);
-				menu.Add("Past Concat", THISBACK(PasteConcat));
-				menu.Add("Paste/Wrap w/Apostrophe", THISBACK(PasteWithApostrophe)); // Added: JSH, copied from Mouse.cpp
-				menu.Add("Paste as UNION ALL", THISBACK(PasteAsWrappedUnion)); // Added: JSH, copied from Mouse.cpp
-				menu.Add("Paste as Line Macro", THISBACK(PasteAsLineMacro));
+				menu.Add("Paste/Join lines as Concat", THISBACK(PasteConcat));
+				menu.Add("Paste/Join lines", THISBACK(PasteWithNoWrapper));
+				menu.Add("Paste/Join lines/Wrap w/Apostrophe", THISBACK(PasteWithApostrophe)); // Added: JSH, copied from Mouse.cpp
+				//menu.Add("Paste as UNION ALL", THISBACK(PasteAsWrappedUnion)); // Added: JSH, copied from Mouse.cpp
+				menu.Add("Paste/Run lines thru Line Macro", THISBACK(PasteAsLineMacro));
+				menu.Add("Paste/Create line of ORA date strings from range", THISBACK(PasteRunOfOraDates));
+				menu.Add("Paste/Split commas to lines", THISBACK(SplitOnComma));
 				menu.Add("De-Format", THISBACK(DeFormatScript));
 				FindReplaceTool(menu);
 				ObjectTool(menu);
@@ -669,7 +739,7 @@ void MyRichEdit::ScriptContentChanged(dword key) {
 
 //==============================================================================================	
 void MyRichEdit::ResetEditorState() {
-	ClearModify();
+	ClearModify(); // May zap the Ctrl-Z capability
 	columnlist.Clear();
 	columnlist.schemaName = Null;
 	columnlist.tableName = Null;
@@ -901,7 +971,25 @@ RichText MyRichEdit::GetScriptRichText() {
 //==============================================================================================
 // Since we save the RichScript, we can restore it and not treat it as plain text.
 void MyRichEdit::SetScriptRichText(RichText prichText) {
-	Pick(prichText);
+	// Performance issue: background paint will spin badly if ther eare difficult network shares in the environment variables LIB, INCLUDE or PATH.
+	// No idea why rich text is scanning the path every keystroke, but I have to find and kill it
+	// Detected from install of Sybase ASE which altered the path with a nasty remote ActiveDir
+
+	//Pick(prichText); 
+	
+	// Cloned from Pick, except we don't clear our history, which I would like to keep so Ctrl-Z works
+	// Note: Ctrl-Z still doesn't work.
+	text = prichText;
+	
+	if(text.GetPartCount() == 0)
+		text.Cat(RichPara());
+	ReadStyles();
+	EndSizeTracking();
+	Vector<int> all_lang = text.GetAllLanguages();
+	SetupLanguage(all_lang);
+	Move(0);
+	Update();
+	
 	ResetEditorState();
 }
 
