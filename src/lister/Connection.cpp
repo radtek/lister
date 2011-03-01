@@ -545,8 +545,13 @@ retryQuery:
 
 	LOG(expandedScript);	
 	if (!Execute(PrepScriptForSend(expandedScript, log))) {
-		if (GetErrorCode() == 12571) {
-			// Oracle TNS-Packet failure, happens after timeout
+		int errcode = GetErrorCode();
+		String errmsg = GetLastError(); // Note: SQL Server does not include the number in the message
+		// Trap Oracle and MS SQLconnection timeout
+		
+		if (In(errcode, 12571, 233) || errmsg.Find("Communication link failure") > 0) {
+			// 12571: Oracle TNS-Packet failure, happens after timeout
+			// 233: SQLServer Error: 233, Communication link failure [SQLSTATE 08S01]
 			// Should detect that we haven't run a script for a while and have probably timed out
 			if (PromptYesNo("Detected connection timeout, reconnect?")) {
 				delete -session;
@@ -565,6 +570,7 @@ retryQuery:
 				delete -session;
 			}
 			return false;
+			
 		} else {
 			if (silent) {
 				LOG(CAT << "SQL Error: " << DeQtf(GetLastError()));
