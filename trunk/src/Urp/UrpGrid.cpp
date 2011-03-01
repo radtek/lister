@@ -1,6 +1,7 @@
 #include "UrpGrid.h"
 #include "UrpPaint.h"
-
+#include "UrpString.h" // IfNull
+//==============================================================================================
 UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
 	Appending();
 	Removing();
@@ -34,7 +35,7 @@ UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
 	//SetDisplay(Single<TightFontDisplayForGridCtrl>());
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Obviously, U++ developer Uno was being a total dickwad when he refused to give a function
 // to extract column widths, so I've created it.
 int UrpGrid::GetFloatingColumnWidth(int colno) {
@@ -44,49 +45,75 @@ int UrpGrid::GetFloatingColumnWidth(int colno) {
 	return atoi(colWidthsVector.At(colno));
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Series of corrective functions to deal with Lamo Uno's confusion about when and when not to adjust references for fixed columns
 int UrpGrid::GetFloatingColumnCount() {
 	// Takes into account the fixed columns
 	return GetColumnCount();
 }
 
+//==============================================================================================
 void UrpGrid::UnhideFloatingColumnSilently(int i) {
 	// Does NOT take into account fixed colunmns
 	ShowColumn(i + fixed_cols, false /* Don't Repaint */);
 }
 
+//==============================================================================================
 void UrpGrid::HideFloatingColumn(int i) {
 	// Does NOT take into account fixed colunmns
 	HideColumn(i + fixed_cols, true /* Repaint */);
 }
 
+//==============================================================================================
 void UrpGrid::SetFloatingColumnWidth(int i, int w) {
 	// Does NOT take into account fixed colunmns
 	SetColWidth(i + fixed_cols, w, true /* Let's try not recalcing */);
 }
 
+//==============================================================================================
 Id UrpGrid::GetFloatingColumnId(int n) const {
 	// Takes into account the fixed columns
 	return GetColumnId(n);
 }
 
+//==============================================================================================
 GridCtrl::ItemRect& UrpGrid::GetFloatingColumn(int n) {
 	// Takes into account the fixed columns
 	return GetColumn(n);
 }
 
-//==========================================================================================	
+//==============================================================================================
+// Add function from ArrayCtrl
+int UrpGrid::GetFirstSelection() {
+	for (int i = 0; i < GetCount(); i++) {
+		if (IsSelected(i)) {
+			return i;
+		}
+	}
+	
+	return INT_MIN; // Our fake NULL
+}
+
+//==============================================================================================
 //  GridCtrl is supposed to Xmlize, but I don't see it doing anything, so I've written my own.
 //  Have to save by name so that code changes that add/subtract columns will not cause confusion.
 //  Also, we save hidden state by name instead of position, which can really mess with a grid.
 void UrpGrid::Xmlize(XmlIO xml) {
 	VectorMap<String, int> floatingColumnWidths;
 	static VectorMap<String, int> requestedColumnWidths;
+	int rowselected;
 
 	Absolute(); // Allows settings to take affect
 
 	if (xml.IsLoading()) {
+		// Restore last known row selection
+		xml("rowselected", rowselected);
+		// Trap if no such attribute
+		if (IfNull(rowselected, NOSELECTION) != NOSELECTION) {
+			SetCursor(rowselected);
+			CenterCursor();
+			Select(rowselected); // Slightly different than ArrayCtrl-based UrpSqlGrid
+		}
 		xml("columnwidths", floatingColumnWidths); // Read from store
 		for (int i = 0; i < GetFloatingColumnCount(); i++) {
 			String colIdName = GetFloatingColumnId(i).ToString();
@@ -127,6 +154,16 @@ void UrpGrid::Xmlize(XmlIO xml) {
 			}
 		}
 	} else { // Storing
+		// Save the first selection the user made
+		
+		if (IsSelection()) {
+			rowselected = GetFirstSelection();
+		} else {
+			rowselected = NOSELECTION;
+		}
+
+		xml("rowselected", rowselected);
+
 		for (int i = 0; i < GetFloatingColumnCount(); i++) {
 			String colIdName = GetFloatingColumnId(i).ToString();
 			int colWidth = GetFloatingColumnWidth(i);
