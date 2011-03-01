@@ -737,19 +737,19 @@ bool ODBCConnection::Fetch0() {
 	}
 
 	fetchrow.Clear();
-	double                 dbl;
-	int64                  n64;
+//	double                 dbl;
+//	int64                  n64;
 	// Data Types Reference: http://msdn.microsoft.com/en-us/library/ms714556(v=vs.85).aspx
-	SQL_TIMESTAMP_STRUCT   tmstmp;
-	SQL_DATE_STRUCT        dt;
-	SQL_TIME_STRUCT        tm;
-	SQLLEN                 li;
-	SQLGUID                guid;
-	SQL_NUMERIC_STRUCT     n;
-	SQL_INTERVAL_STRUCT    iv;
-	SQLREAL                rl;    // Same as float
-	SQLFLOAT               flt;   // Same as double
-	SQLINTEGER             lint;  // long int
+//	SQL_TIMESTAMP_STRUCT   tmstmp;
+//	SQL_DATE_STRUCT        dt;
+//	SQL_TIME_STRUCT        tm;
+//	SQLLEN                 li;
+//	SQLGUID                guid;
+//	SQL_NUMERIC_STRUCT     n;
+//	SQL_INTERVAL_STRUCT    iv;
+//	SQLREAL                rl;    // Same as float
+//	SQLFLOAT               flt;   // Same as double
+//	SQLINTEGER             lint;  // long int
 	
 	// Walk through each column
 	
