@@ -1,6 +1,7 @@
 #include "ConnGrid.h"
 
 #include "shared_db.h"
+#include <lister/Sql/Sql.h>
 
 // THESE NAMES MUST BE UNIQUE IN ORDER TO LABEL COLUMN WIDTHS USER CUSTOMIZATIONS WHEN XMLIZING
 
@@ -21,6 +22,7 @@ Id IDEnvStdName("EnvStdName");
 Id IDDUMMY("Dummy");
 Id IDCONNECT("CONNECT");
 Id IDConnNote("ConnNote"); 
+Id IDIsOSAuth("IsOSAuth");
 
 //==========================================================================================	
 void MakeButton(One<Ctrl>& ctrl) {
@@ -47,14 +49,20 @@ String     ConnGrid::GetInstanceTypeName(int row)				{ return TrimBoth(Get(row, 
 int        ConnGrid::GetInstanceId      (int row)				{ return Get(row, IDInstanceId); }
 void       ConnGrid::SetInstanceId      (int row, int pinstId)	{ Set(row, IDInstanceId, pinstId); }
 String     ConnGrid::GetInstanceName    (int row)				{ return TrimBoth(Get(row, IDInstanceName)); }
+void       ConnGrid::SetInstanceName    (int row, String pinstNm) { Set(row, IDInstanceName, pinstNm); }
 String     ConnGrid::GetInstanceAddress (int row)				{ return TrimBoth(Get(row, IDInstanceAddress)); }
+void       ConnGrid::SetInstanceAddress (int row, String pinstAdr) { Set(row, IDInstanceAddress, pinstAdr); }
 int        ConnGrid::GetInstTypId       (int row)			    { return Get(row, IDInstTypId); }
+void       ConnGrid::SetInstTypId       (int row, int pinstTypId) { Set(row, IDInstTypId, pinstTypId); }
 String     ConnGrid::GetDatabaseName    (int row)           	{ return Get(row, IDDatabaseName); }
 int        ConnGrid::GetEnvId           (int row)				{ return Get(row, IDEnvId); }
+void       ConnGrid::SetEnvId           (int row, int penvId)   { Set(row, IDEnvId, penvId); }
 int        ConnGrid::GetLoginId         (int row)				{ return Get(row, IDLoginId); }
 String     ConnGrid::GetLoginStr        (int row)				{ return TrimBoth(Get(row, IDLoginStr)); }
 String     ConnGrid::GetLoginPwd        (int row)				{ return TrimBoth(Get(row, IDLoginPwd)); }
 ConnState *ConnGrid::GetConnState       (int row)       	    { return (ConnState *)GetCtrl(row, FindCol(IDConnState)); }
+bool       ConnGrid::GetOSAuth          (int row)               { return ((String)IfNull(Get(row, IDIsOSAuth), "0") == "1"); }
+
 
 //==========================================================================================	
 void ConnGrid::NewConn() {
@@ -78,21 +86,23 @@ void ConnGrid::Build() {
 	bool r = x.IsFixed(); // ismin ismax are not set in original GridCtrl, so I cloned it and fixed it, and made this function pubic.
 //	bool rmax = x.IsMax();
 //	bool rmin = x.IsMin();
-	AddColumn(IDConnId, "Id").Edit(fldConnId).Default(Null);
-	AddColumn(IDConnName, "Name").Edit(fldConnName);
-	AddColumn(IDLoginId, "Login Id");
-	AddColumn(IDLoginStr, "Login").Edit(fldLoginStr);                                                             
-	AddColumn(IDLoginPwd, "Pwd").Edit(fldLoginPwd);                                                               
-	AddColumn(IDInstanceId, "Instance").Edit(instanceList).SetConvert(instanceList).Default(-1);
-	AddColumn(IDInstanceName, "InstNm");
-	AddColumn(IDInstTypId, "InstTyp").Edit(instTypList).SetConvert(instTypList).Default(-1);
-	AddColumn(IDInstTypName, "InstTypeNm");      
-	AddColumn(IDDatabaseName, "DbNm").Edit(fldDbName);
-	AddColumn(IDInstanceAddress, "Address").Edit(fldInstanceAddress).Editable(false);
-	AddColumn(IDEnvId, "Env").Edit(envList).SetConvert(envList).Default(-1);
-	AddColumn(IDConnNote, "Note").Edit(fldConnNote);
-	AddColumn(IDCONNECT, "").Ctrls(MakeButton).Fixed(20).SetImage(CtrlImg::go_forward());
-	AddColumn(IDDUMMY, "").Fixed(1); // This is required due to bug in GridCtrl where image clones across all downstream cells if at end of visible chain.
+	AddColumn( IDConnId         , "Id"          ).Edit(fldConnId         )                         .Default(Null);
+	AddColumn( IDConnName       , "Name"        ).Edit(fldConnName       );
+	AddColumn( IDLoginId        , "Login Id"    );
+	AddColumn( IDLoginStr       , "Login"       ).Edit(fldLoginStr       );                                                             
+	AddColumn( IDLoginPwd       , "Pwd"         ).Edit(fldLoginPwd       );                                                               
+	AddColumn( IDIsOSAuth       , "OS Auth?"    ).Edit(osAuthList        ).SetConvert(osAuthList  ).Fixed(10); // Login property.
+	AddColumn( IDInstanceId     , "Instance"    ).Edit(instanceList      ).SetConvert(instanceList).Default(-1);
+	AddColumn( IDInstanceName   , "InstNm"      );
+	AddColumn( IDInstTypId      , "InstTyp"     ).Edit(instTypList       ).SetConvert(instTypList ).Default(-1);
+	AddColumn( IDInstTypName    , "InstTypeNm"  ); // Not really editable yet    
+	AddColumn( IDDatabaseName   , "DbNm"        ).Edit(fldDbName         );
+	AddColumn( IDInstanceAddress, "Address"     ).Edit(fldInstanceAddress).Editable(false);
+	AddColumn( IDEnvId          , "Env"         ).Edit(envList           ).SetConvert(envList     ).Default(-1);
+	AddColumn( IDConnNote       , "Note"        ).Edit(fldConnNote       );
+	AddColumn( IDCONNECT        , ""            ).Ctrls(MakeButton).Fixed(20).SetImage(CtrlImg::go_forward());
+	// Always last column, helps overcome bug in GridCtrl
+	AddColumn( IDDUMMY          , ""            )                  .Fixed(1); // This is required due to bug in GridCtrl where image clones across all downstream cells if at end of visible chain.
 }
 
 //==========================================================================================	
@@ -104,20 +114,43 @@ void ConnGrid::NewInstance() {
 	case IDOK:
 		Exclamation("Adding");
 		{
-			String newInstanceName = newInstanceWin.GetInstanceName();
+			String newInstanceName = ToUpper(newInstanceWin.GetInstanceName());
+		 	String instAddr = newInstanceWin.instanceAddress.GetData().ToString();
+		 	int instTypId = newInstanceWin.instTypList.GetKey();
+		 	int envId = newInstanceWin.envList.GetKey();
+/*
 			String script = SqlStatement
 				(
-					SqlInsert(INSTANCES)(INSTANCENAME, newInstanceName)
-						(INSTANCEADDRESS, newInstanceWin.instanceAddress.GetData().ToString())
-						(INSTTYPID, newInstanceWin.instTypList.GetKey())
+					SqlInsert(INSTANCES)
+						(INSTANCENAME, newInstanceName)
+						(INSTANCEADDRESS, instAddr)
+						(INSTTYPID, instTypId)
+						(ENVID, envId)
 				)
 				.GetText();
-					
+*/
+
+				SqlInsert q = ::Insert(INSTANCES);
+				q(INSTANCENAME, newInstanceName);
+				q.Column(INSTANCEADDRESS, instAddr);
+				q(INSTTYPID, instTypId);
+				q(ENVID, envId);
+				// PORT
+				;
+
+			String script = SqlStatement(q).Get(PGSQL);
 			if (connection->SendAddDataScript(script)) {
 				// Fetch id
 				int id = connection->GetInsertedId("instances", "instanceid");
-				instTypList.Add(id, newInstanceName);
+				EndEdit();
+				instanceList.Add(id, newInstanceName);
 				SetInstanceId(row, id);
+				SetInstanceName(row, newInstanceName);
+				SetEnvId(row, envId);
+				SetInstTypId(row, instTypId);
+				SetInstanceAddress(row, instAddr);
+				// SetPort
+				instanceList.FindMove(newInstanceName);
 			}
 		}
 		break;
@@ -146,6 +179,10 @@ void ConnGrid::NewInstance() {
 	
 	// Populate the instance list
 	
+	osAuthList.Clear();
+	osAuthList.Add("0", "Standard Authorization by password");
+	osAuthList.Add("1", "Set flag for OS authorization based on current NT login");
+
 	if (connection->SendQueryDataScript("select i.instanceid, i.instancename, i.instanceaddress, i.note, it.insttypid, it.insttypname, i.envid from instances i left join insttyps it on i.insttypid = it.insttypid order by instancename")) {
 
 
@@ -174,19 +211,20 @@ void ConnGrid::NewInstance() {
 	
 	while(connection->Fetch()) {
 		Add();
-		Set(IDConnState, ConnState::ConvertStateToColor(NOCON_UNDEF));  // Show connection as red, not connected, should change to gray if unknown
-		Set(IDConnId, connection->Get("CONNID"));
-		Set(IDConnName, connection->Get("CONNNAME"));
-		Set(IDLoginId, connection->Get("LOGINID"));
-		Set(IDLoginStr, connection->Get("LOGINSTR"));
-		Set(IDLoginPwd, connection->Get("LOGINPWD"));
-		Set(IDInstanceId, connection->Get("INSTANCEID"));
-		Set(IDInstanceName, connection->Get("INSTANCENAME"));
-		Set(IDInstanceAddress, connection->Get("INSTANCEADDRESS"));
-		Set(IDInstTypId, connection->Get("INSTTYPID"));
-		Set(IDInstTypName, connection->Get("INSTTYPNAME"));
-		Set(IDDatabaseName, connection->Get("DBNAME"));
-		Set(IDEnvId, connection->Get("ENVID"));
+		Set(IDConnState       , ConnState::ConvertStateToColor(NOCON_UNDEF));  // Show connection as red, not connected, should change to gray if unknown
+		Set(IDConnId          , connection->Get("CONNID"         ));
+		Set(IDConnName        , connection->Get("CONNNAME"       ));
+		Set(IDLoginId         , connection->Get("LOGINID"        ));
+		Set(IDLoginStr        , connection->Get("LOGINSTR"       ));
+		Set(IDLoginPwd        , connection->Get("LOGINPWD"       ));
+		Set(IDIsOSAuth        , connection->Get( ISOSAUTH        ));
+		Set(IDInstanceId      , connection->Get("INSTANCEID"     ));
+		Set(IDInstanceName    , connection->Get("INSTANCENAME"   ));
+		Set(IDInstanceAddress , connection->Get("INSTANCEADDRESS"));
+		Set(IDInstTypId       , connection->Get("INSTTYPID"      ));
+		Set(IDInstTypName     , connection->Get("INSTTYPNAME"    ));
+		Set(IDDatabaseName    , connection->Get("DBNAME"         ));
+		Set(IDEnvId           , connection->Get("ENVID"          ));
 	}
 	
 	// Create a blank row so user can just type new connection detail (not have to preset Insert)
@@ -216,9 +254,9 @@ void ConnGrid::AddedNewConnection() {
 		// SQL allows INSTEAD OF VIEW code to search for the login/pwd combo and create a row if necessary
 		// We do pass a valid instance #, though.
 		String script = Format(" \
-		INSERT INTO v_conn(ConnName, LoginStr, LoginPwd, InstanceId) VALUES \
-		                     ('%s'/*ConnName*/, '%s'/*LoginStr*/, '%s'/*LoginPwd*/, %d/*InstanceId*/)", 
-		                   GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetInstanceId(row), GetDatabaseName(row));
+		INSERT INTO v_conn(ConnName, LoginStr, LoginPwd, IsOSAuth, InstanceId, dbName) VALUES \
+		                     ('%s'/*ConnName*/, '%s'/*LoginStr*/, '%s'/*LoginPwd*/, '%s' /*IsOSAuth*/, %d/*InstanceId*/, '%s' /*dbName*/)", 
+		                   GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetOSAuth(row)? "1" : "0", GetInstanceId(row), GetDatabaseName(row));
 		int rsp = PromptOKCancel(CAT << "Adding Connection: " << script);
 		if (rsp == 1) {
 			
@@ -229,9 +267,9 @@ void ConnGrid::AddedNewConnection() {
 		}
 	} else {
 		String script = Format(" \
-		UPDATE v_conn set ConnName = '%s', LoginStr = '%s', LoginPwd = '%s', InstanceId = %d, dbName = '%s' \
+		UPDATE v_conn set ConnName = '%s', LoginStr = '%s', LoginPwd = '%s', IsOSAuth = '%s', InstanceId = %d, dbName = '%s' \
 		     WHERE ConnId = %d", 
-		     GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetInstanceId(row), GetDatabaseName(row), GetConnId(row));
+		     GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetOSAuth(row)? "1" : "0", GetInstanceId(row), GetDatabaseName(row), GetConnId(row));
 		int rsp = PromptOKCancel(CAT << "Updating Connection: " << script);
 		if (rsp == 1) {
 			connection->SendChangeDataScript(script);
