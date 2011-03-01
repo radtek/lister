@@ -89,6 +89,7 @@ public:
 	void              ClickedConnect(); // User clicked Connect! on the ConnGrid.
 	Connection       *ConnectUsingGrid(String connName, bool log = false); // Connect to the connection user selected in the ConnGrid.	
 	Connection       *ConnectUsingGrid(int row, bool log = false); // Connect based on the connection listed on the ConnGrid based on passed row
+	void              SaveScript();
 	void              AddScriptToHistory();
 	void              SelectedScriptFromDropDown(); // For multi-line scripts, this is the only way to see the full script.
 	void              ProcessSelectedTaskScripts(dword key);
