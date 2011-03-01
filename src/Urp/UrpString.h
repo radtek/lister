@@ -32,5 +32,10 @@ public:
 	static String ToString(byte in);
 };
 
+// Tired of remembering "TrimBoth"
+String Trim(const String& str);
+String StripWrapper(const String& str, const String& wrapper, const String &wrapperRight = Null);
+Value  IfNull(Value in, Value defval);
+int    AsInt(Value in, Value defval);
 
 #endif
