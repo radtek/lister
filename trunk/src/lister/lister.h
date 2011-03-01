@@ -64,13 +64,24 @@ public:
 	EditInt           fldRowLimit;
 	TaskDefWin        taskDefWin;
 	MenuBar           mainMenu;
+	bool              maingridselectrow;
+	Option            chkAddSepToOutput; // Add bogus separator lines after groups of screen row output
+	EditString        outFldSepWhenValChange; // Key in name of column header
+	EditInt           fldSepRowCount; // How many blank rows would you like?  When copying to Excel, this saves a lot of time.
+	DropGrid          outputColList; // Updated after output generated.
 	
 	                  Lister();
 	                 ~Lister();
 	void              ViewMappings();
 	void              MainMenu(Bar& bar);
+	                  // Either select whole row or cells.  For long rows it is helpful to select the entire row for visual comparison.
+	void              ToggleMainGridSelectRow(); 
+	                  // Copy all the column names to a list so we can paste them back into the query, 
+	                  // replacing "*" markers so we can subtract specific columns or insert calc cols at certain points
+	void              CopyColListCommaDelim(); 
+	void              MainGridContextMenu(Bar &bar); // Right-click over main output data.
 	void              FileMenu(Bar& bar);
-	void              ClickedTest(); // User clicked Test! on the TestGrid.
+	void              ClickedTest(); // User clicked Test! on the TestGrid.  Run the test.
 	void              TaskGridContextMenu(Bar &bar);
 	void              HideSelectedTasks();
 	void              OpenTaskDefWin();
@@ -83,14 +94,14 @@ public:
 	void              ProcessSelectedTaskScripts(dword key);
 	void              ProcessTaskScript(int taskScriptRow, bool loadScript, bool executeScript, JobSpec &jspec); // User pressed Ctrl-F8 to load into Editor
 	void              GetTaskLastInsertedPkId();
-	// User pressed "+" button on script list dropdown, requesting that the script be loaded
-	// into the editor.
+	                  // User pressed "+" button on script list dropdown, requesting that the script be loaded
+	                  // into the editor.
 	void              PushScriptToEditor();
 	void              CreateTestFromScript();
 	void              BrowseTests();
 	void              ListUsers(); // Thought I needed this more
-	// Capture when session->status value changed, usually during a Execute or Fetch.
-	// We need the Cancel Execution button to only be active when a asynch execution call is away.
+	                  // Capture when session->status value changed, usually during a Execute or Fetch.
+	                  // We need the Cancel Execution button to only be active when a asynch execution call is away.
 	void              ListContacts(); // First attempt at dynamic dialog popup of UrpGrid container. May thread it.
 	void              SessionStatusChanged(const SqlSession& session);
 	bool              SelectConnectionById(int pconnId);
