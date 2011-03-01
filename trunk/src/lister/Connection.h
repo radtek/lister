@@ -27,6 +27,8 @@
 #define RUN_SILENT  true
 #define EXPAND_MACROS true
 
+// http://www.sybase.com/ase_1500devel; downloaded ASE 15.5 Win x86 2/23/11
+
 // Internal ids for speed of processing.  We don't use the control db key values since they
 // are only for db relations.  There's no way to guarantee consistency across db<=>code constants
 // except perhaps a db export to .DEF file that then is compiled in!
