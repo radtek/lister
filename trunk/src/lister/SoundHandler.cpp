@@ -290,7 +290,9 @@ void writeAudio(HWAVEOUT hWaveOut, LPSTR data, int size) {
 	current->dwUser = 0;
 	}
 	}
-	int PlaySound2(String soundFile) {
+	
+//==========================================================================================	
+int PlaySound2(String soundFile) {
 	HWAVEOUT hWaveOut; /* device handle */
 	HANDLE hFile;/* file handle */
 	WAVEFORMATEX wfx; /* look this up in your documentation */
@@ -315,8 +317,11 @@ void writeAudio(HWAVEOUT hWaveOut, LPSTR data, int size) {
 		0,
 		NULL
 	)) == INVALID_HANDLE_VALUE) {
-	//fprintf(stderr, "%s: unable to open file '%s'\n", argv[0], argv[1]);
-	ExitProcess(1);
+		//fprintf(stderr, "%s: unable to open file '%s'\n", argv[0], argv[1]);
+		
+		DeleteCriticalSection(&waveCriticalSection);
+		freeBlocks(waveBlocks);
+		return -1;
 	}
 	/*
 	 * set up the WAVEFORMATEX structure.
@@ -334,44 +339,50 @@ void writeAudio(HWAVEOUT hWaveOut, LPSTR data, int size) {
 	 * default wave device on the system (some people have 2 or
 	 * more sound cards).
 	 */
+	 
+	// This will fail if Windows Audio service not started; due to error during startup
 	if(waveOutOpen(
-	&hWaveOut, 
-	WAVE_MAPPER, 
-	&wfx, 
-	(DWORD_PTR)waveOutProc, 
-	(DWORD_PTR)&waveFreeBlockCount, 
-	CALLBACK_FUNCTION
-	) != MMSYSERR_NOERROR) {
-	//fprintf(stderr, "%s: unable to open wave mapper device\n", argv[0]);
-	ExitProcess(1);
+		&hWaveOut, 
+		WAVE_MAPPER, 
+		&wfx, 
+		(DWORD_PTR)waveOutProc, 
+		(DWORD_PTR)&waveFreeBlockCount, 
+		CALLBACK_FUNCTION
+		) != MMSYSERR_NOERROR) {
+		//fprintf(stderr, "%s: unable to open wave mapper device\n", argv[0]);
+		DeleteCriticalSection(&waveCriticalSection);
+		freeBlocks(waveBlocks);
+		CloseHandle(hFile);
+		return -2;
 	}
 	/*
 	 * playback loop
 	 */
 	while(1) {
-	DWORD readBytes;
-	if(!ReadFile(hFile, buffer, sizeof(buffer), &readBytes, NULL))
-	break;
-	if(readBytes == 0)
-	break;
-	if(readBytes < sizeof(buffer)) {
-	printf("at end of buffer\n");
-	memset(buffer + readBytes, 0, sizeof(buffer) - readBytes);
-	printf("after memcpy\n");
-	}
-	writeAudio(hWaveOut, buffer, sizeof(buffer));
+		DWORD readBytes;
+		if(!ReadFile(hFile, buffer, sizeof(buffer), &readBytes, NULL))
+		break;
+		if(readBytes == 0)
+		break;
+		if(readBytes < sizeof(buffer)) {
+			printf("at end of buffer\n");
+			memset(buffer + readBytes, 0, sizeof(buffer) - readBytes);
+			printf("after memcpy\n");
+		}
+		writeAudio(hWaveOut, buffer, sizeof(buffer));
 	}
 	/*
 	 * wait for all blocks to complete
 	 */
 	while(waveFreeBlockCount < BLOCK_COUNT)
-	Sleep(10);
+		Sleep(10);
 	/*
 	 * unprepare any blocks that are still prepared
 	 */
 	for(i = 0; i < waveFreeBlockCount; i++) 
-	if(waveBlocks[i].dwFlags & WHDR_PREPARED)
-	waveOutUnprepareHeader(hWaveOut, &waveBlocks[i], sizeof(WAVEHDR));
+		if(waveBlocks[i].dwFlags & WHDR_PREPARED)
+			waveOutUnprepareHeader(hWaveOut, &waveBlocks[i], sizeof(WAVEHDR));
+	
 	DeleteCriticalSection(&waveCriticalSection);
 	freeBlocks(waveBlocks);
 	waveOutClose(hWaveOut);
@@ -383,10 +394,12 @@ void writeAudio(HWAVEOUT hWaveOut, LPSTR data, int size) {
 //waveOut... API 
 //DirectSound
 void Speak(EnumEventSound enumEventSound) {
+	int rtnval;
+	
 	switch (enumEventSound) {
 		case EVS_CONNECT_SUCCEEDED:
 			//PlaySound(SOUND_BWZZZ, NULL, SND_ASYNC|SND_NODEFAULT);
-			PlaySound2(SOUND_BWZZZ);
+			rtnval = PlaySound2(SOUND_BWZZZ);
 			break;
 		case EVS_CONNECT_FAILED:
 			PlaySound(SOUND_BERP, NULL, SND_ASYNC|SND_NODEFAULT);
