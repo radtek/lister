@@ -2,14 +2,16 @@ LAYOUT(ListerLayout, 740, 340)
 END_LAYOUT
 
 LAYOUT(NewInstanceLayout, 452, 268)
+	ITEM(Label, dv___0, SetLabel(t_("Instance Name")).SetAlign(ALIGN_RIGHT).LeftPosZ(12, 76).VSizePosZ(24, 225))
 	ITEM(EditStringNotNull, instanceName, LeftPosZ(88, 228).TopPosZ(24, 19))
-	ITEM(EditStringNotNull, instanceAddress, LeftPosZ(88, 228).TopPosZ(96, 19))
-	ITEM(Label, dv___2, SetLabel(t_("Instance Name")).SetAlign(ALIGN_RIGHT).LeftPosZ(12, 76).VSizePosZ(24, 225))
-	ITEM(Label, dv___3, SetLabel(t_("Instance Type")).SetAlign(ALIGN_RIGHT).LeftPosZ(12, 76).TopPosZ(48, 20))
-	ITEM(Label, dv___4, SetLabel(t_("Environment")).SetAlign(ALIGN_RIGHT).LeftPosZ(12, 76).TopPosZ(76, 16))
-	ITEM(Label, dv___5, SetLabel(t_("Address")).SetAlign(ALIGN_RIGHT).LeftPosZ(12, 76).VSizePosZ(96, 156))
+	ITEM(Label, dv___2, SetLabel(t_("Instance Type")).SetAlign(ALIGN_RIGHT).LeftPosZ(12, 76).TopPosZ(48, 20))
 	ITEM(DropGrid, instTypList, Tip(t_("Select the database type.")).LeftPosZ(88, 228).TopPosZ(48, 19))
+	ITEM(Label, dv___4, SetLabel(t_("Environment")).SetAlign(ALIGN_RIGHT).LeftPosZ(12, 76).TopPosZ(76, 16))
 	ITEM(DropGrid, envList, Tip(t_("Can be blank.")).LeftPosZ(88, 228).TopPosZ(72, 19))
+	ITEM(Label, dv___6, SetLabel(t_("Address")).SetAlign(ALIGN_RIGHT).LeftPosZ(12, 76).VSizePosZ(96, 156))
+	ITEM(EditStringNotNull, instanceAddress, LeftPosZ(88, 228).TopPosZ(96, 19))
+	ITEM(Label, dv___8, SetLabel(t_("Port")).SetAlign(ALIGN_RIGHT).LeftPosZ(12, 76).VSizePosZ(116, 136))
+	ITEM(EditInt, portNo, LeftPosZ(88, 228).TopPosZ(116, 19))
 	ITEM(Button, ok, SetLabel(t_("Ok")).Tip(t_("Write to database if name is unique.")).RightPosZ(12, 104).TopPosZ(24, 24))
 	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPosZ(12, 104).TopPosZ(56, 24))
 END_LAYOUT
@@ -86,5 +88,8 @@ LAYOUT(TaskDefWinLayout, 1476, 796)
 	ITEM(DocEdit, fldDepAssignDesc, Tip(t_("Describe what was assigned")).LeftPosZ(60, 504).VCenterPosZ(56, 306))
 	ITEM(Label, lblDepFeedback, SetLabel(t_("Feedback")).LeftPosZ(0, 48).VCenterPosZ(20, 344))
 	ITEM(DocEdit, fldDepFeedback, Tip(t_("Describe what was assigned")).LeftPosZ(52, 512).VCenterPosZ(60, 364))
+END_LAYOUT
+
+LAYOUT(AssignmentDefWinLayout, 860, 532)
 END_LAYOUT
 
