@@ -193,3 +193,41 @@
 /*static*/ String UrpString::ToString(byte in) {
 	return Format("%d", in);
 }
+
+//==========================================================================================	
+String Trim(const String& str) {
+	return TrimBoth(str); // in String.h
+}
+
+//==========================================================================================	
+// Fun function to strip things like wrapping apostrophes, quotes, spaces, brackets, tabs, etc.
+String StripWrapper(const String& str, const String& wrapper, const String &wrapperRight) {
+	String lwrapperRight = wrapperRight;
+	if (lwrapperRight.IsEmpty()) { 
+		if      (wrapper.IsEqual("[")) lwrapperRight = "]";
+		else if (wrapper.IsEqual("{")) lwrapperRight = "}";
+		else if (wrapper.IsEqual("(")) lwrapperRight = ")";
+		else if (wrapper.IsEqual("`")) lwrapperRight = "'";
+		else if (wrapper.IsEqual("/*")) lwrapperRight = "*/";
+		else lwrapperRight = wrapper;
+	}
+	
+	if (str.StartsWith(wrapper) && str.EndsWith(lwrapperRight)) {
+		return str.Mid(wrapper.GetLength(), str.GetLength() - (lwrapperRight.GetLength() + wrapper.GetLength()));
+	}
+	return str;
+}
+
+//==========================================================================================	
+Value IfNull(Value in, Value defval) {
+	if (in.IsNull()) {
+		return defval;
+	}
+	return in;
+}
+
+//==========================================================================================	
+int AsInt(Value in, Value defval) {
+	Value lval = IfNull(in, defval);
+	return (int)lval;
+}
