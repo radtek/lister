@@ -1,6 +1,6 @@
 #include "UrpString.h"
 
-//==========================================================================================	
+//==============================================================================================
 // Crazy idea: Function name maps to the parameters, especially their order.
 /*static*/ String UrpString::ReplaceInWhatWith(const String in, const String what, const String with) {
 	if (what == with) return in;
@@ -41,19 +41,19 @@
     return (out);
 }
 
-//==========================================================================================	
+//==============================================================================================
 /*static*/ String UrpString::Apostrophize(String in) {
 	return "'" + in + "'";
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Trim x number of characters off the end, (IN PLACE)
 /*static*/ void UrpString::TrimOff(String &in, int cnt) {
 	int l = in.GetLength();
 	in.Trim(l - cnt);
 }
 
-//==========================================================================================	
+//==============================================================================================
 /*static*/ bool UrpString::IsIntegerString(String testStr) {
 	String localizedStr = TrimBoth(testStr);
 	const char *s = localizedStr;
@@ -83,7 +83,7 @@
 	return isInteger;
 }
 
-//==========================================================================================	
+//==============================================================================================
 /*static*/ bool UrpString::IsDecimalString(String testStr) {
 	String localizedStr = TrimBoth(testStr);
 	const char *s = localizedStr;
@@ -119,7 +119,7 @@
 	return couldBeDecimal;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Difference of opinion between me and U++ designers: If you assign a string to an int, it
 // should try and convert it, and not error out inexplicably.  So, I didn't change Value,
 // I just added my own function.  I decided I should always pass both types.  Should be a
@@ -134,39 +134,40 @@
 		out = in;
 		return true;
 	} else {
-		throw Exc(CAT << "Unrecognized Value type: " << in.GetType() << " in StringHandler::FromTo where in of Value type, out of int type");
+		throw Exc(CAT << "Unrecognized Value type: " << in.GetType() 
+		<< " in StringHandler::FromTo where in of Value type, out of int type");
 	}
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Support char *in since string constants won't convert to "&" String type.
 /*static*/ bool UrpString::FromTo(const char *in, int &out) {
 	out = atoi(in);
 	return true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Use "&" to avoid a string copy op.
 /*static*/ bool UrpString::FromTo(const String &in, int &out) {
 	out = atoi(in.ToString());
 	return true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // This allows function calls to be completely oblivious to data types
 /*static*/ bool UrpString::FromTo(const int in, int &out) {
 	out = in;
 	return true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // This should work, right?
 /*static*/ bool UrpString::FromTo(const byte in, int &out) {
 	out = in;
 	return true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Ok, most cases this works without an annoying warning!  int is the default for flags
 // that store 1 and 0, for christ's sake!
 /*static*/ bool UrpString::FromTo(const unsigned int in, int &out) {
@@ -178,28 +179,28 @@
 	return true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 /*static*/ String UrpString::GetWord(String spaceDelimStrings, int wordNo) {
 	Vector <String> splitString = Split(spaceDelimStrings, ' ');
 		return splitString[wordNo];
 }
 
-//==========================================================================================	
+//==============================================================================================
 /*static*/ String UrpString::ToString(int in) {
 	return Format("%d", in);
 }
 
-//==========================================================================================	
+//==============================================================================================
 /*static*/ String UrpString::ToString(byte in) {
 	return Format("%d", in);
 }
 
-//==========================================================================================	
+//==============================================================================================
 String Trim(const String& str) {
 	return TrimBoth(str); // in String.h
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Fun function to strip things like wrapping apostrophes, quotes, spaces, brackets, tabs, etc.
 String StripWrapper(const String& str, const String& wrapper, const String &wrapperRight) {
 	String lwrapperRight = wrapperRight;
@@ -218,7 +219,7 @@ String StripWrapper(const String& str, const String& wrapper, const String &wrap
 	return str;
 }
 
-//==========================================================================================	
+//==============================================================================================
 Value IfNull(Value in, Value defval) {
 	if (in.IsNull()) {
 		return defval;
@@ -226,7 +227,15 @@ Value IfNull(Value in, Value defval) {
 	return in;
 }
 
-//==========================================================================================	
+//==============================================================================================
+int IfNull(int in, int defval) {
+	if (in == INT_MIN) {
+		return defval;
+	}
+	return in;
+}
+
+//==============================================================================================
 int AsInt(Value in, Value defval) {
 	Value lval = IfNull(in, defval);
 	return (int)lval;
