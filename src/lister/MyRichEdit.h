@@ -78,9 +78,14 @@ struct MyRichEdit : public RichEdit, public Script {
 	//  Added a zoom text feature.
 	virtual void    MouseWheel(Point p, int zdelta, dword keyflags);
 	void            Layout();
+	void            SplitOnComma(); // Into new lines
+	void            PasteRunOfOraDates();
 	//  Turn a set of lines into a stream for IN clause use
+	void            PasteWithNoWrapper();
 	void            PasteWithApostrophe();
+	void            PasteJoinLinesWithWrapper(const String& wrapper = "", const String &wrapperRight = "");
 	void            PasteConcat(); // Just compress paste all together
+	//  Popup helps you macro expand and merge strings
 	void            PasteAsLineMacro();
 	//  Turn a set of lines into series of text with the clipboard text pasted in
 	String          PasteAsLineMacro(
