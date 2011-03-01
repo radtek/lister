@@ -51,6 +51,35 @@ bool UrpInputBox(String &inputText, const char *title, const char *label) {
 }
 
 //==========================================================================================	
+// Date input box; will eventually support more options, like business date calendars, holiday
+// marking and skipping, BDay counting back/forward.
+bool UrpDateInputBox(String &inputText, const char *title, const char *label, VectorMap<String, Date> &returnDates) {
+	WithDateEntryLayout<TopWindow> dlg;
+	dlg.Sizeable().Zoomable();
+	CtrlLayoutOKCancel(dlg, title);
+	dlg.lblInstructions = label;
+	
+	if(dlg.Execute() == IDOK) {
+		Value vdt = dlg.fldFromDate.GetData();
+		
+		if (!vdt.IsNull()) {
+			Date dt = vdt;
+			returnDates.Add("fromdate", dt);
+		}
+		
+		vdt = dlg.fldToDate.GetData();
+		
+		if (!vdt.IsNull()) {
+			Date dt = vdt;
+			returnDates.Add("todate", dt);
+		}
+		
+		return true;
+	}
+	return false;
+}
+
+//==========================================================================================	
 // It's annoying to deal with empty fields and get MIN_INT or some crap back.
 int GetFieldInt(EditInt &fld, int valIfEmpty /*= -1*/) {
 	Value f = fld.GetData();
