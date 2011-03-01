@@ -54,8 +54,8 @@ Lister::Lister() {
 	// Menu
 	
 	AddFrame(mainMenu);
-	
 	mainMenu.Set(THISBACK(MainMenu));
+	
 	// Vertical Splitter
 	
 	Add(vertSplitter);
@@ -95,6 +95,8 @@ Lister::Lister() {
 	mainGrid.Description("mainGrid");
 	bottomMidPane.Add(mainGrid);
 	mainGrid.SizePos();
+	mainGrid.WhenMenuBar = THISBACK(MainGridContextMenu);
+	
 
 	// Connect to our metadata control database using raw params
 
@@ -104,6 +106,7 @@ Lister::Lister() {
 				, "postgres", "localhost", "postgres"))->enumConnState 
 				!= CON_SUCCEED) 
 	{
+		Exclamation(CAT << "Cannot connect to control, " << controlConnection->connectErrorMessage);
 		exit(-1);
 	}
 
@@ -127,11 +130,11 @@ Lister::Lister() {
 	topRightPane.Add(scriptDropDownList.BottomPos(0, ecy).HSizePos(0, 0)); // Cross entire pane
 
 	String s = Script::GetScriptListQuery();
-	if (controlConnection->SendQueryDataScript(s)) {
-		while(controlConnection->Fetch()) {
-			scriptDropDownList.Add(controlConnection->Get(0), controlConnection->Get(1), controlConnection->Get(2));
-		}
-	}
+//	if (controlConnection->SendQueryDataScript(s)) {
+//		while(controlConnection->Fetch()) {
+//			scriptDropDownList.Add(controlConnection->Get(0), controlConnection->Get(1), controlConnection->Get(2));
+//		}
+//	}
 
 	// Construct Script Editor
 
@@ -202,6 +205,7 @@ Lister::Lister() {
 	testWin.testGrid.WhenCtrlsAction = THISBACK(ClickedTest);
 	testWin.testGrid.Load(controlConnection);
 	
+	maingridselectrow = false;
 	
 	// By spinning this off as a callback, we get the screen displayed while autoconnecting, and plus the cursor on conn grid is properly set to center
 	//SetTimeCallback(100, THISBACK(AutoConnect));		
@@ -222,6 +226,33 @@ void Lister::ViewMappings() {
 //	}
 //	
 //	w->OpenWithConfig();
+}
+
+//==============================================================================================	
+void Lister::ToggleMainGridSelectRow() {
+	maingridselectrow = !maingridselectrow;
+	mainGrid.SelectRow(maingridselectrow);
+}
+
+//==============================================================================================	
+void Lister::CopyColListCommaDelim() {
+	String co;
+	
+	for (int i = 0; i < mainGrid.GetFloatingColumnCount(); i++) {
+		if (i) co << ", ";
+		co << TrimRight(mainGrid.GetFloatingColumn(i).GetName());
+	}
+	
+	WriteClipboardText(co);
+}
+
+//==============================================================================================	
+void Lister::MainGridContextMenu(Bar &bar) {
+	mainGrid.SelectMenu(bar);
+	bar.Add("Select entire row", THISBACK(ToggleMainGridSelectRow))
+		.Check(maingridselectrow)
+		.Help("Select the whole row or select individual cells");
+	bar.Add("Copy columns to comma-delim list", THISBACK(CopyColListCommaDelim));	        
 }
 
 //==============================================================================================	
@@ -621,8 +652,10 @@ void Lister::ProcessTaskScript(int taskScriptRow, bool loadScript, bool executeS
 	ToolBarRefresh(); // We changed connection properties, so enable some options for the user
 	
 	if (loadScript) {
+		// Copy script text to screen editor window (using Rich Text)
 		scriptEditor.SetScript(activeConnection, taskScriptConnId, sob);
-		if (jspec.log) scriptEditor.Log();
+		if (jspec.log) scriptEditor.Log(); // For batches, the log window is running
+		// Update screen dropdowns with db info
 		targetNameList.SetData(sob.targetName);
 		scriptTargetList.SetData(sob.scriptTarget);
 		fastFlushTargetList.SetData(sob.fastFlushTarget? "1":"0");
@@ -877,7 +910,7 @@ void Lister::CancelRunningScriptOnActiveConn() {
 }
 
 //==============================================================================================
-// If Shift key held, replace current script, otherwise add as new script for task	
+// If Shift key held, replace current script with editor script, otherwise add as new script for task	
 void Lister::AttachScriptToTask() {
 	ASSERT(taskGrid.IsCursor());
 	ASSERT(scriptEditor.scriptId >= 0);
@@ -895,6 +928,7 @@ void Lister::AttachScriptToTask() {
 	// Whether new or replacement, we want to use the current selection 
 	if (scriptGrid.IsCursor()) {
 		currentlySelectedTaskScript = scriptGrid.GetCursor();
+	// If we don't have focus, IsCursor is not set.
 	} else if (scriptGrid.IsSelection()) {
 		currentlySelectedTaskScript = scriptGrid.GetFirstSelection();
 	} else {
@@ -933,7 +967,7 @@ void Lister::AttachScriptToTask() {
 	// No shift key, so we are a new script attachment
 	} else {
 		title = "New Task-Script Attachment to task:";
-		processorder = scriptGrid.GetMaxProcessOrder();
+		processorder = scriptGrid.GetMaxProcessOrder() + 10; // Skip a few like we did in BASIC
 	}
 	
 	title << taskName;
@@ -948,13 +982,12 @@ void Lister::AttachScriptToTask() {
 		return;
 	}
 	
-	Value isfastFlushTargetList = fastFlushTargetList.GetData();
-
 	// Convert nulls (no drop down) to false since insert function will choke
+	Value isfastFlushTargetList = IfNull(fastFlushTargetList.GetData(), "0");
 	
-	if (isfastFlushTargetList.IsNull()) {
-		isfastFlushTargetList = "0"; // A string must be passed to the driver; 0 = false
-	}
+//	if (isfastFlushTargetList.IsNull()) {
+//		isfastFlushTargetList = "0"; // A string must be passed to the driver; 0 = false
+//	}
 
 	// If user does not select a value, enforce one.
 	Value scriptTargetListSelection = scriptTargetList.GetData();
@@ -977,16 +1010,17 @@ void Lister::AttachScriptToTask() {
 	
 	if (replaceCurrentlySelectedTaskScript) {
 		scriptMap = "update relations set "
-							   "  fromid           = %d"
-							   ", toid             = %d"
-							   ", fromtbid         = %d"
-							   ", totbid           = %d"
-							   ", why              = %s"
-						       ", connid           = %d"
+							   "  fromid           =  %d "
+							   ", toid             =  %d "
+							   ", fromtbid         =  %d "
+							   ", totbid           =  %d "
+							   ", why              =  %s "
+						       ", connid           =  %d "
 							   ", targetname       = '%s'"
-						       ", scripttarget     = %d"
+						       ", scripttarget     =  %d "
 						       ", fastflushtarget  = '%s'"
-						       ", rowlimit         = %d"  
+						       ", rowlimit         =  %d "  
+						       ", processorder     =  %d "
 						;	   
 		updateMap = " where relid = %d";
 	} else {
@@ -996,13 +1030,14 @@ void Lister::AttachScriptToTask() {
 									    ",      fromtbid"
 									    ",          totbid"
 									    ",              why"
-									    ",                    connid"
-									    ",                       targetname"
-									    ",                             scripttarget"
-									    ",                                 fastflushtarget" // "0" or "1"
-									    ",                                        rowlimit"
+									    ",                  connid"
+									    ",                      targetname"
+									    ",                            scripttarget"
+									    ",                                fastflushtarget" // "0" or "1"
+									    ",                                      rowlimit"
+									    ",                                          processorder"
 									    ")"
-		                       " values(%d, %d, %d, %d, %s, %d, '%s', %d, '%s', %d)"
+		                       " values(%d, %d, %d, %d, %s, %d, '%s', %d, '%s', %d, %d)"
 		                       ;
 	}
 	
@@ -1012,11 +1047,12 @@ void Lister::AttachScriptToTask() {
 		                       ,                OB_TASKS
 		                       ,                    OB_SCRIPTS
 		                       ,                        controlConnection->PrepTextDataForSend(why)
-		                       ,                              scriptEditor.connId
-		                       ,                                  targetNameList.GetData()
-		                       ,                                        scriptTargetListSelection
-		                       ,                                            isfastFlushTargetList
-		                       ,											      GetFieldInt(fldRowLimit) // Null becomes -1
+		                       ,                            scriptEditor.connId
+		                       ,                                targetNameList.GetData()
+		                       ,                                      scriptTargetListSelection
+		                       ,                                          isfastFlushTargetList
+		                       ,											    GetFieldInt(fldRowLimit) // Null becomes -1
+		                       ,                                                    processorder
 		                       );
 		         
 	if (!updateMap.IsEmpty()) {
@@ -1143,6 +1179,9 @@ void Lister::MyToolBar(Bar& bar) {
 	bar.Add(scriptTargetList, 85); //.Tip("What type of target does the script output to?");
 	bar.Add(fastFlushTargetList, 75); //.Tip("Truncate the target or leave as is?");
 	bar.Add(fldRowLimit, 65);
+	bar.Add(chkAddSepToOutput);
+	bar.Add(outFldSepWhenValChange, 66);
+	bar.Add(fldSepRowCount, 15);
 	
 	//CtrlImg::exclamation(), CtrlImg::smallright(), CtrlImg::open(), CtrlImg::undo(), CtrlImg::remove
 	//smallcheck, spinup3, smallreporticon, save, Plus, Minus, Toggle, help
@@ -1210,6 +1249,9 @@ void Lister::ScriptExecutionHandler(Script::ScriptTarget pscriptTarget) {
 		,	scriptEditor.GetScriptRichText()
 		,	GetFieldInt(fldRowLimit)
 		,	targetNameList.GetData()
+		,	chkAddSepToOutput.Get()
+		,	outFldSepWhenValChange.GetData()
+		,	AsInt(fldSepRowCount.GetData(), 1) // Default to 1 row sep (if separating)
 	);
 	
 	jspec.outputStat->SetStatus("Calling runner");
