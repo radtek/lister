@@ -135,7 +135,7 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 	} else if (sob.scriptTarget == Script::SO_SCREEN) { // load to screen grid
 
 		// Hmmmm, should support append to end of screen
-		rowcount = LoadIntoScreenGridFromConnection(sob.outputGrid, jobSpec);
+		rowcount = LoadIntoScreenGridFromConnection(sob.outputGrid, jobSpec, sob);
 		LogLine(CAT << "Output " << rowcount << " to screen.");
 	}
 	
@@ -342,6 +342,11 @@ void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobS
 		if (i) script << ", ";
 		
 		int actualwidth = ci.width;
+		
+		// Due to some bugs in ODBC determination of size, we must trap negative widths
+		
+		if (actualwidth <= 0) actualwidth = 200;
+		
 		String datadef;
 
 		// The data width in ci does not define the expanded string width needed to store these
@@ -363,7 +368,7 @@ void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobS
 }
 
 //==============================================================================================
-int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobSpec &jobSpec) {
+int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobSpec &jobSpec, Script &sob) {
 	int colCount = connection->GetColumns();
 	bool gridStyle = false;
 	bool tabStyle = !gridStyle;
@@ -388,11 +393,22 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 		}
 	}
 
+	// Fetch all column definitions and create Grid columns to match
+	
+	int sepcolno = -1;
+	
 	for (int i = 0; i < colCount; i++) {
 		const SqlColumnInfo& ci = connection->GetColumnInfo(i);
 		int w = GetTextSize(ci.name, StdFont()).cx + 14;
 		outputGrid->AddColumn(ci.name).Width(w);
 		outputGrid->SetColWidth(i + outputGrid->indicator, w);
+		
+		// If the user wants to separate groups of rows when a value changes, we need the column # to watch
+		// so we convert the requested name to an index.
+		if (sob.addSepToOutput && ci.name == sob.outFldSepWhenValChange) {
+			sepcolno = i;
+		}
+		
 		cw[i] = w;
 		
 		if (jobSpec.log) {
@@ -411,11 +427,13 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 		LogLineUnembellished(logLine);
 	}
 
-	// Fetch data and display
 	Progress pi;
 	pi.SetText("Fetched %d line(s)");
 
 	int rc = 0;		
+	Value prevSepFldValue;
+	
+	// Fetch data and display
 
 	while(connection->Fetch()) {
 		if (tabStyle) {
@@ -437,6 +455,25 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 				cw[i] = Upp::max(cw[i], (int)(GetTextSize(StdFormat(row[i]), StdFont()).cx + 14));
 			}
 		}
+
+		// Test for change in grouping value, so we can sep out for copy to Excel		
+		if (rc > 1 && sob.addSepToOutput && sepcolno >= 0) {
+			Value curSepFldValue = row.At(sepcolno);
+			// Compare values
+			if (curSepFldValue != prevSepFldValue) {
+				
+				for (int j=0; j < sob.sepRowCount; j++) {
+					outputGrid->Add(); // Add blank line
+				}
+			}
+		}
+
+		if (sepcolno >=0) {		
+			prevSepFldValue = row.At(sepcolno);
+		}
+
+		// Write entire line to grid
+		
 		outputGrid->Add(row);
 		
 		// Log output columns
