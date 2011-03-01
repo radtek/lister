@@ -19,7 +19,7 @@ protected:
 	void RebuildTableFromConnection(String outputTable, JobSpec &jobSpec);
 	int LoadIntoTableFromConnectionPREP(String outputTable, int rowLimit, JobSpec &jobSpec);
 	int LoadIntoTableFromConnectionCOPY(String outputTable, int rowLimit, JobSpec &jobSpec);
-	int LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobSpec &jobSpec);
+	int LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobSpec &jobSpec, Script &sob);
 
 public:
 	CursorHandler(Connection *pcontrolConnection, Connection *pconnection);
