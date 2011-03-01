@@ -5,12 +5,17 @@
 #include "UrpGridCommon.h"
 
 #define HIDDEN_COLUMN -2 // TODO: Being used?
+#define NOSELECTION   -4
 
 class UrpSqlGrid: public SqlArray, public UrpGridCommon {
 public:
+	typedef UrpSqlGrid CLASSNAME;
+
 	int           lastinsertedpkid;
 	Callback      WhenNeedLastInsertedPkId;
 	              UrpSqlGrid();
+	void          DragRow(); // Support drag and drop; May not be that useful.
+	void          DropRow(int line, PasteClip& d); // except in taskscripts ordering/re-ordering easily.
 	// Override since the standard function expects the pk to be named "id" in order to fetch
 	// from Postgre sequence.
 	virtual bool  UpdateRow();
