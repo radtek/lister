@@ -28,6 +28,9 @@ public:
 	OutputGrid             *outputGrid; // For screen output
 	int                     rowLimit;
 	int						processOrder; // Order to process and list scripts in per task
+	bool                    addSepToOutput;
+	String                  outFldSepWhenValChange; // Name of the field to watch when streaming rows out to screen
+	int                     sepRowCount; // How many blank rows? between groups of rows with same value
 	
 	Script();
 	Script(OutputGrid *poutputGrid);
@@ -40,6 +43,9 @@ public:
 	,   RichText                  pscriptRichText
 	,	int                       prowLimit
 	,	String                    ptargetName
+	,	bool                      paddSepToOutput
+	,	String                    pfldSepWhenChange
+	,	int                       psepRowCount
 	);
 
 	static String          GetScriptListQuery();
