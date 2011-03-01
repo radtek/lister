@@ -1,7 +1,9 @@
 #include "UrpSqlGrid.h"
 #include <float.h>
+#include <lister/Urp/UrpString.h> // IfNull
 
 #define HIDDEN_COLUMN -2
+#define NOSELECTION   -4
 
 //==============================================================================================
 UrpSqlGrid::UrpSqlGrid() : SqlArray(), UrpGridCommon() {
@@ -40,6 +42,38 @@ UrpSqlGrid::UrpSqlGrid() : SqlArray(), UrpGridCommon() {
 //GRIDCTRL		FixedPaste();
 
 //	.SetDisplay()
+	WhenDrag       = THISBACK(DragRow);
+	WhenDropInsert = THISBACK(DropRow);
+	
+}
+
+//==============================================================================================
+void UrpSqlGrid::DragRow() {
+	if(this->DoDragAndDrop(InternalClip(*this, "array"), this->GetDragSample()) == DND_MOVE)
+		this->RemoveSelection();
+}
+
+//==============================================================================================
+void UrpSqlGrid::DropRow(int line, PasteClip& d) {
+	if(AcceptInternal<UrpSqlGrid>(d, "array")) {
+		const UrpSqlGrid& src = GetInternal<UrpSqlGrid>(d);
+		bool self = &src == this;
+		Vector< Vector<Value> > data;
+		for(int i = 0; i < src.GetCount(); i++) {
+			if(src.IsSel(i)) {
+				Vector<Value> &dline = data.Add();
+				Value v;
+				int floatingColumnCount = GetFloatingColumnCount() + 1;
+				for (int j = 0; j < floatingColumnCount; j++) {
+					v = src.Get(i, j);
+					dline.Add(v);
+				}
+			}
+		}
+		
+		this->InsertDrop(line, data, d, self);
+		this->SetFocus();
+	}
 }
 
 //==============================================================================================
@@ -168,7 +202,6 @@ Value UrpSqlGrid::GetMaxValue(Id column) {
 	int maxi = INT_MIN; // http://en.wikipedia.org/wiki/Limits.h
 	double maxd = DBL_MIN; // http://en.wikipedia.org/wiki/Float.h
 	String maxs = "";
-	dword vtype;
 	
 	// Cache the data type once (All columns same type??)
 	
@@ -231,12 +264,22 @@ Value UrpSqlGrid::GetMaxValue(Id column) {
 void UrpSqlGrid::Xmlize(XmlIO xml) {
 	VectorMap<String, int> floatingColumnWidths;
 	static VectorMap<String, int> requestedColumnWidths;
+	int rowselected;
 
-//GRIDCTRL		Absolute(); // Allows settings to take affect
 	HeaderObject().Absolute();
 	
 	if (xml.IsLoading()) {
-		xml("columnwidths", floatingColumnWidths); // Read from store
+		// Restore last known row selection
+		xml("rowselected", rowselected);
+		// Trap if no such attribute
+		if (IfNull(rowselected, NOSELECTION) != NOSELECTION) {
+			SetCursor(rowselected);
+			CenterCursor();
+			Select(rowselected, true /*sel*/); // Trigger click?
+		}
+		
+		// Read vector from store
+		xml("columnwidths", floatingColumnWidths);
 		int floatingColumnCount = GetFloatingColumnCount();
 		for (int i = 0; i < floatingColumnCount; i++) {
 			String colIdName = GetFloatingColumnId(i).ToString();
@@ -262,13 +305,23 @@ void UrpSqlGrid::Xmlize(XmlIO xml) {
 
 			int actualColWidth = GetFloatingColumnWidth(i);
 			if (actualColWidth != colWidth) {
-//					ASSERT(actualColWidth - colWidth == 1); // Any other value is unexpected
 				requestedColumnWidths.Add(colIdName, colWidth);
 				// GridCtrl Adjusted the width unaccountably, so we have to save a marker to adjust out 
 				// Impossible to detect user calls to resize, since no when resize clause
 			}
 		}
+		
+	// We are in storing mode
 	} else {
+		// Save the first selection the user made
+		if (IsSelection()) {
+			rowselected = GetFirstSelection();
+		} else {
+			rowselected = NOSELECTION;
+		}
+
+		xml("rowselected", rowselected);
+
 		for (int i = 0; i < GetFloatingColumnCount(); i++) {
 			String colIdName = GetFloatingColumnId(i).ToString();
 			int colWidth = GetFloatingColumnWidth(i);
@@ -285,9 +338,9 @@ void UrpSqlGrid::Xmlize(XmlIO xml) {
 			}
 			
 			floatingColumnWidths.FindAdd(colIdName, colWidth);  // In case of dups, we only add the first one
-			LOG("HIT");
 		}
 		
 		xml("columnwidths", floatingColumnWidths); // Write to store
 	}
+	
 }
