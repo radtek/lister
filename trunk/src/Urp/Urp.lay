@@ -11,3 +11,13 @@ LAYOUT(MyEditStringLayout, 612, 124)
 	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPosZ(4, 80).BottomPosZ(6, 22))
 END_LAYOUT
 
+LAYOUT(DateEntryLayout, 400, 200)
+	ITEM(Label, lblFromDate, SetLabel(t_("From")).LeftPosZ(20, 36).TopPosZ(68, 19))
+	ITEM(DropDate, fldFromDate, LeftPosZ(60, 104).TopPosZ(68, 19))
+	ITEM(Label, lblToDate, SetLabel(t_("To")).LeftPosZ(196, 36).TopPosZ(68, 19))
+	ITEM(DropDate, fldToDate, LeftPosZ(232, 104).TopPosZ(68, 19))
+	ITEM(Button, ok, SetLabel(t_("Ok")).RightPosZ(8, 80).BottomPosZ(37, 23))
+	ITEM(Button, cancel, SetLabel(t_("Cancel")).HSizePosZ(312, 8).BottomPosZ(13, 19))
+	ITEM(Label, lblInstructions, SetLabel(t_("String command with [[INPUT]] or [[INPUT1]], [[INPUT2]] in it")).HSizePosZ(4, 4).TopPosZ(4, 40))
+END_LAYOUT
+
