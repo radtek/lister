@@ -3,9 +3,10 @@
 
 #include <PostgreSQL/PostgreSQL.h>
 
+#define SCHEMADIALECT <PostgreSQL/PostgreSQLSchema.h>
 #define MODEL <lister/lister/database.sch>
 
-#define SCHEMADIALECT <PostgreSQL/PostgreSQLSchema.h>
 #include "Sql/sch_header.h"
+//#include <lister/Sql/sch_schema.h>
 
 #endif
