@@ -727,6 +727,7 @@ ConnectionFactory::~ConnectionFactory() {
 }
 
 //==============================================================================================
+// Connections are just live connections, so no automatic connecting here.
 Connection *ConnectionFactory::GetConnection(String connName) {
 	if (connName.IsEmpty()) return NULL; // Empty for a new row, for instance
 	ASSERT(!connName.IsEmpty());
@@ -734,7 +735,7 @@ Connection *ConnectionFactory::GetConnection(String connName) {
 }
 
 //==============================================================================================
-Connection *ConnectionFactory::Connect(TopWindow *win, int connId, Connection *pcontrolConnection/* = NULL*/) {
+Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFoundInPool /*=false*/, Connection *pcontrolConnection/* = NULL*/) {
 	Connection *lcontrolConnection = NULL;
 	
 	// User passed a new control connection, we will use locally temporarily for this connection
@@ -743,7 +744,7 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, Connection *p
 	// If they passed a new control connection and we don't have a shared controlconnection already established, we'll use the new one as a shared one
 	if (lcontrolConnection && !controlConnection) controlConnection = lcontrolConnection;
 	
-	// If they didn't pass us a anew control connection then they must want to use the shared one
+	// If they didn't pass us a new control connection then they must want to use the shared one
 	if (!lcontrolConnection) lcontrolConnection = controlConnection;
 	
 	// If there wasn't a shared control connection set up, then we can't look up any other connection information from a control database
@@ -777,6 +778,13 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, Connection *p
 	String loginPwd 		= lcontrolConnection->Get(4);
 	String instanceAddress 	= lcontrolConnection->Get(7);
 	String dbName 			= lcontrolConnection->Get(12);
+	
+	if (useIfFoundInPool) {
+		Connection *conn = GetConnection(connName);
+		if (conn != (Connection *)NULL) {
+			return conn;
+		}
+	}
 	
 	return Connect(
 			win
