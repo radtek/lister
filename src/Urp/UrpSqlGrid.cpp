@@ -63,6 +63,7 @@ void UrpSqlGrid::DropRow(int line, PasteClip& d) {
 			if(src.IsSel(i)) {
 				Vector<Value> &dline = data.Add();
 				Value v;
+				// For some inexplicable reason we need to add one to get all the columns.  Why?
 				int floatingColumnCount = GetFloatingColumnCount() + 1;
 				for (int j = 0; j < floatingColumnCount; j++) {
 					v = src.Get(i, j);
@@ -72,6 +73,11 @@ void UrpSqlGrid::DropRow(int line, PasteClip& d) {
 		}
 		
 		this->InsertDrop(line, data, d, self);
+		
+		if (WhenDropComplete) {
+			WhenDropComplete(line, src.GetCount());
+		}
+		
 		this->SetFocus();
 	}
 }
@@ -267,7 +273,7 @@ void UrpSqlGrid::Xmlize(XmlIO xml) {
 	int rowselected;
 
 	HeaderObject().Absolute();
-	
+
 	if (xml.IsLoading()) {
 		// Restore last known row selection
 		xml("rowselected", rowselected);
