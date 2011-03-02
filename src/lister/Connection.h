@@ -129,7 +129,7 @@ public:
 	~ConnectionFactory();
 	static String ControlInstanceType();
 	Connection *GetConnection(String connName); // Fetch a connection if it allready exists and is open, else return null
-	Connection *Connect(TopWindow *win, int connId, Connection *pcontrolConnection = NULL);
+	Connection *Connect(TopWindow *win, int connId, bool useIfFoundInPool = false, Connection *pcontrolConnection = NULL);
 	// Connection factory (Takes window for async connection spinning.
 	// Assumption: connName is unique per connection.  No support for multiple connections per connection definition
 	Connection *Connect(
