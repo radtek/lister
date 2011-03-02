@@ -14,7 +14,10 @@ NAMESPACE_UPP
 
 // Postgre -> Value types
 // Bytea_v values are stored as bytea data, but recived as string type
+// These are scanners for closing dup of character at (s), ' or " only ones that work
 const char *PostgreSQLReadString(const char *s, String& stmt);
+// This is for /* */
+const char *PostgreSQLReadStringComm(const char *s, String& stmt);
 
 bool PostgreSQLPerformScript(const String& text,
 #ifdef NOAPPSQL
