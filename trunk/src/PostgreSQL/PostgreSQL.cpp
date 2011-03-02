@@ -99,7 +99,7 @@ const char *PostgreSQLReadString(const char *s, String& stmt)
 {
 	//TODO: to clear this, currently this is based on sqlite
 	stmt.Cat(*s);
-	int c = *s++;
+	int c = *s++; // Fetch what character we are looking for opposite match: ' or "
 	for(;;) {
 		if(*s == '\0') break;
 		else
@@ -108,9 +108,35 @@ const char *PostgreSQLReadString(const char *s, String& stmt)
 			s += 2;
 		}
 		else
-		if(*s == c) {
+		if(*s == c) { // Found closing character (won't work with /* */)
 			stmt.Cat(c);
 			s++;
+			break;
+		}
+		else
+		if(*s == '\\') {
+			stmt.Cat('\\');
+			if(*++s)
+				stmt.Cat(*s++);
+		}
+		else
+			stmt.Cat(*s++);
+	}
+	return s;
+}
+
+/* Only for comments / * * / */
+const char *PostgreSQLReadStringComm(const char *s, String& stmt)
+{
+	stmt.Cat(*s++);
+	stmt.Cat(*s);
+	for(;;) {
+		if(*s == '\0') break;
+		else
+		if(*s == '*' && s[1] == '/') { // Found closing comment marker
+			stmt.Cat(s[0]);
+			stmt.Cat(s[1]);
+			s++; s++; // Skipping over
 			break;
 		}
 		else
@@ -143,6 +169,9 @@ bool PostgreSQLPerformScript(const String& txt, StatementExecutor& se, Gate2<int
 			else
 			if(*text == '\"')
 				text = PostgreSQLReadString(text, stmt);
+			else
+			if(*text == '/' && text[1] == '*')
+				text = PostgreSQLReadStringComm(text, stmt);
 			else
 				stmt.Cat(*text++);
 		}
@@ -486,6 +515,10 @@ bool PostgreSQLConnection::Execute()
 	while(s < statement.End())
 		if(*s == '\'' || *s == '\"')
 			s = PostgreSQLReadString(s, query);
+		else
+		// Added to deal with ? inside comments breaking execution
+		if(*s == '/' && s[1] == '*')
+			s = PostgreSQLReadStringComm(s, query);
 		else {
 			if(*s == '?')
 				query.Cat(param[pi++]);
