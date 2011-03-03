@@ -20,6 +20,7 @@ Script::Script(
 	,	bool                      paddSepToOutput
 	,	String                    poutFldSepWhenValChange
 	,	int                       psepRowCount
+	,	int                       ptaskScriptId/* = UNKNOWN*/ // Not always set if not dealing with a taskscript grid.
 	)
 {
 	scriptTarget                = pscriptTarget;
@@ -32,12 +33,14 @@ Script::Script(
 	addSepToOutput              = paddSepToOutput;
 	outFldSepWhenValChange      = poutFldSepWhenValChange;
 	sepRowCount                 = psepRowCount;
+	taskScriptId                = ptaskScriptId;
 }
 
 //==============================================================================================
 Script::Script(OutputGrid *poutputGrid) {
 	scriptTarget                = SO_SCREEN;
 	scriptId                    = UNKNOWN;
+	taskScriptId                = UNKNOWN;
 	outputGrid                  = poutputGrid; // Can be null.  Connection object will break if executed and this is not set and Script Target is screen
 }
 
