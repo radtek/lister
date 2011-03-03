@@ -121,6 +121,7 @@ public:
 	void              MyToolBar(Bar& bar); // Define the toolbar over the script editor.
 	virtual void      Run(bool appmodal = false); // Called from main.cpp. to open the main window
 	void              ScriptExecutionHandler(Script::ScriptTarget pscriptTarget);
+	void              ConnRunScriptOutputToScreen(); // Connect to saved connid in task script, not current connection
 	void              RunScriptOutputToScreen(); // Load to grid only
 	void              RunScriptOutputToTable(); // Load output of script into a table in control db.
 	bool              Key(dword key, int count);
