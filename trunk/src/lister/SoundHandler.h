@@ -19,6 +19,9 @@ enum EnumEventSound {
 	,	EVS_INSERT_CANCELLEDBYUSER
 	,	EVS_INSERT_FAILED
 
+	,	EVS_SAVE_SUCCEEDED
+	,	EVS_SAVE_FAILED
+
 };
 
 //==========================================================================================	
