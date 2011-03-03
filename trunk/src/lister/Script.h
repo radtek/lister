@@ -19,6 +19,7 @@ public:
 	
 	int                     scriptId // key from scripts table
 	,                       originalScriptId; // Should populate so original script can bne updated when shift key is held down
+	int                     taskScriptId;           // If taken from taskscript grid, remember for updating.
 	ScriptTarget            scriptTarget; // Screen or table?
 	String                  targetName; // Table name if target is a table
 	String                  scriptPlainText; // text
@@ -46,6 +47,7 @@ public:
 	,	bool                      paddSepToOutput
 	,	String                    pfldSepWhenChange
 	,	int                       psepRowCount
+	,	int                       ptaskScriptId = UNKNOWN // Not always set if not dealing with a taskscript grid.
 	);
 
 	static String          GetScriptListQuery();
