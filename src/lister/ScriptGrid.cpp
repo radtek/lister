@@ -6,7 +6,25 @@
 
 //==============================================================================================
 ScriptGrid::ScriptGrid() : UrpSqlGrid() {
-	
+	WhenDropComplete = THISBACK(DroppedNewRows);
+}
+
+//==============================================================================================
+void ScriptGrid::RebuildOrder() {
+	for (int i = 0; i < GetCount(); i++) {
+		// Cursor must be set so that Set(int ii, const Value& v) is called and modify bit
+		// is set.  If other than cursor, then no mod bit, so no write out.
+		SetCursor(i);
+		Set(PROCESSORDER, i);
+		UpdateRow();
+	}
+}
+
+//==============================================================================================
+void ScriptGrid::DroppedNewRows(int line, int howmanylines) {
+	RebuildOrder();
+	// Reselect
+	Select(line);
 }
 
 //==============================================================================================
@@ -165,7 +183,7 @@ int ScriptGrid::GetRelId(int row) {
 	return Get(row, RELID);
 }
 
-//==========================================================================================	
+//==============================================================================================
 String ScriptGrid::GetWhy(int row) {
 	return Get(row, WHY);
 }
@@ -177,6 +195,12 @@ bool ScriptGrid::GetFastFlushTarget(int row) {
 	String v = Get(row, FASTFLUSHTARGET);
 	return (v == "1");
 }
+
+//==============================================================================================
+void ScriptGrid::UpdateTaskScriptGrid(int pscriptId, String pscript) {
+	ReQuery();
+}
+
 
 
 //
