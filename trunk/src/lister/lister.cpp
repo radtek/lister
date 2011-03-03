@@ -536,6 +536,9 @@ void Lister::SaveScript() {
 			return;
 		}
 		
+		// For now, we are just updating the script where ever script id is found in task script grid.
+		// Later we will have to update the specifics to the specific taskscript.
+		scriptGrid.UpdateTaskScriptGrid(scriptId, script);
 		scriptEditor.scriptId = scriptId;
 		Speak(EVS_SAVE_SUCCEEDED);
 		scriptEditor.ClearModify();  // Saved, or else we won't be able to attach it to a task
@@ -1163,15 +1166,15 @@ void Lister::ToolBarRefresh() {
 void Lister::MyToolBar(Bar& bar) {
 	
 	//__________________________________________________________________________________________
-	// Save editor text to its Script Id, regardless of selection to left
+	// Save editor text to its Script Id, regardless of selection to left (if its modified)
 	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty()
-			&& scriptEditor.IsModified(), "File", MyImages::save16(), THISBACK(SaveScript)).Tip("Save Script")
+			&& scriptEditor.IsModified(), "File", MyImages::save16(), THISBACK(SaveScript)).Tip("Save/Overwrite Script")
 		.Key(K_CTRL_S);
 	
 	//__________________________________________________________________________________________
 	// Add Script To History
 	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty()
-			&& scriptEditor.IsModified(), "File", CtrlImg::smalldown(), THISBACK(AddScriptToHistory)).Tip("Memorize Script");
+			&& scriptEditor.IsModified(), "File", CtrlImg::smalldown(), THISBACK(AddScriptToHistory)).Tip("Save as new Script");
 	
 	//__________________________________________________________________________________________
 	// Create Test From Script if we have an id
@@ -1187,6 +1190,13 @@ void Lister::MyToolBar(Bar& bar) {
 		 THISBACK(BrowseTests)).Tip("Browse and edit tests");
 		 
 	//__________________________________________________________________________________________
+	// Connect & Execute Script against current connection
+	bar.Add( // Only allow execution if there is a script and a connection
+		(!scriptEditor.GetScriptPlainText().IsEmpty() 
+		 && !scriptEditor.connection), "File", MyImages::connectruntoscreen16(), 
+		 THISBACK(ConnRunScriptOutputToScreen)).Tip("Connect, execute Script and output to a grid on the screen");
+
+	//__________________________________________________________________________________________
 	// Execute Script against current connection
 	bar.Add( // Only allow execution if there is a script and a connection
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
@@ -1201,7 +1211,7 @@ void Lister::MyToolBar(Bar& bar) {
 		 THISBACK(RunScriptOutputToTable)).Tip("Execute Script and create a table in the control database");
 	        
 	//__________________________________________________________________________________________
-	// Cancel a running Script
+	// Cancel a running Script (Buggy)
 	bar.Add(
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && scriptEditor.connection
@@ -1335,6 +1345,27 @@ void Lister::ScriptExecutionHandler(Script::ScriptTarget pscriptTarget) {
 // table in the local database.
 void Lister::RunScriptOutputToTable() {
 	ScriptExecutionHandler(Script::SO_TABLE /* load into table, leave grid empty */);
+}
+
+//==============================================================================================
+// Connect, Execute the script in the script editor against the active connection	
+void Lister::ConnRunScriptOutputToScreen() {
+	// Connect
+	int connId = scriptEditor.connId;
+	if (connId == UNKNOWN) {
+		NotifyUser("No connection attached to this script");
+		return;
+	}
+	Connection * runConn = connectionFactory.Connect(this, connId);
+	if (!runConn) {
+		NotifyUser("Error trying to connect.");
+		return;
+	}
+	
+	// Get all our ducks in a row.  ScriptExecutionHandler looks for an active connection.
+	// Q: Will it freak since we didn't actually select the row in the conn grid?
+	SetActiveConnection(runConn);
+	ScriptExecutionHandler(Script::SO_SCREEN /* Don't load into table, load into grid */);
 }
 
 //==============================================================================================
