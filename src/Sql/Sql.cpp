@@ -145,8 +145,11 @@ bool Sql::Execute() {
 	session.SetStatus(SqlSession::END_EXECUTING);
 	if(!b)
 		session.SetStatus(SqlSession::EXECUTING_ERROR);
-	for(int i = 0; i < cn->info.GetCount(); i++)
-		cn->info[i].name = ToUpper(cn->info[i].name);
+	
+	// Ok, you fucking Rusky.  Why are you upper casing column names? I need to keep the original names for case-sensitive system like sybase.
+	
+//	for(int i = 0; i < cn->info.GetCount(); i++)
+//		cn->info[i].name = ToUpper(cn->info[i].name);
 
 	session.SetStatus(SqlSession::AFTER_EXECUTING);
 	return b;
