@@ -186,11 +186,6 @@
 }
 
 //==============================================================================================
-/*static*/ String UrpString::ToString(int in) {
-	return Format("%d", in);
-}
-
-//==============================================================================================
 /*static*/ String UrpString::ToString(byte in) {
 	return Format("%d", in);
 }
@@ -228,6 +223,11 @@ Value IfNull(Value in, Value defval) {
 }
 
 //==============================================================================================
+bool IsNull(int in) {
+	return (in == INT_MIN);
+}
+
+//==============================================================================================
 int IfNull(int in, int defval) {
 	if (in == INT_MIN) {
 		return defval;
@@ -239,4 +239,33 @@ int IfNull(int in, int defval) {
 int AsInt(Value in, Value defval) {
 	Value lval = IfNull(in, defval);
 	return (int)lval;
+}
+
+//==============================================================================================
+String ToString(int in) {
+	return Format("%d", in);
+}
+
+//==============================================================================================
+String ToSQL(String in) {
+	if (in == "" || in == "NULL") {
+		return "NULL";
+	}
+	
+	return in;
+}
+
+//==============================================================================================
+String ToSQL(int in) {
+	if (in == INT_MIN) {
+		return "NULL";
+	}
+	
+	return ToString(in);
+}
+
+//==============================================================================================
+String ToSQL(bool in) {
+	return (in? "1" : "0");
+	// No way to detect null with a bool
 }
