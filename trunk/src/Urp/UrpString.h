@@ -28,7 +28,6 @@ public:
 	                // that store 1 and 0, for christ's sake!
 	static bool     FromTo(const unsigned int in, int &out);
 	static String   GetWord(String spaceDelimStrings, int wordNo);
-	static String   ToString(int in);
 	static String   ToString(byte in);
 };
 
@@ -38,7 +37,12 @@ String              StripWrapper(const String& str, const String& wrapper, const
 Value               IfNull(Value in, Value defval);
                     // Xmlize returns INT_MIN when a value is not found in the xml.
                     // Other functions in U++ use INT_MIN as a Null representor
+bool                IsNull(int in);
 int                 IfNull(int in, int defval);
 int                 AsInt(Value in, Value defval);
+String              ToString(int in);
+String              ToSQL(String in); // If input is empty string, stuff as NULL
+String              ToSQL(int in);
+String              ToSQL(bool in);
 
 #endif
