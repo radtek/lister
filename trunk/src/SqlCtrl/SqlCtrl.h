@@ -1,7 +1,7 @@
 #ifndef SQLCTRL_H
 #define SQLCTRL_H
 
-#include <Sql/Sql.h>
+#include <lister/Sql/Sql.h>
 #include <CtrlLib/CtrlLib.h>
 
 
