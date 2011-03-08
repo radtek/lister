@@ -22,6 +22,7 @@ public:
 	EditString        fldEnvStdName;        // 7) Environment: Dev, UAT, prod.  This is the color
 	EditString        fldConnNote;
 	EditString        fldDbName;	
+	EditInt           fldPortNo;
 	DropGrid          instTypList;
 	DropGrid          instanceList;
 	DropGrid          envList;
@@ -47,6 +48,8 @@ public:
 	int               GetInstTypId          (int row);
 	void              SetInstTypId          (int row, int pinstTypId);
 	String            GetDatabaseName       (int row);
+	String            GetPortNo             (int row);
+	void              SetPortNo             (int row, int pportNo);
 	int               GetEnvId              (int row);
 	void              SetEnvId              (int row, int penvId);
 	int               GetLoginId            (int row);
