@@ -5,11 +5,11 @@
 #include "MacroHandler.h"
 #include "ContextMacros.h" // ExpandMacros
 
-#include <Oracle/Oracle7.h>
-#include <Oracle/Oracle8.h>
-#include <MSSQL/MSSQL.h>
-#include <PostgreSQL/PostgreSQL.h>
-#include <ODBC/ODBC.h>
+#include <lister/Oracle/Oracle7.h>
+#include <lister/Oracle/Oracle8.h>
+#include <lister/MSSQL/MSSQL.h>
+#include <lister/PostgreSQL/PostgreSQL.h>
+#include <lister/ODBC/ODBC.h>
 #include <lister/Urp/UrpInput.h>
 
 //==============================================================================================
