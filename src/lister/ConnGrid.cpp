@@ -14,7 +14,8 @@ Id IDLoginPwd("LoginPwd");
 Id IDInstanceId("InstId");
 Id IDInstanceName("InstanceName"); 
 Id IDInstanceAddress("InstanceAddress"); 
-Id IDInstTypId("InstTypID");                                            // 5) The Id of the server type; for the dropgrid and for updating the database
+Id IDPortNo("PortNo");
+Id IDInstTypId("InstTypID");                                            // The Id of the server type; for the dropgrid and for updating the database
 Id IDInstTypName("InstTypName");    
 Id IDDatabaseName("Database"); // For connections to MS SQL and PostgreSQL, a database attribute should be passed in the connection
 Id IDEnvId("EnvId"); 
@@ -55,6 +56,8 @@ void       ConnGrid::SetInstanceAddress (int row, String pinstAdr) { Set(row, ID
 int        ConnGrid::GetInstTypId       (int row)			    { return Get(row, IDInstTypId); }
 void       ConnGrid::SetInstTypId       (int row, int pinstTypId) { Set(row, IDInstTypId, pinstTypId); }
 String     ConnGrid::GetDatabaseName    (int row)           	{ return Get(row, IDDatabaseName); }
+String     ConnGrid::GetPortNo          (int row)           	{ return ((int)Get(row, IDPortNo) == -1 || IsNull((int)Get(row, IDPortNo)) ? "" : ToString(Get(row, IDPortNo))); }
+void       ConnGrid::SetPortNo          (int row, int pportNo) 	{ Set(row, IDPortNo, pportNo); }
 int        ConnGrid::GetEnvId           (int row)				{ return Get(row, IDEnvId); }
 void       ConnGrid::SetEnvId           (int row, int penvId)   { Set(row, IDEnvId, penvId); }
 int        ConnGrid::GetLoginId         (int row)				{ return Get(row, IDLoginId); }
@@ -97,6 +100,7 @@ void ConnGrid::Build() {
 	AddColumn( IDInstTypId      , "InstTyp"     ).Edit(instTypList       ).SetConvert(instTypList ).Default(-1);
 	AddColumn( IDInstTypName    , "InstTypeNm"  ); // Not really editable yet    
 	AddColumn( IDDatabaseName   , "DbNm"        ).Edit(fldDbName         );
+	AddColumn( IDPortNo         , "PrtNo"       ).Edit(fldPortNo         );
 	AddColumn( IDInstanceAddress, "Address"     ).Edit(fldInstanceAddress).Editable(false);
 	AddColumn( IDEnvId          , "Env"         ).Edit(envList           ).SetConvert(envList     ).Default(-1);
 	AddColumn( IDConnNote       , "Note"        ).Edit(fldConnNote       );
@@ -118,6 +122,13 @@ void ConnGrid::NewInstance() {
 		 	String instAddr = newInstanceWin.instanceAddress.GetData().ToString();
 		 	int instTypId = newInstanceWin.instTypList.GetKey();
 		 	int envId = newInstanceWin.envList.GetKey();
+		 	int portNo;
+		 	Value vportNo = newInstanceWin.portNo.GetData();
+		 	if (vportNo == -1 || vportNo.IsNull()) { 
+		 		portNo = -1;
+		 	} else {
+		 		portNo = vportNo;
+		 	}
 /*
 			String script = SqlStatement
 				(
@@ -135,7 +146,7 @@ void ConnGrid::NewInstance() {
 				q.Column(INSTANCEADDRESS, instAddr);
 				q(INSTTYPID, instTypId);
 				q(ENVID, envId);
-				// PORT
+				q(PORTNO, portNo);
 				;
 
 			String script = SqlStatement(q).Get(PGSQL);
@@ -149,7 +160,7 @@ void ConnGrid::NewInstance() {
 				SetEnvId(row, envId);
 				SetInstTypId(row, instTypId);
 				SetInstanceAddress(row, instAddr);
-				// SetPort
+				SetPortNo(row, portNo);
 				instanceList.FindMove(newInstanceName);
 			}
 		}
@@ -205,7 +216,7 @@ void ConnGrid::NewInstance() {
 
 	// Populate the Connection List so user can select
 	
-	if (!connection->SendQueryDataScript("select ConnId, ConnName, LoginId, LoginStr, LoginPwd, InstanceId, InstanceName, InstanceAddress, InstTypID, InstTypName, dbName, EnvId, EnvStdName from v_conn order by ConnName")) {
+	if (!connection->SendQueryDataScript("select ConnId, ConnName, LoginId, LoginStr, LoginPwd, InstanceId, InstanceName, InstanceAddress, InstTypID, InstTypName, dbName, EnvId, EnvStdName, PortNo from v_conn order by ConnName")) {
 		return;
 	}
 	
@@ -224,6 +235,7 @@ void ConnGrid::NewInstance() {
 		Set(IDInstTypId       , connection->Get("INSTTYPID"      ));
 		Set(IDInstTypName     , connection->Get("INSTTYPNAME"    ));
 		Set(IDDatabaseName    , connection->Get("DBNAME"         ));
+		Set(IDPortNo          , connection->Get( PORTNO          ));
 		Set(IDEnvId           , connection->Get("ENVID"          ));
 	}
 	
@@ -255,8 +267,8 @@ void ConnGrid::AddedNewConnection() {
 		// We do pass a valid instance #, though.
 		String script = Format(" \
 		INSERT INTO v_conn(ConnName, LoginStr, LoginPwd, IsOSAuth, InstanceId, dbName) VALUES \
-		                     ('%s'/*ConnName*/, '%s'/*LoginStr*/, '%s'/*LoginPwd*/, '%s' /*IsOSAuth*/, %d/*InstanceId*/, '%s' /*dbName*/)", 
-		                   GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetOSAuth(row)? "1" : "0", GetInstanceId(row), GetDatabaseName(row));
+		                     ('%s'/*ConnName*/, '%s'/*LoginStr*/, '%s'/*LoginPwd*/, '%s' /*IsOSAuth*/, %d/*InstanceId*/, '%s' /*dbName*/, %s /*portNo*/, %s/*EnvId*/)", 
+		                   GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetOSAuth(row)? "1" : "0", GetInstanceId(row), GetDatabaseName(row), ToSQL(GetPortNo(row)), ToSQL(GetEnvId(row)));
 		int rsp = PromptOKCancel(CAT << "Adding Connection: " << script);
 		if (rsp == 1) {
 			
@@ -267,9 +279,9 @@ void ConnGrid::AddedNewConnection() {
 		}
 	} else {
 		String script = Format(" \
-		UPDATE v_conn set ConnName = '%s', LoginStr = '%s', LoginPwd = '%s', IsOSAuth = '%s', InstanceId = %d, dbName = '%s' \
+		UPDATE v_conn set ConnName = '%s', LoginStr = '%s', LoginPwd = '%s', IsOSAuth = '%s', InstanceId = %d, dbName = '%s', portNo= %s, envId= %s \
 		     WHERE ConnId = %d", 
-		     GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetOSAuth(row)? "1" : "0", GetInstanceId(row), GetDatabaseName(row), GetConnId(row));
+		     GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetOSAuth(row)? "1" : "0", GetInstanceId(row), GetDatabaseName(row), ToSQL(GetPortNo(row)), ToSQL(GetEnvId(row)), GetConnId(row));
 		int rsp = PromptOKCancel(CAT << "Updating Connection: " << script);
 		if (rsp == 1) {
 			connection->SendChangeDataScript(script);
@@ -290,7 +302,13 @@ bool ConnGrid::MeaningfulDataChange() {
 		!IsModified(IDLoginPwd) &&
 		!IsModified(IDInstanceId) &&
 		!IsModified(IDConnNote) &&
-		!IsModified(IDDatabaseName)
+		!IsModified(IDDatabaseName) &&
+		!IsModified(IDPortNo) &&
+		!IsModified(IDEnvId) &&
+		!IsModified(IDInstTypId) &&
+		!IsModified(IDConnNote) &&
+		!IsModified(IDInstanceAddress) &&
+		!IsModified(IDInstanceName)
 		) return false;
 
 	return true;
