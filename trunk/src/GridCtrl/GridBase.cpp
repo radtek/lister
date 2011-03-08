@@ -193,7 +193,7 @@ GridCtrl::ItemRect& GridCtrl::ItemRect::Index(bool b)
 
 String GridCtrl::ItemRect::GetName() const
 {
-	return (*items)[0][id].val;
+	return (*items)[0][id].val; // Not actually returning column name, but top value in column, row 0 cell.
 }
 
 Id GridCtrl::ItemRect::GetAlias() const
