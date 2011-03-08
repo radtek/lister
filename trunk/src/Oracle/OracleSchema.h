@@ -87,7 +87,7 @@
                                              "(" ct ");",\
                                              "alter table @t drop constraint CHK_@t$" #n ";")
 
-#include <Sql/sch_model.h>
+#include <lister/Sql/sch_model.h>
 
 
 #undef INT
