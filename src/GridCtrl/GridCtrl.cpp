@@ -1,10 +1,10 @@
-#include <GridCtrl/GridCtrl.h>
+#include <lister/GridCtrl/GridCtrl.h>
 
 NAMESPACE_UPP
 
 #pragma warning(disable: 4355)
 
-#define TFILE <GridCtrl/GridCtrl.t>
+#define TFILE <lister/GridCtrl/GridCtrl.t>
 #include <Core/t.h>
 
 GridCtrl::GridCtrl() : holder(*this)
