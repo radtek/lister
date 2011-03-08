@@ -49,8 +49,12 @@ void TaskGrid::Load(Connection *pconnection) {
 }
 
 //==========================================================================================	
-int TaskGrid::GetTaskId(int row) {
-	return Get(row, TASKID);
+int TaskGrid::GetTaskId(int row/*=-1*/) {
+	if (row == -1) {
+		return Get(GetCursor(), TASKID);
+	} else {
+		return Get(row, TASKID);
+	}
 }
 
 //==========================================================================================	
