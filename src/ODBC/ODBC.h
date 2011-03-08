@@ -12,12 +12,12 @@ bool   ODBCPerformScript(const String& text, StatementExecutor& executor, Gate2<
 struct MySqlColumnInfo : Moveable<MySqlColumnInfo> {
 	String      name;
 	int         type; // Value type in U++
-	SQLSMALLINT sqltype;
+//	SQLSMALLINT sqltype;
 	int         width;
 	int         precision; //number of total digits in numeric types
 	int         scale;     //number of digits after comma in numeric types
 	bool        nullable;  //true - column can hold null values
-	bool		isbinary;
+//	bool		isbinary;
 };
 
 class ODBCConnection;
