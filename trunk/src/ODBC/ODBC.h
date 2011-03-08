@@ -66,6 +66,7 @@ public:
 	~ODBCSession();
 };
 
+
 END_UPP_NAMESPACE
 
 #endif
