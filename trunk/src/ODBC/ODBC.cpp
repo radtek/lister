@@ -145,7 +145,6 @@ public:
 	virtual Value           GetInsertedId() const;
 	Vector<MySqlColumnInfo>  myinfo;
 
-
 private:
 	friend class ODBCSession;
 
@@ -534,16 +533,16 @@ bool ODBCConnection::Execute()
 	indicator = (SQLLEN *)new SQLLEN[ncol * ROW_FETCH_COUNT];
 	session->current = this;
 	myinfo.Clear();
+for(int i = 0; i < myinfo.GetCount(); i++) {
+		
+		byte *b = rowdata.Get(myinfo[i].name);
+		delete b;
+	}
 	info.Clear();
 	binary.Clear();
 	
 	// Identify all properties of returned data and bind space for fetching
 
-	for(int i = 0; i < myinfo.GetCount(); i++) {
-		
-		byte *b = rowdata.Get(myinfo[i].name);
-		delete b;
-	}
 	rowdata.Clear();
 	
 	String collist; // Create a list of all columns for debugging
@@ -728,6 +727,9 @@ bool ODBCConnection::Fetch0() {
 					delete b;
 				}
 			}
+
+			SQLFreeStmt(session->hstmt, SQL_CLOSE);
+			
 			delete indicator;
 			rowdata.Clear();
 			return false;
