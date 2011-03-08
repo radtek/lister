@@ -4,6 +4,7 @@
 #include "OutputGrid.h"
 #include "OutputStat.h"
 #include "SQLTypes.h"
+#include <lister/Sql/Sql.h>
 
 //==============================================================================================
 CursorHandler::CursorHandler(Connection *pcontrolConnection, Connection *pconnection) {
@@ -415,7 +416,7 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 		
 		OutputColumnDef outputColumnDef;
 		outputColumnDef.name = ci.name;
-		outputColumnDef.sqlType = ci.type;
+		outputColumnDef.sqlType = ci.sqltype;
 		outputColumnDef.sqlTypeName = SQLTypeName(ci.type);
 		outputColumnDef.visibleWidth = w;
 		outputColumnDef.groupNo = -1;
