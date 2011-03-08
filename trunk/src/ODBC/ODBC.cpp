@@ -577,8 +577,8 @@ for(int i = 0; i < myinfo.GetCount(); i++) {
 		String nm((char *)ColumnName);
 		 
 		// My new property
-		f.sqltype = DataType;
-		f.isbinary = false;
+		flegacy.sqltype = DataType;
+		//f.isbinary = false;
 		SQLLEN *indicatorptr = indicator + ((i-1) * ROW_FETCH_COUNT);
 		
 		switch(DataType) { // http://msdn.microsoft.com/en-us/library/ms710150(v=vs.85).aspx
