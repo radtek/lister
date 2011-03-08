@@ -2,14 +2,13 @@
 #define _Urp_UrpShared_h_
 
 #include <CtrlLib/CtrlLib.h>
-#include <GridCtrl/GridCtrl.h>
-#include <DropGrid/DropGrid.h>
-#include <SqlCtrl/SqlCtrl.h>
+#include <lister/GridCtrl/GridCtrl.h>
+#include <lister/DropGrid/DropGrid.h>
+#include <lister/SqlCtrl/SqlCtrl.h>
 #include <CtrlCore/CtrlCore.h>
 #include <plugin/ftp/ftp.h>
 #include <plugin/ftp/lib/ftplib.h>
 #include <Web/Web.h>
-#include <DropGrid/DropGrid.h>
 
 #define CAT String().Cat()
 
