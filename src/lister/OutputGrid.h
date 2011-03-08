@@ -2,6 +2,8 @@
 #define _lister_lister_OutputGrid_h_
 
 #include "shared.h"
+#include "OutputSpec.h"
+
 class Connection;
 
 class OutputGrid : public UrpGrid {
@@ -12,6 +14,7 @@ public:
 	,	SIGNALWEPROCESSEDKEY
 	,	SIGNALWEDIDNOTPROCESSKEY
 	};
+	OutputSpec        outputSpec;  // Reset each time from CursorHandler
 
 	                  OutputGrid();
 	void              Build();
