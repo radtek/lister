@@ -33,6 +33,7 @@ public:
 struct SqlColumnInfo : Moveable<SqlColumnInfo> {
 	String      name;
 	int         type;
+	int         sqltype;
 	int         width;
 	int         precision; //number of total digits in numeric types
 	int         scale;     //number of digits after comma in numeric types
@@ -140,6 +141,7 @@ public:
 	bool   Fetch(Fields fields);
 
 	int    GetRowsProcessed() const                    { return cn->GetRowsProcessed(); }
+	int    GetParseErrorPosition() const               { return cn->GetParseErrorPosition(); } // Added by Jeff
 
 	int    GetColumns() const;
 
