@@ -3,7 +3,7 @@
 
 #ifndef flagNOPOSTGRESQL
 
-#include <Sql/Sql.h>
+#include <lister/Sql/Sql.h>
 #ifdef PLATFORM_WIN32
 #include <libpq-fe.h>
 #elif defined(PLATFORM_POSIX)
