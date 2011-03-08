@@ -3,6 +3,7 @@
 
 #include "shared.h"
 #include "ConnState.h"
+#include "ContextMacros.h"
 #include "SoundHandler.h"
 #include "LogWin.h"
 #include "JobSpec.h"
@@ -56,6 +57,7 @@ public:
 	String                       loginPwd; // Needed to reconnect or change password
 	String                       instanceAddress;
 	String                       dbName; // Can be used complete SQL that doesn' set the default dtabase
+	String                       portNo;
 	Thread                       connectThread;
 	TopWindow                   *topWindow;
 
@@ -95,15 +97,14 @@ public:
 	String PrepOracleScriptForSend(const String script, bool log = false);
 	String PrepForPostgresCopyFrom(const String scriptText);
 	//  Wrap script method implementation and error handling.  Will allow reconnects and reexecutes.
-	bool ProcessQueryDataScript(Script &sob, JobSpec &jspec);
-	String ExpandMacros(String inputText);
-	bool SendQueryDataScript(const char *scriptText, bool silent = false, bool expandMacros = false, bool log = false);
-	bool SendAddDataScript(const char *sqlText, bool silent = false, bool expandMacros = false);
-	bool SendChangeDataScript(const char *sqlText, bool silent = false, bool expandMacros = false);
-	bool SendRemoveDataScript(const char *sqlText, bool silent = false, bool expandMacros = false);
-	bool SendChangeEnvScript(const char *sqlText, bool silent = false, bool expandMacros = false);
-	bool SendQueryEnvScript(const char *sqlText, bool silent = false, bool expandMacros = false);
-	bool SendChangeStructureScript(const char *sqlText, bool silent = false, bool expandMacros = false);
+	bool ProcessQueryDataScript(Script &sob, JobSpec &jspec, ContextMacros *contextMacros);
+	bool SendQueryDataScript(const char *scriptText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false, bool log = false);
+	bool SendAddDataScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	bool SendChangeDataScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	bool SendRemoveDataScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	bool SendChangeEnvScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	bool SendQueryEnvScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	bool SendChangeStructureScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
 	int GetInsertedId(String tableName, String columnName);
 	// Only works for PostgreSQL.
 	int GetPostgreSQLInsertedId(String tableName, String columnName);
@@ -134,7 +135,7 @@ public:
 	// Assumption: connName is unique per connection.  No support for multiple connections per connection definition
 	Connection *Connect(
 		TopWindow *win, String connName, String instanceTypeName
-	,	String loginStr, String loginPwd, String instanceAddress, String dbName = Null, bool log = false);
+	,	String loginStr, String loginPwd, String instanceAddress, String dbName = Null, String portNo = Null, bool log = false);
 };
 
 #endif
