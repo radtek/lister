@@ -2,6 +2,8 @@
 #include "CursorHandler.h"
 #include "Script.h"
 #include "LogWin.h"
+#include "MacroHandler.h"
+#include "ContextMacros.h" // ExpandMacros
 
 #include <Oracle/Oracle7.h>
 #include <Oracle/Oracle8.h>
@@ -128,6 +130,41 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 			<< "UID="		<< loginStr					<< ";"
 			<< "PWD="		<< loginPwd					<< ";"
 			<< "Database="	<< dbName					<< ";"
+			// Trusted_Connection=Yes;
+			;
+			
+		One<MSSQLSession> attemptingsession = new MSSQLSession;
+		
+		//SQLExecDirect(hstmt, "select * from authors; select * from titles", SQL_NTS);'
+		//Excess use of SQLBindCol to bind a result set column to a program variable is expensive because SQLBindCol causes an ODBC driver to allocate memory
+		//Applications can use SQLGetData to retrieve data on a column-by-column basis, instead of binding the result set columns using SQLBindCol. If a result set contains only a couple of rows, then using SQLGetData instead of SQLBindCol is faster, otherwise, SQLBindCol gives the best performance. If an application does not always put the data in the same set of variables, it should use SQLGetData instead of constantly rebinding. Applications can only use SQLGetData on columns that are in the select list after all columns are bound with SQLBindCol. The column must also appear after any columns on which the application has already used a SQLGetData.
+		//All statements executed in a stored procedure, including SELECT statements, generate an "x rows affected" message. Issuing a SET NOCOUNT ON at the start of a large stored procedure can significantly reduce the network traffic between the server and client and improve performance by eliminating these messages. These messages are typically not needed by the application when it is executing a stored procedure.
+		//the application can also use SQLExtendedFetch to retrieve multiple rows at a time from the network buffers.
+		//In a static cursor, the complete result set is built when the cursor is opened.
+		//When using server cursors, each call to SQLFetch, SQLExtendedFetch, or SQLSetPos causes a network roundtrip from the client to the server. All cursor statements must be transmitted to the server because the cursor is actually implemented on the server.
+		
+//		SQLAllocEnv(&henv):
+//		SQLAllocConnect(henv, &hdbc);
+//		SQLAllocStmt(hdbc, &hstmt1);
+//		SQLAllocStmt(hdbc, &hstmt2);
+//		SQLSetConnectOption(hdbc, SQL_CURSOR_TYPE, SQL_CURSOR_DYNAMIC);
+//		SQLSetConnectOption(hdbc, SQL_ROWSET_SIZE, 5);
+//		SQLExecDirect(hstmt1, "select * from authors", SQL_NTS);
+
+
+		connected = attemptingsession->Connect(connStr);
+		session = -attemptingsession;
+	
+	//__________________________________________________________________________________________
+	} else if (instanceTypeName == INSTTYPNM_SYBASE) {
+		instanceType = INSTTYP_SYBASE;
+		connStr 
+			<< "Driver="	<< "{Adaptive Server Enterprise}"	<< ";"
+			<< "Server=" 	<< instanceAddress			<< ";"
+			<< "UID="		<< loginStr					<< ";"
+			<< "PWD="		<< loginPwd					<< ";"
+			<< "Database="	<< dbName					<< ";"
+			<< "Port="		<< portNo 					<< ";"
 			// Trusted_Connection=Yes;
 			;
 			
@@ -435,88 +472,17 @@ String Connection::PrepForPostgresCopyFrom(const String scriptText) {
 //==============================================================================================
 // Migrate logic from CursorHandler.  Traverse fetch and push out to screen or table.
 // Must be here because we want to push around connection pointer, not connection and cursor pointer.
-bool Connection::ProcessQueryDataScript(Script &sob, JobSpec &jspec) {
+bool Connection::ProcessQueryDataScript(Script &sob, JobSpec &jspec, ContextMacros *contextMacros) {
 	CursorHandler cursorHandler(controlConnection, this);
-	bool ran = cursorHandler.Run(sob, jspec);
+	bool ran = cursorHandler.Run(sob, jspec, contextMacros);
 
 	return ran;
 }
 
 //==============================================================================================
-// Convert [[]] codes to values.  Hacky for now.
-String Connection::ExpandMacros(String inputText) {
-
-	String macro;
-	String expansion;
-	Date curDate = GetSysDate();
-	
-	macro = "[[TPLUS1]]";
-	if (inputText.Find(macro) >= 0) {
-		if (DayName(DayOfWeek(curDate)) == "Sunday") {
-			expansion = "2"; // Back two days to Friday
-		} else if (DayName(DayOfWeek(curDate)) == "Monday") {
-			expansion = "3";
-		} else {
-			expansion = "1";
-		}
-		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
-	}	
-
-	macro = "[[TPLUS2]]";
-	if (inputText.Find(macro) >= 0) {
-		if (DayName(DayOfWeek(curDate)) == "Sunday") {
-			expansion = "3"; // Back to Thursday
-		} else if (DayName(DayOfWeek(curDate)) == "Monday") {
-			expansion = "4"; // to Thursday
-		} else if (DayName(DayOfWeek(curDate)) == "Tuesday") {
-			expansion = "4"; // to Friday
-		} else {
-			expansion = "2";
-		}
-		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
-	}	
-
-	macro = "[[TPLUS3]]";
-	if (inputText.Find(macro) >= 0) {
-		if (DayName(DayOfWeek(curDate)) == "Sunday") {
-			expansion = "4"; // Back to Wednesday
-		} else if (DayName(DayOfWeek(curDate)) == "Monday") {
-			expansion = "5"; // Back to Wednesday
-		} else if (DayName(DayOfWeek(curDate)) == "Tuesday") {
-			expansion = "5"; // Back to Thursday
-		} else if (DayName(DayOfWeek(curDate)) == "Wednesday") {
-			expansion = "5"; // Back to Friday
-		} else {
-			expansion = "3";
-		}
-		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
-	}	
-
-	macro = "[[TPLUS4]]";
-	if (inputText.Find(macro) >= 0) {
-		if (DayName(DayOfWeek(curDate)) == "Sunday") {
-			expansion = "5"; // Back to Tuesday
-		} else if (DayName(DayOfWeek(curDate)) == "Monday") {
-			expansion = "6"; // Back to Tuesday
-		} else if (DayName(DayOfWeek(curDate)) == "Tuesday") {
-			expansion = "6"; // Back to Wednesday
-		} else if (DayName(DayOfWeek(curDate)) == "Wednesday") {
-			expansion = "6"; // Back to Thursday
-		} else if (DayName(DayOfWeek(curDate)) == "Thursday") {
-			expansion = "6"; // Back to Friday
-		} else {
-			expansion = "4";
-		}
-		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
-	}	
-
-	return inputText;
-}
-
-//==============================================================================================
 // Wrap script method implementation and error handling.  Will allow reconnects and reexecutes.
 // We don't want to expand macros normally if we are writing to the control db.
-bool Connection::SendQueryDataScript(const char *scriptText, bool silent /*= false*/, bool expandMacros /*= false*/, bool log /*= false*/) {
+bool Connection::SendQueryDataScript(const char *scriptText, ContextMacros *contextMacros, bool silent /*= false*/, bool expandMacros /*= false*/, bool log /*= false*/) {
 	ClearError();
 	static bool retry = false;
 
@@ -525,7 +491,7 @@ bool Connection::SendQueryDataScript(const char *scriptText, bool silent /*= fal
 	String expandedScript;
 	
 	if (expandMacros) {
-		expandedScript = ExpandMacros(scriptText);
+		expandedScript = ExpandMacros(scriptText, contextMacros);
 		if (log) {
 			if (scriptText != expandedScript) {
 				LogLine("Script altered by macros");
@@ -588,33 +554,33 @@ retryQuery:
 }
 
 //==============================================================================================
-bool Connection::SendAddDataScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
-	return SendQueryDataScript(sqlText, silent, expandMacros);
+bool Connection::SendAddDataScript(const char *sqlText, ContextMacros *contextMacros, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, contextMacros, silent, expandMacros);
 }
 
 //==============================================================================================
-bool Connection::SendChangeDataScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
-	return SendQueryDataScript(sqlText, silent, expandMacros);
+bool Connection::SendChangeDataScript(const char *sqlText, ContextMacros *contextMacros, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, contextMacros, silent, expandMacros);
 }
 
 //==============================================================================================
-bool Connection::SendRemoveDataScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
-	return SendQueryDataScript(sqlText, silent, expandMacros);
+bool Connection::SendRemoveDataScript(const char *sqlText, ContextMacros *contextMacros, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, contextMacros, silent, expandMacros);
 }
 
 //==============================================================================================
-bool Connection::SendChangeEnvScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
-	return SendQueryDataScript(sqlText, silent, expandMacros);
+bool Connection::SendChangeEnvScript(const char *sqlText, ContextMacros *contextMacros, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, contextMacros, silent, expandMacros);
 }
 
 //==============================================================================================
-bool Connection::SendQueryEnvScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
-	return SendQueryDataScript(sqlText, silent, expandMacros);
+bool Connection::SendQueryEnvScript(const char *sqlText, ContextMacros *contextMacros, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, contextMacros, silent, expandMacros);
 }
 
 //==============================================================================================
-bool Connection::SendChangeStructureScript(const char *sqlText, bool silent /*= false*/, bool expandMacros /*= false*/) {
-	return SendQueryDataScript(sqlText, silent, expandMacros);
+bool Connection::SendChangeStructureScript(const char *sqlText, ContextMacros *contextMacros, bool silent /*= false*/, bool expandMacros /*= false*/) {
+	return SendQueryDataScript(sqlText, contextMacros, silent, expandMacros);
 }
 
 //==============================================================================================
@@ -764,6 +730,7 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 		",  EnvId"            // 10
 		",  EnvStdName"       // 11
 		",  dbName"           // 12
+		",  portNo"           // 13
 		" from v_conn where ConnId = %d", connId);
 		
 	if (!lcontrolConnection->SendQueryDataScript(FetchConnDtlById)) {
@@ -778,7 +745,7 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 	String loginPwd 		= lcontrolConnection->Get(4);
 	String instanceAddress 	= lcontrolConnection->Get(7);
 	String dbName 			= lcontrolConnection->Get(12);
-	
+	String portNo           = lcontrolConnection->Get(13);
 	if (useIfFoundInPool) {
 		Connection *conn = GetConnection(connName);
 		if (conn != (Connection *)NULL) {
@@ -794,14 +761,16 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 		,	loginPwd
 		,	instanceAddress
 		,	dbName
+		,   portNo
 	);
+	
 }
 
 //==============================================================================================
 // Connection factory (Takes window for async connection spinning.
 // Assumption: connName is unique per connection.  No support for multiple connections per connection definition
 Connection *ConnectionFactory::Connect(TopWindow *win, String connName, String instanceTypeName
-	, String loginStr, String loginPwd, String instanceAddress, String dbName/* = Null*/, bool log) {
+	, String loginStr, String loginPwd, String instanceAddress, String dbName/* = Null*/, String portNo/*=Null*/, bool log/*=false*/) {
 	
 	Connection *connection = Connections().Get(connName, (Connection *)NULL);
 	if (!connection) {
@@ -811,14 +780,16 @@ Connection *ConnectionFactory::Connect(TopWindow *win, String connName, String i
 
 	if (log) {
 			LogLine("Attempting To Establish Connection to " + connName + ", " + instanceTypeName 
-			+ ", login=" + loginStr + ", addr=" + instanceAddress + ", db=" + dbName);
+			+ ", login=" + loginStr + ", addr=" + instanceAddress + ", db=" + dbName + ", port=" + portNo);
 	}
 	connection->instanceTypeName = instanceTypeName;
-	connection->connName = connName;
-	connection->loginStr = loginStr;
-	connection->loginPwd = loginPwd; // For reconnecting, or changing password, you have to pass the old one
-	connection->instanceAddress = instanceAddress;
-	connection->dbName = dbName;
+	connection->connName         =         connName;
+	connection->loginStr         =         loginStr;
+	connection->loginPwd         =         loginPwd; // For reconnecting, or changing password, you have to pass the old one
+	connection->instanceAddress  =  instanceAddress;
+	connection->dbName           =           dbName;
+	connection->portNo           =           portNo;
+
 	if (controlConnection) connection->controlConnection = controlConnection;
 	
 	// BUG: if connection information changed, it won't be representative of the actual connection
@@ -836,7 +807,7 @@ Connection *ConnectionFactory::Connect(TopWindow *win, String connName, String i
 	if (connName == CONTROL_CONN_NAME) {
 		controlConnection = Connections().Get(connName);
 		LOG("Set control Connection to " + connName + ", " + instanceTypeName 
-		+ ", login=" + loginStr + ", addr=" + instanceAddress + ", db=" + dbName);
+		+ ", login=" + loginStr + ", addr=" + instanceAddress + ", db=" + dbName + ", port=" + portNo);
 	}
 	
 	// Cycle through hooks
