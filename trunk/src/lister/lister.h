@@ -18,6 +18,8 @@
 #include "shared_db.h"
 #include "JobSpec.h"
 #include "TaskDefWin.h"
+#include "ContextMacros.h"
+
 #include <lister/Urp/UrpTopWindow.h>
 #include <lister/Urp/UrpWindowFactory.h>
 #include <lister/Urp/UrpPane.h>
@@ -69,6 +71,8 @@ public:
 	EditString        outFldSepWhenValChange; // Key in name of column header
 	EditInt           fldSepRowCount; // How many blank rows would you like?  When copying to Excel, this saves a lot of time.
 	DropGrid          outputColList; // Updated after output generated.
+	ContextMacros     activeContextMacros; // input/output from taskmacro table; loaded per task selection.
+	DropGrid          macrosAvailableList; // Coalesce of all macros in context for script
 	
 	                  Lister();
 	                 ~Lister();
@@ -79,10 +83,12 @@ public:
 	                  // Copy all the column names to a list so we can paste them back into the query, 
 	                  // replacing "*" markers so we can subtract specific columns or insert calc cols at certain points
 	void              CopyColListCommaDelim(); 
+	void              CopyColListCommaDelimByType(); // List grouped by data type so we can filter
 	void              MainGridContextMenu(Bar &bar); // Right-click over main output data.
 	void              FileMenu(Bar& bar);
 	void              ClickedTest(); // User clicked Test! on the TestGrid.  Run the test.
 	void              TaskGridContextMenu(Bar &bar);
+	void              SelectedAvailableMacro(); // User selected a task macro and wants to insert it into his script
 	void              HideSelectedTasks();
 	void              OpenTaskDefWin();
 	void              SaveTaskViaTaskGrid(Task &task); // All writing is done in taskgrid
