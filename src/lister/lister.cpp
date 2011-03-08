@@ -260,13 +260,13 @@ void Lister::CopyColListCommaDelim() {
 void Lister::CopyColListCommaDelimByType() {
 	String co;
 	
-	Vector<int> types;
+	Index<int> types;
 	
 	// Find all the data types present; we don't care what they are we will just group column
 	// output by them.
 	for (int i = 0; i < mainGrid.GetFloatingColumnCount(); i++) {
 		int coltype = mainGrid.outputSpec.outputColumnDefList[i].sqlType;
-		if (types.GetIndex(coltype) == -1) {
+		if (types.Find(coltype) == -1) {
 			types.Add(coltype);
 		}
 	}
