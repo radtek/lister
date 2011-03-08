@@ -1,11 +1,14 @@
 #include "lister.h"
 #include "Script.h"
 #include "ContactGrid.h"
+#include "OutputSpec.h"
+
 #include <lister/Urp/UrpMain.h>
 #include <lister/Urp/UrpInput.h> // Has Ok() in it
 #include <lister/Urp/UrpConfigWindow.h>
 
 #include "OutputStat.h" // Our panel
+#include "MacroHandler.h"
 
 #include "KeyHandler.h"
 #include "JobSpec.h"
@@ -96,8 +99,8 @@ Lister::Lister() {
 	bottomMidPane.Add(mainGrid);
 	mainGrid.SizePos();
 	mainGrid.WhenMenuBar = THISBACK(MainGridContextMenu);
+	maingridselectrow = false;
 	
-
 	// Connect to our metadata control database using raw params
 
 	if ((controlConnection 
@@ -205,7 +208,14 @@ Lister::Lister() {
 	testWin.testGrid.WhenCtrlsAction = THISBACK(ClickedTest);
 	testWin.testGrid.Load(controlConnection);
 	
-	maingridselectrow = false;
+	macrosAvailableList.AddColumn("Search For");
+	macrosAvailableList.AddColumn("Replace With");
+	macrosAvailableList.AddColumn("Expansion");
+	macrosAvailableList.SetValueColumn(2);
+	macrosAvailableList.AddValueColumn(0).AddValueColumn(1).AddValueColumn(2);
+	macrosAvailableList.GetList().WhenLeftClick = THISBACK(SelectedAvailableMacro);  // Not sure which "When" this is.
+	
+	macrosAvailableList.Width(450);
 	
 	// By spinning this off as a callback, we get the screen displayed while autoconnecting, and plus the cursor on conn grid is properly set to center
 	//SetTimeCallback(100, THISBACK(AutoConnect));		
@@ -247,12 +257,50 @@ void Lister::CopyColListCommaDelim() {
 }
 
 //==============================================================================================	
+void Lister::CopyColListCommaDelimByType() {
+	String co;
+	
+	Vector<int> types;
+	
+	// Find all the data types present; we don't care what they are we will just group column
+	// output by them.
+	for (int i = 0; i < mainGrid.GetFloatingColumnCount(); i++) {
+		int coltype = mainGrid.outputSpec.outputColumnDefList[i].sqlType;
+		if (types.GetIndex(coltype) == -1) {
+			types.Add(coltype);
+		}
+	}
+
+	bool hit = false;
+	
+	for (int j = 0; j < types.GetCount(); j++) {
+		bool nextype = true;
+		for (int i = 0; i < mainGrid.GetFloatingColumnCount(); i++) {
+			if (mainGrid.outputSpec.outputColumnDefList[i].sqlType == types[j]) {
+				if (hit) {
+					co << ", ";
+				} 
+				if (nextype) {
+					co << "/* " << mainGrid.outputSpec.outputColumnDefList[i].sqlTypeName << " */ ";
+					nextype = false;
+				}
+				hit = true;
+				co << TrimRight(mainGrid.GetFloatingColumn(i).GetName());
+			}
+		}
+	}
+	
+	WriteClipboardText(co);
+}
+
+//==============================================================================================	
 void Lister::MainGridContextMenu(Bar &bar) {
 	mainGrid.SelectMenu(bar);
 	bar.Add("Select entire row", THISBACK(ToggleMainGridSelectRow))
 		.Check(maingridselectrow)
 		.Help("Select the whole row or select individual cells");
-	bar.Add("Copy columns to comma-delim list", THISBACK(CopyColListCommaDelim));	        
+	bar.Add("Copy columns to comma-delim list", THISBACK(CopyColListCommaDelim));
+	bar.Add("Copy columns order by data type", THISBACK(CopyColListCommaDelimByType));
 }
 
 //==============================================================================================	
@@ -380,6 +428,15 @@ void Lister::ClickedTest() {
 }
 
 //==============================================================================================	
+// We'll insert it into the script with brackets
+void Lister::SelectedAvailableMacro() {
+	String newMac;
+	if (macrosAvailableList.GetIndex() == -1) return;
+	newMac << "[[" << macrosAvailableList.Get("search").ToString() << "]]";
+	scriptEditor.Insert(scriptEditor.GetCursor(), AsRichText(newMac.ToWString()));
+}
+
+//==============================================================================================	
 // Task Grid Options (context menu)
 void Lister::TaskGridContextMenu(Bar &bar) {
 	bar.Add("Edit Task Detail", THISBACK(OpenTaskDefWin));
@@ -484,6 +541,7 @@ Connection *Lister::ConnectUsingGrid(int row, bool log) {
 		, connGrid.GetLoginPwd(row)
 		, connGrid.GetInstanceAddress(row)
 		, connGrid.GetDatabaseName(row)
+		, connGrid.GetPortNo(row)
 		, log
 		);
 		
@@ -739,7 +797,7 @@ void Lister::ProcessTaskScript(int taskScriptRow, bool loadScript, bool executeS
 			); // TODO: Add port for sybase
 			SetActiveConnection(lconnection); // Updates toolbar too, as well as passing connection to comdScript editor
 			if (lconnection && lconnection->session && lconnection->session->IsOpen()) {
-				lconnection->ProcessQueryDataScript(sob, jspec);
+				lconnection->ProcessQueryDataScript(sob, jspec, &activeContextMacros);
 			} else {
 				if (jspec.log) LogLine("Not running script due to connection error");
 				if (!lconnection) {
@@ -891,6 +949,29 @@ void Lister::SetActiveConnection(Connection *newConnection) {
 //==============================================================================================	
 // When user selects a task, the script becomes eligible to be attached to it.
 void Lister::ActiveTaskChanged() {
+	ToolBarRefresh();
+	// Flush CurrentTaskMacroList; fetch from taskmacros.  Apply logic from CursorHandler macro function as each is loaded.
+	// Move macro code out of CursorHandler and into MacroHandler.cpp
+	// Alter macro function to rerun macros in CurrentTaskMacroList, then macros in current script.
+	activeContextMacros.taskMacros.Clear();
+	int taskId = taskGrid.GetTaskId();
+	if (controlConnection->SendQueryDataScript(SqlStatement(SqlSelect(SEARCHFOR, REPLACEWITH).From(TASKMACROS).Where(TASKID==taskId).OrderBy(PROCESSORDER)).GetText())) {
+		while(controlConnection->Fetch()) {
+			String searchFor = controlConnection->Get(0);
+			String replaceWith = controlConnection->Get(1);
+			
+			// Expand the output with any previous macros in task list, as well as the standard hardcoded ones
+			String expansion = ExpandMacros(replaceWith, &activeContextMacros);
+			
+			// Add it to the list and continue fetching and expanding
+			
+			activeContextMacros.taskMacros.Add(searchFor, MacPair(replaceWith, expansion));
+		}
+	}
+	
+	// Update the drop down so script-writer can see what macros are available
+	
+	activeContextMacros.UpdateAvailableMacros(macrosAvailableList, &activeContextMacros);
 	ToolBarRefresh();
 }
 
@@ -1168,13 +1249,17 @@ void Lister::MyToolBar(Bar& bar) {
 	//__________________________________________________________________________________________
 	// Save editor text to its Script Id, regardless of selection to left (if its modified)
 	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty()
-			&& scriptEditor.IsModified(), "File", MyImages::save16(), THISBACK(SaveScript)).Tip("Save/Overwrite Script")
+			&& scriptEditor.IsModified(), "File", MyImages::save16(), 
+		THISBACK(SaveScript))
+		.Tip("Save/Overwrite Script")
 		.Key(K_CTRL_S);
 	
 	//__________________________________________________________________________________________
 	// Add Script To History
 	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty()
-			&& scriptEditor.IsModified(), "File", CtrlImg::smalldown(), THISBACK(AddScriptToHistory)).Tip("Save as new Script");
+			&& scriptEditor.IsModified(), "File", CtrlImg::smalldown(), 
+		THISBACK(AddScriptToHistory))
+		.Tip("Save as new Script");
 	
 	//__________________________________________________________________________________________
 	// Create Test From Script if we have an id
@@ -1182,7 +1267,8 @@ void Lister::MyToolBar(Bar& bar) {
 		(!scriptEditor.GetScriptPlainText().IsEmpty()
 		 && scriptEditor.connection
 		 && scriptEditor.scriptId >= 0), "File", MyImages::addtotest16(), 
-		 THISBACK(CreateTestFromScript)).Tip("Create a Test around this Script");
+		THISBACK(CreateTestFromScript))
+		.Tip("Create a Test around this Script");
 
 	//__________________________________________________________________________________________
 	// Browse existing Tests
@@ -1194,21 +1280,26 @@ void Lister::MyToolBar(Bar& bar) {
 	bar.Add( // Only allow execution if there is a script and a connection
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && !scriptEditor.connection), "File", MyImages::connectruntoscreen16(), 
-		 THISBACK(ConnRunScriptOutputToScreen)).Tip("Connect, execute Script and output to a grid on the screen");
+		THISBACK(ConnRunScriptOutputToScreen))
+		.Tip("Connect, execute Script and output to a grid on the screen")
+		.Key(K_CTRL_F5);
 
 	//__________________________________________________________________________________________
 	// Execute Script against current connection
 	bar.Add( // Only allow execution if there is a script and a connection
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && scriptEditor.connection), "File", MyImages::runtoscreen16(), 
-		 THISBACK(RunScriptOutputToScreen)).Tip("Execute Script and output to a grid on the screen");
+		THISBACK(RunScriptOutputToScreen))
+		.Tip("Execute Script and output to a grid on the screen")
+		.Key(K_F5);
 
 	//__________________________________________________________________________________________
 	// Execute Script and pass output to physical table in control db.
 	bar.Add( // Only allow execution if there is a script and a connection
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && scriptEditor.connection), "File", MyImages::runtotable16(), 
-		 THISBACK(RunScriptOutputToTable)).Tip("Execute Script and create a table in the control database");
+		THISBACK(RunScriptOutputToTable))
+		.Tip("Execute Script and create a table in the control database");
 	        
 	//__________________________________________________________________________________________
 	// Cancel a running Script (Buggy)
@@ -1219,7 +1310,7 @@ void Lister::MyToolBar(Bar& bar) {
 		 && activeConnection->session 
 		 && In(activeConnection->session->GetStatus(), activeConnection->session->START_EXECUTING, activeConnection->session->START_FETCHING)
 	 	), "File", MyImages::cancelop16(), 
-		 THISBACK(CancelRunningScriptOnActiveConn)).Tip("Cancel executing script on active connection");
+		THISBACK(CancelRunningScriptOnActiveConn)).Tip("Cancel executing script on active connection");
 
 	scriptEditor.FindReplaceTool(bar);
 	
@@ -1227,12 +1318,14 @@ void Lister::MyToolBar(Bar& bar) {
 	// Popup list of Contacts
 	bar.Add(
 		true, "ListContacts", MyImages::contacts16(), 
-		 THISBACK(ListContacts)).Tip("Browse and edit contact details");
+		THISBACK(ListContacts))
+		.Tip("Browse and edit contact details");
 
 	//__________________________________________________________________________________________
 	// Deploy application to Program Files folder
 	bar.Add(true, "Deploy", MyImages::deploylister16(), 
-		 THISBACK(DeployLister)).Tip("Deploy lister to program files");
+		THISBACK(DeployLister))
+		.Tip("Deploy lister to program files");
 
 	//__________________________________________________________________________________________
 	// Attach this Script to the selected Task
@@ -1240,19 +1333,21 @@ void Lister::MyToolBar(Bar& bar) {
 		!scriptEditor.GetScriptPlainText().IsEmpty() && scriptEditor.scriptId >= 0
 		&& taskGrid.IsCursor()
 		, "Attach", MyImages::attachtotask16(),
-		 THISBACK(AttachScriptToTask)).Tip(
+		THISBACK(AttachScriptToTask))
+		.Tip(
 		    // If the shift key is held down, attachment replaces the current script selected
 		 	GetShift()? "Update selected script currently assigned to selected task" : "Add script to selected task");
 
 	//__________________________________________________________________________________________
 	// Set the target table name
-	bar.Add(targetNameList, 150); //.Tip("Target object name (if targeting a table or spreadsheet)");
-	bar.Add(scriptTargetList, 85); //.Tip("What type of target does the script output to?");
-	bar.Add(fastFlushTargetList, 75); //.Tip("Truncate the target or leave as is?");
-	bar.Add(fldRowLimit, 65);
-	bar.Add(chkAddSepToOutput);
-	bar.Add(outFldSepWhenValChange, 66);
-	bar.Add(fldSepRowCount, 15);
+	bar.Add(targetNameList, 150); targetNameList.Tip("Target Table Name in local postgres db if target type is database for script output");
+	bar.Add(scriptTargetList, 85); scriptTargetList.Tip("What type of target does the script output to?");
+	bar.Add(fastFlushTargetList, 75); fastFlushTargetList.Tip("Truncate the target or leave as is?"); // TODO: More types: Create if not there, else append, replace on key, truncate if older than T+1
+	bar.Add(fldRowLimit, 65); fldRowLimit.Tip("Limit row output; -1 = no limit"); // BUG: Being ignored
+	bar.Add(chkAddSepToOutput); chkAddSepToOutput.Tip("For screen only, add x blank lines when the field selected changes value.  A cheap grouping mech for export to Excel and making easier to see groups or add summations manually to output.");
+	bar.Add(outFldSepWhenValChange, 66); outFldSepWhenValChange.Tip("Select field from dropdown or type in the name of the output grid column header that you want to break on");
+	bar.Add(fldSepRowCount, 15); fldSepRowCount.Tip("Number of blank lines to separate groups by");
+	bar.Add(macrosAvailableList, 150); macrosAvailableList.Tip("Macros available for script insertion based on currently selected task.  Edit task to change/add macros");
 	
 	//CtrlImg::exclamation(), CtrlImg::smallright(), CtrlImg::open(), CtrlImg::undo(), CtrlImg::remove
 	//smallcheck, spinup3, smallreporticon, save, Plus, Minus, Toggle, help
@@ -1327,7 +1422,7 @@ void Lister::ScriptExecutionHandler(Script::ScriptTarget pscriptTarget) {
 	
 	jspec.outputStat->SetStatus("Calling runner");
 	jspec.outputStat->SetStartedWhen(GetSysTime());
-	bool ran = cursorHandler.Run(sob, jspec);
+	bool ran = cursorHandler.Run(sob, jspec, &activeContextMacros);
 	if (!ran) {
 		// Identify if it was a parsing (during execution) error.  If so, place cursor
 		// in script text on point of error.
