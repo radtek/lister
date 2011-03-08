@@ -62,7 +62,7 @@ public:
 	               ~TaskGrid();
 	void            Build();
 	void            Load(Connection *pconnection);
-	int             GetTaskId(int row);
+	int             GetTaskId(int row = -1);
 	String          GetTaskName(int row);
 	String          GetTaskDesc(int row);
 	String          GetSolutionDesc(int row);
