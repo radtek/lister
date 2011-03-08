@@ -67,7 +67,7 @@
 
 #define COMMENT(txt)               SCHEMA("-- " #txt "\n", NULL)
 
-#include <Sql/sch_model.h>
+#include <lister/Sql/sch_model.h>
 
 #undef BIT
 #undef BIT_ARRAY
