@@ -775,6 +775,13 @@ bool ODBCConnection::Fetch0() {
 				
 			case INT_V:
 				{	
+					SQLCHAR *x = (SQLCHAR *)&(b[(sizeof(SQLCHAR)) * nextFetchSetRow]);
+					v = (byte)*x;
+				}
+				break;
+
+			case INT64_V:
+				{	
 					SQLINTEGER *x = (SQLINTEGER *)&(b[(sizeof(SQLINTEGER)) * nextFetchSetRow]);
 					v = (int64)*x;
 				}
