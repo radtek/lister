@@ -3,6 +3,7 @@
 #include "Connection.h"
 #include "OutputGrid.h"
 #include "OutputStat.h"
+#include "SQLTypes.h"
 
 //==============================================================================================
 CursorHandler::CursorHandler(Connection *pcontrolConnection, Connection *pconnection) {
@@ -17,8 +18,13 @@ void CursorHandler::ColSize(OutputGrid *outputGrid, Sql *cursor) {
 }
 
 //==============================================================================================
+void CursorHandler::CursorOutputCancelled() {
+	// Need access point added into Sql (virtual) and set in ODBC.  Sybase may have bug.
+}
+
+//==============================================================================================
 // Run a script and push output to the grid, or to a table. Update the stats.
-bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
+bool CursorHandler::Run(Script &sob, JobSpec &jobSpec, ContextMacros *contextMacros) {
 	ASSERT(connection);
 	int x = 0;
 	WaitCursor wc;
@@ -30,7 +36,7 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 		if (jobSpec.outputStat) {
 			jobSpec.outputStat->SetStatus("Configuring instance");
 		}
-		if (!connection->SendChangeEnvScript("alter session set nls_date_format='DD-MON-RR'", true /* silent */)) {
+		if (!connection->SendChangeEnvScript("alter session set nls_date_format='DD-MON-RR'", contextMacros, true /* silent */)) {
 			Speak(EVS_EXECUTE_FAILED);
 			if (jobSpec.outputStat) {
 				jobSpec.outputStat->SetStatus("Configuring instance failed.");
@@ -43,7 +49,7 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 		jobSpec.outputStat->SetStatus("Sending script to instance for processing");
 	}
 	// We always send macros to our targets.  Only when we save scripts do we not expand the macros, elsewise we could never save them, huh?
-	if (!connection->SendQueryDataScript(sob.scriptPlainText, true /* silent, we'll handle errors */, true /* expand macros */, jobSpec.log)) {
+	if (!connection->SendQueryDataScript(sob.scriptPlainText, contextMacros, true /* silent, we'll handle errors */, true /* expand macros */, jobSpec.log)) {
 		// We make our own beep, so that it distintively identifies a "lister execution failure" to the user, not a generic windows failure
 		if (jobSpec.outputStat) {
 			jobSpec.outputStat->SetStatus("Script processing failed");
@@ -115,7 +121,7 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec) {
 				jobSpec.outputStat->SetStatus("Rebuilding target");
 			}
 			LogLine(CAT << "Rebuilding target: " << outputTable);
-			RebuildTableFromConnection(outputTable, jobSpec);
+			RebuildTableFromConnection(outputTable, jobSpec, contextMacros);
 		}
 		
 		LogLine(CAT << "Beginning load into " << outputTable << " using Postgres COPY command");
@@ -329,9 +335,9 @@ int CursorHandler::LoadIntoTableFromConnectionPREP(String outputTable, int rowLi
 }
 
 //==============================================================================================
-void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobSpec) {
+void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobSpec, ContextMacros *contextMacros) {
 	String script = Format("drop table %s", outputTable);
-	controlConnection->SendChangeStructureScript(script, RUN_SILENT); // ignore errors
+	controlConnection->SendChangeStructureScript(script, contextMacros, RUN_SILENT); // ignore errors
 	
 	script = Format("create table %s(\n", outputTable);
 	int colCount = connection->GetColumns();
@@ -372,6 +378,7 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 	int colCount = connection->GetColumns();
 	bool gridStyle = false;
 	bool tabStyle = !gridStyle;
+	outputGrid->outputSpec.Clear();
 	
 	outputGrid->Ready(false);
 	//outputGrid->Reset(); // Crashing when first column is sorted!  U++ bug.
@@ -384,7 +391,7 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 
 	String logLine;
 	
-	if (gridStyle) logLine = "{{1:2 ";
+	if (gridStyle) logLine = "{{1:2 "; // Send a QTF marker ahead
 
 	if (tabStyle) {
 		logLine = "[";
@@ -400,15 +407,27 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 	for (int i = 0; i < colCount; i++) {
 		const SqlColumnInfo& ci = connection->GetColumnInfo(i);
 		int w = GetTextSize(ci.name, StdFont()).cx + 14;
+
 		outputGrid->AddColumn(ci.name).Width(w);
 		outputGrid->SetColWidth(i + outputGrid->indicator, w);
+
+		// Attach column info to the result set
 		
+		OutputColumnDef outputColumnDef;
+		outputColumnDef.name = ci.name;
+		outputColumnDef.sqlType = ci.type;
+		outputColumnDef.sqlTypeName = SQLTypeName(ci.type);
+		outputColumnDef.visibleWidth = w;
+		outputColumnDef.groupNo = -1;
+			
 		// If the user wants to separate groups of rows when a value changes, we need the column # to watch
 		// so we convert the requested name to an index.
 		if (sob.addSepToOutput && ci.name == sob.outFldSepWhenValChange) {
 			sepcolno = i;
+			outputColumnDef.groupNo = 1; // Group level one is all way support right now.
 		}
 		
+		outputGrid->outputSpec.outputColumnDefList.Add(outputColumnDef);
 		cw[i] = w;
 		
 		if (jobSpec.log) {
@@ -429,7 +448,8 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 
 	Progress pi;
 	pi.SetText("Fetched %d line(s)");
-
+	pi.WhenClose = THISBACK(CursorOutputCancelled);
+	
 	int rc = 0;		
 	Value prevSepFldValue;
 	
@@ -468,7 +488,7 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 			}
 		}
 
-		if (sepcolno >=0) {		
+		if (sepcolno >= 0) {		
 			prevSepFldValue = row.At(sepcolno);
 		}
 
@@ -552,3 +572,4 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 //		Exclamation(CAT << "Inserted " << rowcount << " rows into " << outputTable);		
 //		
 //	} else { // load to screen
+
