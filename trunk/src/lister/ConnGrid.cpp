@@ -266,9 +266,9 @@ void ConnGrid::AddedNewConnection() {
 		// SQL allows INSTEAD OF VIEW code to search for the login/pwd combo and create a row if necessary
 		// We do pass a valid instance #, though.
 		String script = Format(" \
-		INSERT INTO v_conn(ConnName, LoginStr, LoginPwd, IsOSAuth, InstanceId, dbName) VALUES \
-		                     ('%s'/*ConnName*/, '%s'/*LoginStr*/, '%s'/*LoginPwd*/, '%s' /*IsOSAuth*/, %d/*InstanceId*/, '%s' /*dbName*/, %s /*portNo*/, %s/*EnvId*/)", 
-		                   GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetOSAuth(row)? "1" : "0", GetInstanceId(row), GetDatabaseName(row), ToSQL(GetPortNo(row)), ToSQL(GetEnvId(row)));
+		INSERT INTO v_conn(ConnName, LoginStr, LoginPwd, IsOSAuth, InstanceId, instanceName, instanceAddress, instTypId, dbName, portNo, EnvId) VALUES \
+		                     ('%s'/*ConnName*/, '%s'/*LoginStr*/, '%s'/*LoginPwd*/, '%s' /*IsOSAuth*/, %d/*InstanceId*/, '%s'/*InstanceName*/, '%s'/*InstanceAddress*/, %d/*instTypId*/, '%s' /*dbName*/, %s /*portNo*/, %s/*EnvId*/)", 
+		                   GetConnName(row), GetLoginStr(row), GetLoginPwd(row), GetOSAuth(row)? "1" : "0", GetInstanceId(row), GetInstanceName(row), GetInstanceAddress(row), GetInstTypId(row), GetDatabaseName(row), ToSQL(GetPortNo(row)), ToSQL(GetEnvId(row)));
 		int rsp = PromptOKCancel(CAT << "Adding Connection: " << script);
 		if (rsp == 1) {
 			
