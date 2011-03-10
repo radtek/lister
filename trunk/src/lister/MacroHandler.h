@@ -4,5 +4,6 @@
 #include "ContextMacros.h"
 
 String ExpandMacros(String inputText, ContextMacros *contextMacros);
+void UpdateMacroList(DropGrid &macrosAvailableList);
 
 #endif
