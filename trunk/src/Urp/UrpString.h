@@ -40,9 +40,13 @@ Value               IfNull(Value in, Value defval);
 bool                IsNull(int in);
 int                 IfNull(int in, int defval);
 int                 AsInt(Value in, Value defval);
+int                 ToInt(String in, String defval = "0");
+int                 ToInt(String in, int defval);
 String              ToString(int in);
 String              ToSQL(String in); // If input is empty string, stuff as NULL
 String              ToSQL(int in);
 String              ToSQL(bool in);
+                    // For my lazy bones, just strip the string and return the rest, please
+String              RestOf(const String &startwith, const String &skipthis);
 
 #endif

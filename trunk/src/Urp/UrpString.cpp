@@ -3,6 +3,7 @@
 //==============================================================================================
 // Crazy idea: Function name maps to the parameters, especially their order.
 /*static*/ String UrpString::ReplaceInWhatWith(const String in, const String what, const String with) {
+	if (what.IsEmpty()) return in;
 	if (what == with) return in;
 	bool blockinfiniterecursion = false;
 	
@@ -241,6 +242,21 @@ int AsInt(Value in, Value defval) {
 	return (int)lval;
 }
 
+
+//==============================================================================================
+int ToInt(String in, String defval) {
+	return ToInt(in, atoi(defval));
+}
+
+//==============================================================================================
+int ToInt(String in, int defval) {
+	if (in.IsEmpty()) {
+		return defval;
+	}
+	
+	return atoi(in);
+}
+
 //==============================================================================================
 String ToString(int in) {
 	return Format("%d", in);
@@ -268,4 +284,13 @@ String ToSQL(int in) {
 String ToSQL(bool in) {
 	return (in? "1" : "0");
 	// No way to detect null with a bool
+}
+
+//==============================================================================================
+String RestOf(const String &startwith, const String &skipthis) {
+	if (startwith.StartsWith(skipthis)) {
+		return startwith.Mid(skipthis.GetLength());
+	} else {
+		return startwith;
+	}
 }
