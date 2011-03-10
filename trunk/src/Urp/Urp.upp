@@ -39,5 +39,7 @@ file
 	UrpSplitter.cpp,
 	UrpPane.h,
 	UrpPane.cpp,
+	UrpTime.h,
+	UrpTime.cpp,
 	Urp.lay;
 
