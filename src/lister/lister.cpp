@@ -304,8 +304,14 @@ void Lister::MainGridContextMenu(Bar &bar) {
 }
 
 //==============================================================================================	
+void Lister::ExpandScript() {
+	Exclamation(ExpandMacros(scriptEditor.GetScriptPlainText(), &activeContextMacros));
+}
+
+//==============================================================================================	
 void Lister::FileMenu(Bar& bar) {
 	bar.Add("Mappings", THISBACK(ViewMappings));
+	bar.Add("Expand Script", THISBACK(ExpandScript));
 }
 
 //==============================================================================================	
@@ -448,11 +454,19 @@ void Lister::TaskGridContextMenu(Bar &bar) {
 void Lister::HideSelectedTasks() {
 	Vector<int> tasksToHide;
 	if (taskGrid.IsSelection()) {
+		int lastSelectedTask = -1;
+		
 		for (int i = taskGrid.GetCount() - 1; i >= 0; i--) {
 			if (taskGrid.IsSelected(i)) {
-				tasksToHide.Add(i);
+				int taskId = taskGrid.GetTaskId(i);
+				tasksToHide.Add(taskId);
 				taskGrid.Remove(i);
+				lastSelectedTask = i; // Save place so we can reposition cursor on same physical location on grid (different task)
 			}
+		}
+
+		if (lastSelectedTask != -1) {
+			taskGrid.Select(lastSelectedTask); // Will trigger ActiveTaskChanged()
 		}
 	}
 
@@ -468,6 +482,8 @@ void Lister::HideSelectedTasks() {
 	controlScript << ")";
 	
 	controlConnection->SendChangeDataScript(controlScript);
+	
+	
 }
 
 //==============================================================================================	
@@ -1251,6 +1267,7 @@ void Lister::MyToolBar(Bar& bar) {
 	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty()
 			&& scriptEditor.IsModified(), "File", MyImages::save16(), 
 		THISBACK(SaveScript))
+		
 		.Tip("Save/Overwrite Script")
 		.Key(K_CTRL_S);
 	
@@ -1259,6 +1276,7 @@ void Lister::MyToolBar(Bar& bar) {
 	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty()
 			&& scriptEditor.IsModified(), "File", CtrlImg::smalldown(), 
 		THISBACK(AddScriptToHistory))
+		
 		.Tip("Save as new Script");
 	
 	//__________________________________________________________________________________________
@@ -1268,12 +1286,15 @@ void Lister::MyToolBar(Bar& bar) {
 		 && scriptEditor.connection
 		 && scriptEditor.scriptId >= 0), "File", MyImages::addtotest16(), 
 		THISBACK(CreateTestFromScript))
+		
 		.Tip("Create a Test around this Script");
 
 	//__________________________________________________________________________________________
 	// Browse existing Tests
 	bar.Add( true, "", MyImages::browsetests16(), 
-		 THISBACK(BrowseTests)).Tip("Browse and edit tests");
+		THISBACK(BrowseTests))
+		
+		.Tip("Browse and edit tests");
 		 
 	//__________________________________________________________________________________________
 	// Connect & Execute Script against current connection
@@ -1281,6 +1302,7 @@ void Lister::MyToolBar(Bar& bar) {
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && !scriptEditor.connection), "File", MyImages::connectruntoscreen16(), 
 		THISBACK(ConnRunScriptOutputToScreen))
+		
 		.Tip("Connect, execute Script and output to a grid on the screen")
 		.Key(K_CTRL_F5);
 
@@ -1290,6 +1312,7 @@ void Lister::MyToolBar(Bar& bar) {
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && scriptEditor.connection), "File", MyImages::runtoscreen16(), 
 		THISBACK(RunScriptOutputToScreen))
+		
 		.Tip("Execute Script and output to a grid on the screen")
 		.Key(K_F5);
 
@@ -1299,6 +1322,7 @@ void Lister::MyToolBar(Bar& bar) {
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && scriptEditor.connection), "File", MyImages::runtotable16(), 
 		THISBACK(RunScriptOutputToTable))
+		
 		.Tip("Execute Script and create a table in the control database");
 	        
 	//__________________________________________________________________________________________
@@ -1310,7 +1334,9 @@ void Lister::MyToolBar(Bar& bar) {
 		 && activeConnection->session 
 		 && In(activeConnection->session->GetStatus(), activeConnection->session->START_EXECUTING, activeConnection->session->START_FETCHING)
 	 	), "File", MyImages::cancelop16(), 
-		THISBACK(CancelRunningScriptOnActiveConn)).Tip("Cancel executing script on active connection");
+		THISBACK(CancelRunningScriptOnActiveConn))
+		
+		.Tip("Cancel executing script on active connection");
 
 	scriptEditor.FindReplaceTool(bar);
 	
@@ -1319,12 +1345,14 @@ void Lister::MyToolBar(Bar& bar) {
 	bar.Add(
 		true, "ListContacts", MyImages::contacts16(), 
 		THISBACK(ListContacts))
+		
 		.Tip("Browse and edit contact details");
 
 	//__________________________________________________________________________________________
 	// Deploy application to Program Files folder
 	bar.Add(true, "Deploy", MyImages::deploylister16(), 
 		THISBACK(DeployLister))
+		
 		.Tip("Deploy lister to program files");
 
 	//__________________________________________________________________________________________
@@ -1334,6 +1362,7 @@ void Lister::MyToolBar(Bar& bar) {
 		&& taskGrid.IsCursor()
 		, "Attach", MyImages::attachtotask16(),
 		THISBACK(AttachScriptToTask))
+		
 		.Tip(
 		    // If the shift key is held down, attachment replaces the current script selected
 		 	GetShift()? "Update selected script currently assigned to selected task" : "Add script to selected task");
