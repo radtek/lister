@@ -30,6 +30,9 @@ TaskGrid::TaskGrid() {
 	AddIndex(DEPEXPECTSAMPWHEN);
 	AddIndex(DEPASSIGNDESC);
 	AddIndex(DEPFEEDBACK);
+	
+	// Hide anything flagged to be hidden (from context menu)
+	SetWhere(IsNull(HIDDEN) || HIDDEN == "0");
 }
 
 //==========================================================================================	
@@ -51,7 +54,11 @@ void TaskGrid::Load(Connection *pconnection) {
 //==========================================================================================	
 int TaskGrid::GetTaskId(int row/*=-1*/) {
 	if (row == -1) {
-		return Get(GetCursor(), TASKID);
+		if (IsCursor()) {
+			return Get(GetCursor(), TASKID);
+		} else {
+			return -1;
+		}
 	} else {
 		return Get(row, TASKID);
 	}
