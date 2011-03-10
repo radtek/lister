@@ -17,7 +17,8 @@ uses
 	lister\DropGrid,
 	lister\PostgreSQL,
 	lister\SqlCtrl,
-	lister\Sql;
+	lister\Sql,
+	plugin\pcre;
 
 file
 	Question.h,
