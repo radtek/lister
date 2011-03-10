@@ -86,6 +86,7 @@ public:
 	void              CopyColListCommaDelimByType(); // List grouped by data type so we can filter
 	void              MainGridContextMenu(Bar &bar); // Right-click over main output data.
 	void              FileMenu(Bar& bar);
+	void              ExpandScript(); // Expand embedded macros in script as popup for review.
 	void              ClickedTest(); // User clicked Test! on the TestGrid.  Run the test.
 	void              TaskGridContextMenu(Bar &bar);
 	void              SelectedAvailableMacro(); // User selected a task macro and wants to insert it into his script
