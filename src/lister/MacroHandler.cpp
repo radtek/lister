@@ -6,7 +6,21 @@
 #include <plugin/pcre/Pcre.h>
 
 //==============================================================================================
-// Convert [[]] codes to values.  Hacky for now.
+// List the available internal macro subs available to the user so they don't have to remember them.
+// If inserted from dropdown, a popup lets you fill in the days with a number of another macro
+void UpdateMacroList(DropGrid &macrosAvailableList) {
+	macrosAvailableList.Add("TPLUS{n}"); // Todo: needs a note to describe usage to user. Tag?  Edit DropGrid.
+	macrosAvailableList.Add("TMINUS{n}");
+	macrosAvailableList.Add("TPLUSORA{n}");
+	macrosAvailableList.Add("TMINUSORA{n}");
+	macrosAvailableList.Add("TPLUSMSSQLUK{n}");
+	macrosAvailableList.Add("TMINUSMSSQLUK{n}");
+	macrosAvailableList.Add("TPLUSSYBASE{n}");
+	macrosAvailableList.Add("TMINUSSYBASE{n}");
+}
+
+//==============================================================================================
+// Convert [[]] codes to values.
 String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 	MacMap &taskMacros = contextMacros->taskMacros;
 	if (contextMacros) {
@@ -33,32 +47,72 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 	
 	if (r0.Match(inputText)) {
 		String command = r0[0]; 
+		String subcommand1, subcommand2;
 		String arg1 = r0[1];
-	
+		macro << "[[" << command << arg1 << "]]";
 		ToUpper(Trim(command));
-		if (command == "TPLUS") {
+		if (In(command, 
+				"TPLUS"        , "TMINUS"        , 
+				"TPLUSORA"     , "TMINUSORA"     , 
+				"TPLUSMSSQLUK" , "TMINUSMSSQLUK" , 
+				"TPLUSSYBASE"  , "TMINUSSYBASE"
+			)) {
 			if (arg1 == "") {
 				expansion << "{Missing numeric argument for command " << command << "}";
 			} else {
-				Date endDate = GetDateFromDateBDays(curDate, 1);
-				int expansionnum = endDate - curDate;
-				expansion = ToString(expansionnum);
+				int arg1num = ToInt(arg1, 0);
+					
+				// Looking back
+				if (command.StartsWith("TPLUS")) {
+					arg1num *= -1;
+					subcommand1 = RestOf(command, "TPLUS");
+				// Looking foward
+				} else if (command.StartsWith("TMINUS")) {
+					subcommand1 = RestOf(command, "TMINUS");
+				}
+				
+					
+				Date endDate = GetDateFromDateBDays(curDate, arg1num);
+				
+				// The business days are now converted to physical days
+				int actualphysicaldays = endDate - curDate;
+
+				// They just want the number
+				if (subcommand1 == "") {
+					expansion = ToString(actualphysicaldays);
+				} else if (subcommand1.StartsWith("ORA")) {
+					// All oracles use dd-mon-yyyy as their default date format
+					expansion = Format("'%02d-%s-%d'", endDate.day, MonName(endDate.month), endDate.year);
+				} else if (subcommand1.StartsWith("SYBASE")) {
+					// This is the default format that Sybase 12.5 ASE reads
+					expansion = Format("'%4d-%02d-%02d'", endDate.year, endDate.month, endDate.day);
+				} else if (subcommand1.StartsWith("MSSQLUK")) {
+					// English format for London
+					expansion = Format("'%02d-%02d-%04d'", endDate.day, endDate.month, endDate.day);
+				} else {
+					expansion << "{unrecognized subcommand after TMINUS/TPLUS " << subcommand1 << ", looking for ORA, SYBASE, or MSSQLUK}";
+				}
 			}
 		} else {
 			expansion << "{Unsupported command " << command << "}";
 		}
-		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);	
+			
 		
 	// Command/arg format not found; Just isolate the macro if there and push error message out
 	} else {
 		searchFor = "\\[\\[(\\w+)\\]\\]";
 		RegExp r1(searchFor);
 		if (r1.Match(inputText)) {
-			expansion << "{Unrecognized macro format: " << command ", must be [[AAAANN]]}";
-			inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);	
+			String command = r1[0];
+			macro << "[[" << command << "]]";
+			expansion << "{Unrecognized macro format: " << command << ", must be [[AAAANN]]}";
 		}
 	}
 
+	if (expansion.GetCount() > 0) {
+		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
+	}
+	
 	return inputText;
 }
 
