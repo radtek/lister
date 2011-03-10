@@ -437,8 +437,16 @@ void Lister::ClickedTest() {
 // We'll insert it into the script with brackets
 void Lister::SelectedAvailableMacro() {
 	String newMac;
-	if (macrosAvailableList.GetIndex() == -1) return;
-	newMac << "[[" << macrosAvailableList.Get("search").ToString() << "]]";
+	if (macrosAvailableList.GetList().GetCurrentRow() == -1) return;
+	String macro = macrosAvailableList.Get("search").ToString();
+	if (macro.Find("{n}") != -1) {
+		String number;
+		if (UrpInputBox(number, "Enter a number", "Complete macro definition")) {
+			UrpString::ReplaceInWhatWith(macro, "{n}", number);
+		}
+	}
+	
+	newMac << "[[" << macro << "]]";
 	scriptEditor.Insert(scriptEditor.GetCursor(), AsRichText(newMac.ToWString()));
 }
 
