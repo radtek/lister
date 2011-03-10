@@ -37,3 +37,7 @@ namespace More {
 	bool In(String i, const char *in1, const char *in2, const char *in3) { if (i.IsEqual(in1) || i.IsEqual(in2) || i.IsEqual(in3)) return true; return false; }
 	bool In(String i, const char *in1, const char *in2, const char *in3, const char *in4) { if (i.IsEqual(in1) || i.IsEqual(in2) || i.IsEqual(in3) || i.IsEqual(in4)) return true; return false; }
 };
+
+int Sgn(int i) {
+	return (i >= 0? 1 : -1);
+}
