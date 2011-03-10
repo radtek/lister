@@ -64,10 +64,15 @@ bool In(int i, int in1, int in2, int in3, int in4, int in5, int in6, int in7);
 template <typename T>
 bool In(T i, T in1, T in2, T in3, T in4, T in5, T in6, T in7, T in8) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8) return true; return false; }
 bool In(int i, int in1, int in2, int in3, int in4, int in5, int in6, int in7, int in8);
+bool In(String i, const char *in1, const char *in2, const char *in3, const char *in4, const char *in5, const char *in6, const char *in7, const char *in8);
+template <typename T>
+bool In(const T &i, const T &in1, const T &in2, const T &in3, const T &in4, const T &in5, const T &in6, const T &in7, const T &in8) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8) return true; return false; }
 
 template <typename T>
 bool In(T i, T in1, T in2, T in3, T in4, T in5, T in6, T in7, T in8, T in9) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8 || i == in9) return true; return false; }
 bool In(int i, int in1, int in2, int in3, int in4, int in5, int in6, int in7, int in8, int in9);
+template <typename T>
+bool In(const T &i, const T &in1, const T &in2, const T &in3, const T &in4, const T &in5, const T &in6, const T &in7, const T &in8, const T &in9) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8 || i == in9) return true; return false; }
 
 template <typename T>
 bool In(T i, T in1, T in2, T in3, T in4, T in5, T in6, T in7, T in8, T in9, T in10) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8 || i == in9 || i == in10) return true; return false; }
