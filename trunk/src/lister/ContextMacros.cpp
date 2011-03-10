@@ -1,4 +1,5 @@
 #include "ContextMacros.h"
+#include "MacroHandler.h"
 
 void ContextMacros::UpdateAvailableMacros(DropGrid &macrosAvailableList, ContextMacros *activeContextMacros) {
 	
@@ -10,5 +11,6 @@ void ContextMacros::UpdateAvailableMacros(DropGrid &macrosAvailableList, Context
 		macrosAvailableList.Add(taskMacros.GetKey(i), macPair.replaceWith, macPair.expansion);
 	}
 
+	UpdateMacroList(macrosAvailableList);
 }
 
