@@ -73,6 +73,7 @@ public:
 	DropGrid          outputColList; // Updated after output generated.
 	ContextMacros     activeContextMacros; // input/output from taskmacro table; loaded per task selection.
 	DropGrid          macrosAvailableList; // Coalesce of all macros in context for script
+	bool              showHiddenTasks;
 	
 	                  Lister();
 	                 ~Lister();
@@ -87,6 +88,7 @@ public:
 	void              MainGridContextMenu(Bar &bar); // Right-click over main output data.
 	void              FileMenu(Bar& bar);
 	void              ExpandScript(); // Expand embedded macros in script as popup for review.
+	void              ToggleHiddenTasks();
 	void              ClickedTest(); // User clicked Test! on the TestGrid.  Run the test.
 	void              TaskGridContextMenu(Bar &bar);
 	void              SelectedAvailableMacro(); // User selected a task macro and wants to insert it into his script
