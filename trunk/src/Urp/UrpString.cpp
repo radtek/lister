@@ -187,8 +187,24 @@
 }
 
 //==============================================================================================
-/*static*/ String UrpString::ToString(byte in) {
-	return Format("%d", in);
+/*static*/ String UrpString::ToString(int64 i) {
+	String s;
+	s << i;
+	return s;
+}
+
+//==============================================================================================
+/*static*/ String UrpString::ToString(int i) {
+	String s;
+	s << i;
+	return s;
+}
+
+//==============================================================================================
+/*static*/ String UrpString::ToString(byte i) {
+	String s;
+	s << i;
+	return s;
 }
 
 //==============================================================================================
@@ -293,4 +309,10 @@ String RestOf(const String &startwith, const String &skipthis) {
 	} else {
 		return startwith;
 	}
+}
+
+//==============================================================================================
+// Tired of the "To" prefix :)
+String Upper(const String& s) {
+	return(ToUpper(s));
 }

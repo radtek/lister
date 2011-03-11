@@ -28,6 +28,8 @@ public:
 	                // that store 1 and 0, for christ's sake!
 	static bool     FromTo(const unsigned int in, int &out);
 	static String   GetWord(String spaceDelimStrings, int wordNo);
+	static String   ToString(int64 in);
+	static String   ToString(int in);
 	static String   ToString(byte in);
 };
 
@@ -48,5 +50,5 @@ String              ToSQL(int in);
 String              ToSQL(bool in);
                     // For my lazy bones, just strip the string and return the rest, please
 String              RestOf(const String &startwith, const String &skipthis);
-
+String              Upper(const String& s);
 #endif
