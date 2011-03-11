@@ -83,6 +83,8 @@ struct MyRichEdit : public RichEdit, public Script {
 	//  Turn a set of lines into a stream for IN clause use
 	void            PasteWithNoWrapper();
 	void            PasteWithApostrophe();
+	void            PasteText(const String &s);
+	void            PasteText(const RichText& text);
 	void            PasteJoinLinesWithWrapper(const String& wrapper = "", const String &wrapperRight = "");
 	void            PasteConcat(); // Just compress paste all together
 	//  Popup helps you macro expand and merge strings
