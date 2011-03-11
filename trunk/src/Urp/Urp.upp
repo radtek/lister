@@ -11,6 +11,8 @@ file
 	UrpGridCommon.h,
 	UrpInput.h,
 	UrpInput.cpp,
+	UrpMath.h,
+	UrpMath.cpp,
 	UrpShared.h,
 	UrpShared.cpp,
 	UrpWindow.h,
