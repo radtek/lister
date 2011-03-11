@@ -112,6 +112,18 @@ void MyRichEdit::PasteWithNoWrapper() {
 }
 
 //==============================================================================================	
+// My helper, unintentionally hides the RichText version
+void MyRichEdit::PasteText(const String &s) {
+	RichEdit::PasteText(AsRichText(s.ToWString()));
+}
+
+//==============================================================================================	
+// Re-visiblize
+void MyRichEdit::PasteText(const RichText& text) {
+	RichEdit::PasteText(text);
+}
+
+//==============================================================================================	
 //  Turn a set of lines into a stream for IN clause use
 void MyRichEdit::PasteWithApostrophe() {
 	PasteJoinLinesWithWrapper("'", "'");
