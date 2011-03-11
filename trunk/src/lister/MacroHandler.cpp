@@ -1,6 +1,8 @@
 #include "MacroHandler.h"
 #include "lister/Urp/UrpString.h"
 #include "lister/Urp/UrpTime.h"
+#include "lister/Urp/UrpMath.h"
+
 // Necessary for RegExp use.  Add package plugin/pcre.
 // Had to add folder: C:\Program Files\Microsoft Visual Studio 10.0\VC\include to find stdint.h
 #include <plugin/pcre/Pcre.h>
@@ -79,16 +81,17 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 
 				// They just want the number
 				if (subcommand1 == "") {
-					expansion = ToString(actualphysicaldays);
+					expansion = ToString(Abs(actualphysicaldays));
 				} else if (subcommand1.StartsWith("ORA")) {
-					// All oracles use dd-mon-yyyy as their default date format
-					expansion = Format("'%02d-%s-%d'", endDate.day, MonName(endDate.month), endDate.year);
+					// All oracles use dd-mon-yyyy as their default date format. 
+					// Date.month must be converted to zero-base index
+					expansion = Format("'%02d-%s-%d'", endDate.day, Upper(MonName(endDate.month-1)), endDate.year);
 				} else if (subcommand1.StartsWith("SYBASE")) {
 					// This is the default format that Sybase 12.5 ASE reads
 					expansion = Format("'%4d-%02d-%02d'", endDate.year, endDate.month, endDate.day);
 				} else if (subcommand1.StartsWith("MSSQLUK")) {
 					// English format for London
-					expansion = Format("'%02d-%02d-%04d'", endDate.day, endDate.month, endDate.day);
+					expansion = Format("'%02d-%02d-%04d'", endDate.day, endDate.month, endDate.year);
 				} else {
 					expansion << "{unrecognized subcommand after TMINUS/TPLUS " << subcommand1 << ", looking for ORA, SYBASE, or MSSQLUK}";
 				}
