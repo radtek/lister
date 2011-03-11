@@ -745,7 +745,8 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 	String loginPwd 		= lcontrolConnection->Get(4);
 	String instanceAddress 	= lcontrolConnection->Get(7);
 	String dbName 			= lcontrolConnection->Get(12);
-	String portNo           = lcontrolConnection->Get(13);
+	String portNo           = ToString((int)lcontrolConnection->Get(13)); // We treat portno as a string in case some weirdness involved for some sources
+	
 	if (useIfFoundInPool) {
 		Connection *conn = GetConnection(connName);
 		if (conn != (Connection *)NULL) {
