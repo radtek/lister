@@ -61,6 +61,7 @@ public:
 	                TaskGrid();
 	               ~TaskGrid();
 	void            Build();
+	void            ReQuery(bool showHiddenFlags);
 	void            Load(Connection *pconnection);
 	int             GetTaskId(int row = -1);
 	String          GetTaskName(int row);
