@@ -29,7 +29,7 @@
 Lister::Lister() {
 	Init(__FILE__);
 	CtrlLayout(*this, "Lister - A SQL Connection and Execution Tool");
-
+	showHiddenTasks = false;
 	activeConnection = NULL;
 	
 	//		To create such a hotkey, do this:
@@ -309,9 +309,16 @@ void Lister::ExpandScript() {
 }
 
 //==============================================================================================	
+void Lister::ToggleHiddenTasks() {
+	showHiddenTasks = !showHiddenTasks;
+	taskGrid.ReQuery(showHiddenTasks);
+}
+
+//==============================================================================================	
 void Lister::FileMenu(Bar& bar) {
 	bar.Add("Mappings", THISBACK(ViewMappings));
 	bar.Add("Expand Script", THISBACK(ExpandScript));
+	bar.Add("Show Hidden Tasks", THISBACK(ToggleHiddenTasks)).Check(showHiddenTasks);
 }
 
 //==============================================================================================	
@@ -438,16 +445,20 @@ void Lister::ClickedTest() {
 void Lister::SelectedAvailableMacro() {
 	String newMac;
 	if (macrosAvailableList.GetList().GetCurrentRow() == -1) return;
-	String macro = macrosAvailableList.Get("search").ToString();
+	int row = macrosAvailableList.GetList().GetCurrentRow();
+	String macro = macrosAvailableList.GetList().Get(row, 0).ToString();
+	// TODO: Get tip or notes from grid and display as label in input box
+	
 	if (macro.Find("{n}") != -1) {
 		String number;
 		if (UrpInputBox(number, "Enter a number", "Complete macro definition")) {
-			UrpString::ReplaceInWhatWith(macro, "{n}", number);
+			macro = UrpString::ReplaceInWhatWith(macro, "{n}", number);
 		}
 	}
 	
 	newMac << "[[" << macro << "]]";
-	scriptEditor.Insert(scriptEditor.GetCursor(), AsRichText(newMac.ToWString()));
+	scriptEditor.PasteText(newMac);
+	//scriptEditor.Insert(scriptEditor.GetCursor(), AsRichText(newMac.ToWString()));
 }
 
 //==============================================================================================	
