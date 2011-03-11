@@ -100,5 +100,4 @@ bool None(bool b1, bool b2, bool b3);
 bool None(bool b1, bool b2, bool b3, bool b4);
 bool None(bool b1, bool b2, bool b3, bool b4, bool b5);
 
-int Sgn(int i);
 #endif
