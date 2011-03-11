@@ -3281,6 +3281,9 @@ GridCtrl::CurState GridCtrl::SetCursor0(Point p, int opt, int dirx, int diry)
 	else
 		tmpcur = p;
 
+	// Jeff added 3/11/11: Negative values when empty set(no rows) and try to scroll (lot of columns)
+	if (tmpcur.x == -1 || tmpcur.y == -1) return cs;
+	
 	Point oldcur = highlight ? livecur : curpos;
 
 	bool oldvalid = IsValidCursorAll(oldcur);
