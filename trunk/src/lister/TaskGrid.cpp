@@ -44,6 +44,15 @@ void TaskGrid::Build() {
 }
 
 //==========================================================================================	
+void TaskGrid::ReQuery(bool showHiddenFlags) {
+	if (showHiddenFlags) {
+		UrpSqlGrid::ReQuery(HIDDEN == "1");
+	} else {
+		UrpSqlGrid::ReQuery(IsNull(HIDDEN) || HIDDEN == "0");
+	}
+}
+
+//==========================================================================================	
 void TaskGrid::Load(Connection *pconnection) {
 	connection = pconnection;
 	SetSession(*(pconnection->session));
