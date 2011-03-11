@@ -43,5 +43,11 @@
 // Interval management that supports Time
 #include "UrpInterval.h"
 
+// Simple missing math functions (where are they?)
+#include "UrpMath.h"
+
+// Complex business date math
+#include "UrpTime.h"
+
 #endif
 
