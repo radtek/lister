@@ -5,6 +5,7 @@
 #include "shared_db.h"
 class Connection;
 
+//==============================================================================================
 class TaskMacroGrid : public UrpSqlGrid {
 public:
 	typedef TaskMacroGrid CLASSNAME;
