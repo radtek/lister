@@ -14,6 +14,7 @@ public:
 	int    groupNo; // If used for separation grouping; -1 if not.
 };
 
+//==============================================================================================
 class OutputSpec : Moveable<OutputSpec> {
 public:
 	Vector<OutputColumnDef> outputColumnDefList;
