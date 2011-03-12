@@ -6,16 +6,18 @@
 
 using namespace Upp;
 
-	enum EnumTestState {
-		NOTEST_NEVER,
-		NOTEST_UNDEF,
-		TESTING_START,
-		TESTING_TIMEOUT,
-		TEST_PASS,
-		TEST_FAIL,
-		TEST_INDETERMINATE
-	};
+//==============================================================================================
+enum EnumTestState {
+	NOTEST_NEVER,
+	NOTEST_UNDEF,
+	TESTING_START,
+	TESTING_TIMEOUT,
+	TEST_PASS,
+	TEST_FAIL,
+	TEST_INDETERMINATE
+};
 
+//==============================================================================================
 class TestState : public ColorPusher {
 public:
 	TestState();
