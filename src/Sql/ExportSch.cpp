@@ -24,7 +24,7 @@ String ExportSch(SqlSession& session, const String& database)
 		for(int i = 0; i < c.GetCount(); i++) {
 			String type;
 			int    width = Null;
-			switch(c[i].type) {
+			switch(c[i].valuetype) {
 			case INT_V:
 				type = "INT";
 				break;
