@@ -37,6 +37,14 @@ void TaskDefWin::Build(Connection *pconnection) {
 		linkGrid.Build(pconnection);
 	}
 
+	if (!elementGrid.built) {
+		elementGrid.Build(pconnection);
+	}
+
+	if (!taskMacroGrid.built) {
+		taskMacroGrid.Build(pconnection);
+	}
+
 	ContactGrid::LoadContact(connection, fldAssignedToWho);
 	ContactGrid::LoadContact(connection, fldAssignedByWho);
 	ContactGrid::LoadContact(connection, fldDepOnWho);
@@ -53,9 +61,6 @@ void TaskDefWin::Build(Connection *pconnection) {
 	ContactGrid::BuildContactList(fldDepOnWho4);
 	ContactGrid::BuildContactList(fldDepOnWho5);
 	
-	if (!elementGrid.built) {
-		elementGrid.Build(pconnection);
-	}
 }
 
 //==============================================================================================
@@ -72,6 +77,9 @@ void TaskDefWin::Load(Task &ptask) {
 
 	linkGrid.SetTaskId(taskId);
 	linkGrid.Load();
+	
+	taskMacroGrid.SetTaskId(taskId);
+	taskMacroGrid.Load();
 
 	fldTaskName              .SetData(task.taskName);
 	fldSrcCode               .SetData(task.srcCode);
@@ -101,28 +109,28 @@ void TaskDefWin::Load(Task &ptask) {
 
 //==============================================================================================
 void TaskDefWin::SaveTask() {
-	task.taskName              = fldTaskName.GetData();
-	task.srcCode               = fldSrcCode.GetData();
-	task.projectName           = fldProjectName.GetData();
-	task.note                  = fldNote.GetData();
-	task.taskDesc              = fldTaskDesc.GetData();
-	task.solutionDesc          = fldSolutionDesc.GetData();
-	task.note                  = fldNote.GetData();
-	task.assignedToWho         = fldAssignedToWho.GetData();
-	task.assignedByWho         = fldAssignedByWho.GetData();
-	task.priorityAssignedDate  = fldPriorityAssignedDate.GetData();
-	task.nextTargetDate        = fldNextTargetDate.GetData();
-	task.targetDateExpectation = fldTargetDateExpectation.GetData();
-	task.priorityWithinProject = fldPriorityWithinProject.GetData();
-	task.depOnWho              = fldDepOnWho.GetData();
-	task.depOnWho2             = fldDepOnWho2.GetData();
-	task.depOnWho3             = fldDepOnWho3.GetData();
-	task.depOnWho4             = fldDepOnWho4.GetData();
-	task.depOnWho5             = fldDepOnWho5.GetData();
-	task.depAssignedWhen       = fldDepAssignedWhen.GetData();
-	task.depExpectSampWhen     = fldDepExpectSampWhen.GetData();
-	task.depAssignDesc         = fldDepAssignDesc.GetData();
-	task.depFeedback           = fldDepFeedback.GetData();
+	task.taskName              = fldTaskName              .GetData();
+	task.srcCode               = fldSrcCode               .GetData();
+	task.projectName           = fldProjectName           .GetData();
+	task.note                  = fldNote                  .GetData();
+	task.taskDesc              = fldTaskDesc              .GetData();
+	task.solutionDesc          = fldSolutionDesc          .GetData();
+	task.note                  = fldNote                  .GetData();
+	task.assignedToWho         = fldAssignedToWho         .GetData();
+	task.assignedByWho         = fldAssignedByWho         .GetData();
+	task.priorityAssignedDate  = fldPriorityAssignedDate  .GetData();
+	task.nextTargetDate        = fldNextTargetDate        .GetData();
+	task.targetDateExpectation = fldTargetDateExpectation .GetData();
+	task.priorityWithinProject = fldPriorityWithinProject .GetData();
+	task.depOnWho              = fldDepOnWho              .GetData();
+	task.depOnWho2             = fldDepOnWho2             .GetData();
+	task.depOnWho3             = fldDepOnWho3             .GetData();
+	task.depOnWho4             = fldDepOnWho4             .GetData();
+	task.depOnWho5             = fldDepOnWho5             .GetData();
+	task.depAssignedWhen       = fldDepAssignedWhen       .GetData();
+	task.depExpectSampWhen     = fldDepExpectSampWhen     .GetData();
+	task.depAssignDesc         = fldDepAssignDesc         .GetData();
+	task.depFeedback           = fldDepFeedback           .GetData();
 	
 	if (WhenSaveTask) WhenSaveTask(task);
 	Close();
@@ -137,6 +145,7 @@ void TaskDefWin::SaveTask() {
 		("grid1", elementGrid)
 		("grid2", taskScriptGrid)
 		("grid3", linkGrid)
+		("grid4", taskMacroGrid)
 	;
 	
 	UrpConfigWindow::Xmlize(xml); // Make sure and save our window position!
