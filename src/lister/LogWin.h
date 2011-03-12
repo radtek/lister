@@ -4,6 +4,7 @@
 #include "shared.h"
 #include "shared_layout.h"
 
+//==============================================================================================
 // Controlled logging of task runs, not for general debugging, but for users reviewing batchs
 class LogWin : public WithLogWinLayout<UrpWindow> {
 public:
