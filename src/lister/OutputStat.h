@@ -7,6 +7,7 @@
 #define LAYOUTFILE <lister/lister/panels.lay>
 #include <CtrlCore/lay.h>
 
+//==============================================================================================
 class OutputStat : public WithOutputStatLayout<ParentCtrl> { // Note: Not a TopWindow type so it can be embedded
 public:
 	typedef OutputStat CLASSNAME;
