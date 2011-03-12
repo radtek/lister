@@ -4,6 +4,7 @@
 #include "shared.h"
 class OutputStat;
 
+//==============================================================================================
 class JobSpec {
 public:
 	bool         log;
