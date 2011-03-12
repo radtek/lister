@@ -357,11 +357,19 @@ void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobS
 		String datadef;
 
 		// The data width in ci does not define the expanded string width needed to store these
-		if (ci.type == TIME_V) {
+		if (ci.valuetype == TIME_V) {
 			datadef = "timestamp with time zone";
-		} else if(ci.type == DATE_V) {
+		} else if(ci.bindtype == BIND_INT8) {
+			datadef = "smallint"; // No tinyint support on Postgresql!
+		} else if(ci.bindtype == BIND_INT16) {
+			datadef = "smallint"; // -32768 to +32767
+		} else if(ci.bindtype == BIND_INT32) {
+			datadef = "integer"; // 
+		} else if(ci.bindtype == BIND_INT64) {
+			datadef = "bigint";
+		} else if(ci.valuetype == DATE_V) {
 			datadef = "date";
-		} else if(ci.type == INT_V) {
+		} else if(ci.valuetype == INT_V) {
 			datadef = "integer";
 		} else {
 			datadef = Format("character varying(%d)", actualwidth);
@@ -417,7 +425,7 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 		OutputColumnDef outputColumnDef;
 		outputColumnDef.name = ci.name;
 		outputColumnDef.sqlType = ci.sqltype;
-		outputColumnDef.sqlTypeName = SQLTypeName(ci.type);
+		outputColumnDef.sqlTypeName = SQLTypeName(ci.sqltype);
 		outputColumnDef.visibleWidth = w;
 		outputColumnDef.groupNo = -1;
 			
