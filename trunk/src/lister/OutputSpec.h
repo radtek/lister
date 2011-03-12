@@ -3,6 +3,7 @@
 
 #include "shared.h"
 
+//==============================================================================================
 class OutputColumnDef : Moveable<OutputColumnDef> {
 public:
 	String name;
