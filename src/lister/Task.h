@@ -3,6 +3,7 @@
 
 #include "shared.h"
 
+//==============================================================================================
 class Task: public Moveable<Task> {
 public:
 	int        taskId;
