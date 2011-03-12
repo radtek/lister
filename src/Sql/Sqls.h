@@ -30,14 +30,22 @@ public:
 	SqlRaw() {}
 };
 
+// This has to match between what the Execute statement decides at bind time and how each field is processed at fetch time.
+// For ex, SQL_TINYINT must be loaded using SQLCHAR, as does SQL_BIT, but the value type is flagged INT_V and BOOL_V.
+// SQL_TINYINT and SQL_INTEGER bind to different sizes, but must both map to INT_V.
+// I created this type so that there is less confusion around the 3 storage areas: What SQL Standard calls it, what bind space is required per element, and what U++ storage type we need to use.
+// This also allows further specialization of bind and fetch operations to more granular types.
+enum EnumBindType { BIND_CHAR, BIND_INT8, BIND_INT16, BIND_INT32, BIND_INT64, BIND_INT128, BIND_DATE, BIND_DATETIME, BIND_BOOL, BIND_DOUBLE, BIND_ERR};
+
 struct SqlColumnInfo : Moveable<SqlColumnInfo> {
-	String      name;
-	int         type;
-	int         sqltype;
-	int         width;
-	int         precision; //number of total digits in numeric types
-	int         scale;     //number of digits after comma in numeric types
-	bool        nullable;  //true - column can hold null values
+	String       name;
+	int          valuetype; // Value type in U++; how we store it in our U++ Vector
+	int          sqltype;   // What ODBC thinks it is, semi-standard
+	EnumBindType bindtype;  // A code I make up that must agree between Execution() and Fetch() bindings. Simple.
+	int          width;
+	int          precision; //number of total digits in numeric types
+	int          scale;     //number of digits after comma in numeric types
+	bool         nullable;  //true - column can hold null values
 };
 
 // This becomes "cn" in your Sql object, a delegate wrapper. Not sure why.
