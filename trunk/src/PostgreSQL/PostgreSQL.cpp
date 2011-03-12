@@ -279,7 +279,7 @@ Vector<SqlColumnInfo> PostgreSQLSession::EnumColumns(String database, String tab
 		SqlColumnInfo &ci = vec.Add();
 		int type_mod = int(sql[3]) - sizeof(int32);
 		ci.name = sql[0];
-		ci.type = OidToType(IsString(sql[1]) ? atoi(String(sql[1])) : (int)sql[1]);
+		ci.valuetype = OidToType(IsString(sql[1]) ? atoi(String(sql[1])) : (int)sql[1]);
 		ci.width = sql[2];
 		if(ci.width < 0)
 			ci.width = type_mod;
@@ -564,7 +564,7 @@ bool PostgreSQLConnection::Execute()
 			f.scale = type_mod & 0xffff;
 			f.nullable = true;
 			Oid type_oid = PQftype(result, i);
-			f.type = OidToType(type_oid);
+			f.valuetype = OidToType(type_oid);
 			oid[i] = type_oid;
 		}
 		return true;
@@ -621,7 +621,7 @@ void PostgreSQLConnection::GetColumn(int i, Ref f) const
 		return;
 	}
 	char *s = PQgetvalue(result, fetched_row, i);
-	switch(info[i].type)
+	switch(info[i].valuetype)
 	{
 		case INT64_V:
 			f.SetValue(ScanInt64(s));
