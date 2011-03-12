@@ -1,15 +1,19 @@
 #include "AnalysisByDate.h"
 #include "Connection.h"
 
+//==============================================================================================
 AnalysisByDateGrid::AnalysisByDateGrid() : UrpSqlGrid() {
 }
 
+//==============================================================================================
 void AnalysisByDateGrid::UpdatingRow() {
 	// Called from WhenStartEdit from inside StartEdit	
 	if (IsInsert()) { // Not IsInserting, this checks insertmode
 		Set(TASKID, taskId);
 	}
 }
+
+//==============================================================================================
 void AnalysisByDateGrid::Build(Connection *pconnection) {
 	// Build columns
 	connection = pconnection;
@@ -28,11 +32,13 @@ void AnalysisByDateGrid::Build(Connection *pconnection) {
 	WhenStartEdit = THISBACK(UpdatingRow);
 }
 
+//==============================================================================================
 void AnalysisByDateGrid::SetTaskId(int ptaskId) {
 	taskId = ptaskId;
 	SetWhere((TASKID == taskId));
 }
 
+//==============================================================================================
 void AnalysisByDateGrid::Load() {
 	SetSession(*(connection->session));
 	SetSortColumn(ANALYSISNAME);
