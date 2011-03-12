@@ -5,6 +5,7 @@ using namespace Upp;
 
 #include "ScriptGrid.h" // Referenced from layout
 #include "TestGrid.h"   // Referenced from layout
+#include "TaskMacroGrid.h" // Referenced in task
 #include "ElementGrid.h"
 #include "TaskGrid.h"
 #include "LinkGrid.h"
