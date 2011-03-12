@@ -1,6 +1,7 @@
 #include "ContextMacros.h"
 #include "MacroHandler.h"
 
+//==============================================================================================
 void ContextMacros::UpdateAvailableMacros(DropGrid &macrosAvailableList, ContextMacros *activeContextMacros) {
 	
 	macrosAvailableList.Clear();
