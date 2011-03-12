@@ -329,7 +329,7 @@ void SqlConsole::Execute(int type) {
 		list.HeaderTab(i).WhenAction = THISBACK1(Hide, i);
 		cw[i] = GetTextSize(ci.name, StdFont()).cx + 2 * list.HeaderTab(i).GetMargin();
 		record.Add(ci.name, Null);
-		lob.Add(ci.type == -1 || ci.type == -2); // !! BLOB / CLOB hack
+		lob.Add(ci.valuetype == -1 || ci.valuetype == -2); // !! BLOB / CLOB hack
 	}
 	Progress pi;
 	pi.SetText(t_("Fetched %d line(s)"));
