@@ -78,7 +78,7 @@ void DlgSqlExport::Run(Sql& cursor, String command, String tablename)
 	for(int i = 0; i < cursor.GetColumns(); i++) {
 		const SqlColumnInfo& sci = cursor.GetColumnInfo(i);
 		String type;
-		switch(sci.type) {
+		switch(sci.valuetype) {
 			case BOOL_V:
 			case INT_V: type = t_("integer"); break;
 			case DOUBLE_V: type = t_("real number"); break;
@@ -88,9 +88,9 @@ void DlgSqlExport::Run(Sql& cursor, String command, String tablename)
 			case TIME_V: type = t_("date/time"); break;
 			case /*ORA_BLOB_V*/-1: type = t_("BLOB"); break;
 			case /*ORA_CLOB_V*/-2: type = t_("CLOB"); break;
-			default: type = FormatInt(sci.type); break;
+			default: type = FormatInt(sci.valuetype); break;
 		}
-		columns.Add(sci.name, sci.type, sci.width, 1);
+		columns.Add(sci.name, sci.valuetype, sci.width, 1);
 	}
 	static String cfg;
 	LoadFromString(*this, cfg);
