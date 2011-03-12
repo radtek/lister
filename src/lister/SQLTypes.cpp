@@ -3,6 +3,7 @@
 // From C:\Program Files\Microsoft SDKs\Windows\v7.0\Include
 #include "sqlext.h" 
 // Also, C:\Program Files\Microsoft SDKs\Windows\v7.0\Include\sql.h contains SQL_VARCHAR
+//==============================================================================================
 String SQLTypeName(int sqlType) {
 	String typeName;
 	switch (sqlType) {
