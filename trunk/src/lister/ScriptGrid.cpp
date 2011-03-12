@@ -49,6 +49,7 @@ void ScriptGrid::Build(Connection *pconnection) {
 	AddColumn(FASTFLUSHTARGET, "truncate target", 10).Edit(fastFlushTargetList).SetConvert(fastFlushTargetList);
 	AddColumn(ROWLIMIT, "rowlimit", 20).Edit(rowLimit);
 	AddColumn(PROCESSORDER, "order", 25).Edit(processOrder);
+	HideColumn(PROCESSORDER); // No need to see it anymore since it is generated
 	connectionList.SearchHideRows().Resizeable().Width(200);
 	connectionList.NotNull(); //.AddPlus(THISBACK(NewConnection));
 	built = true;
