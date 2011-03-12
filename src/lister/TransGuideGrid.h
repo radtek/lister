@@ -5,6 +5,7 @@
 #include <lister/Urp/Urp.h>
 class Connection;
 
+//==============================================================================================
 class TransGuideGrid : public UrpGrid {
 public:
 	enum GridType { LOOPED, SHARED };
