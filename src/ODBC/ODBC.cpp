@@ -143,7 +143,6 @@ public:
 	virtual String          GetUser() const    { ASSERT(session); return session->user; }
 	virtual String          ToString() const;
 	virtual Value           GetInsertedId() const;
-	Vector<MySqlColumnInfo>  myinfo;
 
 private:
 	friend class ODBCSession;
@@ -288,8 +287,8 @@ void ODBCSession::Begin()
 	tlevel++;
 }
 
-void ODBCSession::Commit()
-{
+//==============================================================================================
+void ODBCSession::Commit() {
 	tlevel--;
 	ASSERT(tlevel >= 0);
 	if(tlevel == 0) {
@@ -298,8 +297,8 @@ void ODBCSession::Commit()
 	}
 }
 
-void ODBCSession::Rollback()
-{
+//==============================================================================================
+void ODBCSession::Rollback() {
 	tlevel--;
 	ASSERT(tlevel >= 0);
 	if(tlevel == 0) {
@@ -308,39 +307,39 @@ void ODBCSession::Rollback()
 	}
 }
 
-String ODBCSession::Savepoint()
-{
+//==============================================================================================
+String ODBCSession::Savepoint() {
 	NEVER();
 	return "";
 }
 
-void ODBCSession::RollbackTo(const String& savepoint)
-{
+//==============================================================================================
+void ODBCSession::RollbackTo(const String& savepoint) {
 	NEVER();
 }
 
-Vector<String> ODBCSession::EnumUsers()
-{
+//==============================================================================================
+Vector<String> ODBCSession::EnumUsers() {
 	return Vector<String>();
 }
 
-Vector<String> ODBCSession::EnumDatabases()
-{
+//==============================================================================================
+Vector<String> ODBCSession::EnumDatabases() {
 	return Vector<String>();
 }
 
-Vector<String> ODBCSession::EnumTables(String database)
-{
+//==============================================================================================
+Vector<String> ODBCSession::EnumTables(String database) {
 	return Vector<String>();
 }
 
-Vector<String> ODBCSession::EnumViews(String database)
-{
+//==============================================================================================
+Vector<String> ODBCSession::EnumViews(String database) {
 	return Vector<String>();
 }
 
-Vector<String> ODBCSession::EnumSequences(String database)
-{
+//==============================================================================================
+Vector<String> ODBCSession::EnumSequences(String database) {
 	return Vector<String>();
 }
 
@@ -349,13 +348,13 @@ Vector<String> ODBCSession::EnumPrimaryKeys(String database, String table)
 	return Vector<String>();
 }
 
-String ODBCSession::EnumRowID(String database, String table)
-{
+//==============================================================================================
+String ODBCSession::EnumRowID(String database, String table) {
 	return "";
 }
 
-bool   ODBCPerformScript(const String& text, StatementExecutor& executor, Gate2<int, int> progress_canceled)
-{
+//==============================================================================================
+bool ODBCPerformScript(const String& text, StatementExecutor& executor, Gate2<int, int> progress_canceled) {
 	const char *p = text;
 	while(*p) {
 		String cmd;
@@ -532,14 +531,14 @@ bool ODBCConnection::Execute()
 	// Allocate a 2-dimensional array for the indicators col x row.
 	indicator = (SQLLEN *)new SQLLEN[ncol * ROW_FETCH_COUNT];
 	session->current = this;
-	myinfo.Clear();
-for(int i = 0; i < myinfo.GetCount(); i++) {
-		
-		byte *b = rowdata.Get(myinfo[i].name);
-		delete b;
+	
+	for(int i = 0; i < info.GetCount(); i++) {
+		if (rowdata.Find(info[i].name) >= 0) {
+			byte *b = rowdata.Get(info[i].name);
+			delete b;
+		}
 	}
 	info.Clear();
-	binary.Clear();
 	
 	// Identify all properties of returned data and bind space for fetching
 
@@ -565,73 +564,60 @@ for(int i = 0; i < myinfo.GetCount(); i++) {
 //		if (!In(ColumnName, "source_system", "trade_id"//, "admin_id", "book", "branch", "bs_flag", "cpty", "cpty_entity", "ccy_pay_ml", "ccy_pay_cpty", "cob_date", "coper_id", "creation_date", "derivative_type", "end_date", "entity", "ex_venue", "int_book", "int_book_entity", "intra_company_trade", "latest_version", "notif_date", "notional_amt", "orig_trade_id", "orig_trade_status", "payment_amt", "price", "price_multiplier", "product_code", "product_subcode", "quantity", "rate", "region", "risk_entity_name", "settlement_date", "specialist_system_id", "start_date", "trade_date", "trade_status", "trade_time", "trade_ref", "trader_id", "trading_capacity", "update_count", "leg_parent_trade_id", "leg_type", "CUSIP", "ISIN", "u_ISIN", "MLInstrument", "sec_id_flag", "index_ticker", "security_description", "basket_name", "MIFID_reportable", "u_instrument_type", "cp_code", "system_reportable_flag", "risk_book", "bbg_agency_link_ref", "put_call", "strike_price", "option_premium", "spread", "option_premium_ccy", "coupon_rate", "accrued_interest", "ai_days", "coupon", "yield", "cancel_amend_reason", "cancel_amend_trader_name", "u_MLInstrument", "u_CUSIP", "rec_type", "description", "Desk_Name", "ticker", "Original_Source_System", "SubProductTypeName", "SubProductTypeDesc", "trade_type", "commodity_type", "coper_le_guid", "notional_1", "notional_ccy_1", "notional_2", "notional_ccy_2", "coverage", "deliverable", "contra_fwd_rate", "contra_spot_rate", "assignment_cpty", "broker_id", "option_premium_date", "option_style", "first_lower_barrier", "first_upper_barrier", "sourceSystemLegId", "cust_account_trader", "account_short_name", "mortgage_flag", "master_ticket_number", "slate_time", "ticket_time", "long_trade_time", "transaction_type", "usd_amount", "trans_no", "sec_id", "Note", "cancel_date", "capRate", "floorRate", "optionType", "GCINumber", "orig_trans_no", "quote_basis", "MTM", "MTM_USD", "MTM_CCY"
 
 		//binary.Add(false);
-		MySqlColumnInfo& f = myinfo.Add();
-		SqlColumnInfo &flegacy = info.Add(); // Maintain old version ;)
+		SqlColumnInfo &f = info.Add();
 		
-		flegacy.nullable = f.nullable = Nullable != SQL_NO_NULLS;
-		flegacy.precision = f.precision = DecimalDigits;
-		flegacy.scale = f.scale = 0;
-		flegacy.width = f.width = ColumnSize;
-		flegacy.name = (char *)ColumnName;
+		f.nullable = Nullable != SQL_NO_NULLS;
+		f.precision = DecimalDigits;
+		f.scale = 0;
+		f.width = ColumnSize;
 		f.name = (char *)ColumnName;
 		String nm((char *)ColumnName);
 		 
 		// My new property
-		flegacy.sqltype = DataType;
-		//f.isbinary = false;
+		f.sqltype = DataType;
+		f.bindtype = BIND_ERR; // Set so we can trap if we failed to set a type
+		
 		SQLLEN *indicatorptr = indicator + ((i-1) * ROW_FETCH_COUNT);
 		
 		switch(DataType) { // http://msdn.microsoft.com/en-us/library/ms710150(v=vs.85).aspx
+
+		//______________________________________________________________________________________
+		// Number processing
+		case SQL_TINYINT: // Exact numeric value with precision 3 and scale 0 (signed: –128 <= n <= 127, unsigned: 0 <= n <= 255)[3].
+			{
+				SQLCHAR *intdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)intdata);
+				f.valuetype = INT_V;
+				f.bindtype = BIND_INT8; // loads in CHAR, values as INT_V
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_STINYINT, intdata, sizeof(SQLCHAR), indicatorptr))) return false;
+				break;
+			}
+			break;
+
+		case SQL_SMALLINT: // Exact numeric value with precision 5 and scale 0 (signed: –32,768 <= n <= 32,767, unsigned: 0 <= n <= 65,535)[3].
+			Exclamation("SQL_SMALLINT not supported"); break;
+			f.valuetype = INT_V;
+			f.bindtype = BIND_INT16;
+
 		case SQL_INTEGER:
 			{   // http://msdn.microsoft.com/en-us/library/ms714556(v=vs.85).aspx shows relationship between typedefs and identifiers
 				SQLINTEGER *numdata = (SQLINTEGER *)new SQLINTEGER[ROW_FETCH_COUNT];
 				rowdata.Add(nm, (byte *)numdata);
-				f.type = INT_V;
+				f.valuetype = INT_V;
+				f.bindtype = BIND_INT32; // loads in SQLINTEGER, values as INT_V
 				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SLONG, numdata, sizeof(SQLINTEGER), indicatorptr))) return false;
 				break;
 			}
 			
-		case SQL_TYPE_DATE:
+		case SQL_BIGINT: // Exact numeric value with precision 19 (if signed) or 20 (if unsigned) and scale 0 (signed: –2[63] <= n <= 2[63] – 1, unsigned: 0 <= n <= 2[64] – 1)[3],[9].
 			{
-				SQL_DATE_STRUCT *datedata = (SQL_DATE_STRUCT *)new SQL_DATE_STRUCT[ROW_FETCH_COUNT];
-				rowdata.Add(nm, (byte *)datedata);
-				f.type = DATE_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_DATE, datedata, sizeof(SQL_DATE_STRUCT), indicatorptr))) return false;
+				SQLBIGINT *intdata = (SQLBIGINT *)new SQLBIGINT[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)intdata);
+				f.valuetype = INT64_V;
+				f.bindtype = BIND_INT64; // loads in SQLBIGINT, values as INT64_V
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SBIGINT, intdata, sizeof(SQLBIGINT), indicatorptr))) return false;
 				break;
 			}
-		case SQL_TYPE_TIMESTAMP:
-			{
-				SQL_TIMESTAMP_STRUCT *timedata = (SQL_TIMESTAMP_STRUCT *)new SQL_TIMESTAMP_STRUCT[ROW_FETCH_COUNT];
-				rowdata.Add(nm, (byte *)timedata);
-				f.type = TIME_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_TIMESTAMP, timedata, sizeof(SQL_TIMESTAMP_STRUCT), indicatorptr))) return false;
-				break;
-			}
-
-		case SQL_VARCHAR: // Variable-length character string with a maximum string length n.
-			{
-				//DB2 Note: After a fetch for an SQL_VARCHAR column, DB2 for i5/OS CLI returns the bytes that are fetched in the first 2 bytes of the VARCHAR structure that is bound. DB2 for i5/OS CLI does not return the length in pcbValue as it does for SQL_CHAR.
-				//http://publib.boulder.ibm.com/infocenter/iseries/v6r1m0/index.jsp?topic=/cli/rzadpfnbindc.htm
-				SQLCHAR *strdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT * (ColumnSize + 1)]; 
-				rowdata.Add(nm, (byte *)strdata);
-				
-				f.type = STRING_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicatorptr))) return false;
-			}
-			break;
-		case SQL_CHAR:			
-			{
-				SQLCHAR *strdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT * (ColumnSize + 1)];
-				rowdata.Add(nm, (byte *)strdata);
-				f.type = STRING_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicatorptr))) return false;
-				break;
-			}
-		case SQL_LONGVARCHAR: Exclamation("SQL_LONGVARCHAR not supported"); break;
-		case SQL_WCHAR: // Unicode character string of fixed string length n
-			Exclamation("SQL_WCHAR not supported"); break;
-		case SQL_WVARCHAR: Exclamation("SQL_WVARCHAR not supported"); break;
-		case SQL_WLONGVARCHAR: Exclamation("SQL_WLONGVARCHAR not supported"); break;
 		case SQL_DOUBLE: // Signed, approximate, numeric value with a binary precision 53 (zero or absolute value 10[–308] to 10[308]).
 		case SQL_REAL: // Signed, approximate, numeric value with a binary precision 24 (zero or absolute value 10[–38] to 10[38]).
 		case SQL_FLOAT: // Signed, approximate, numeric value with a binary precision of at least p. (The maximum precision is driver-defined.)[5]
@@ -640,58 +626,99 @@ for(int i = 0; i < myinfo.GetCount(); i++) {
 			{
 				SQLDOUBLE *dbldata = (SQLDOUBLE *)new SQLDOUBLE[ROW_FETCH_COUNT];
 				rowdata.Add(nm, (byte *)dbldata);
-				f.type = DOUBLE_V;
+				f.valuetype = DOUBLE_V;
+				f.bindtype = BIND_DOUBLE; // Not really perfect for decimals and numerics
 				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_DOUBLE, dbldata, sizeof(SQLDOUBLE), indicatorptr))) return false;
 				break;
 			}
 			break;
-		case SQL_SMALLINT: // Exact numeric value with precision 5 and scale 0 (signed: –32,768 <= n <= 32,767, unsigned: 0 <= n <= 65,535)[3].
-			Exclamation("SQL_SMALLINT not supported"); break;
-		case SQL_BIT: // Single bit binary
+
+		//______________________________________________________________________________________
+		// Date and Time processing
+		
+		case SQL_TYPE_DATE:
 			{
-				SQLCHAR *bitdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT];
-				rowdata.Add(nm, (byte *)bitdata);
-				f.type = BOOL_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_BIT, bitdata, sizeof(SQLCHAR), indicatorptr))) return false;
+				SQL_DATE_STRUCT *datedata = (SQL_DATE_STRUCT *)new SQL_DATE_STRUCT[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)datedata);
+				f.valuetype = DATE_V;
+				f.bindtype = BIND_DATE; // loads in SQL_DATE_STRUCT, values in DATE_V
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_DATE, datedata, sizeof(SQL_DATE_STRUCT), indicatorptr))) return false;
 				break;
 			}
-			break;
-		case SQL_TINYINT: // Exact numeric value with precision 3 and scale 0 (signed: –128 <= n <= 127, unsigned: 0 <= n <= 255)[3].
+		case SQL_TYPE_TIMESTAMP:
 			{
-				SQLCHAR *intdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT];
-				rowdata.Add(nm, (byte *)intdata);
-				f.type = INT_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_STINYINT, intdata, sizeof(SQLCHAR), indicatorptr))) return false;
+				SQL_TIMESTAMP_STRUCT *timedata = (SQL_TIMESTAMP_STRUCT *)new SQL_TIMESTAMP_STRUCT[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)timedata);
+				f.valuetype = TIME_V;
+				f.bindtype = BIND_DATETIME; // loads in SQL_TIMESTAMP_STRUCT, values in TIME_V
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_TYPE_TIMESTAMP, timedata, sizeof(SQL_TIMESTAMP_STRUCT), indicatorptr))) return false;
 				break;
 			}
-			break;
-		case SQL_BIGINT: // Exact numeric value with precision 19 (if signed) or 20 (if unsigned) and scale 0 (signed: –2[63] <= n <= 2[63] – 1, unsigned: 0 <= n <= 2[64] – 1)[3],[9].
-			{
-				SQLBIGINT *intdata = (SQLBIGINT *)new SQLBIGINT[ROW_FETCH_COUNT];
-				rowdata.Add(nm, (byte *)intdata);
-				f.type = INT64_V;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SBIGINT, intdata, sizeof(SQLBIGINT), indicatorptr))) return false;
-				break;
-			}
-		case SQL_BINARY: // Binary data of fixed length n.[9]
-			Exclamation("SQL_BINARY not supported"); break;
-		case SQL_VARBINARY: // Variable length binary data of maximum length n. The maximum is set by the user.[9]
-			Exclamation("SQL_VARBINARY not supported"); break;
-		case SQL_LONGVARBINARY: // Variable length binary data. Maximum length is data source–dependent.[9]
-			Exclamation("SQL_LONGVARBINARY not supported"); break;
+
 		case SQL_TYPE_TIME: // Hour, minute, and second fields, with valid values for hours of 00 to 23, valid values for minutes of 00 to 59, and valid values for seconds of 00 to 61. Precision p indicates the seconds precision.
 			Exclamation("SQL_TYPE_TIME not supported"); break;
+
 //		case SQL_TYPE_UTCDATETIME: // Year, month, day, hour, minute, second, utchour, and utcminute fields. The utchour and utcminute fields have 1/10 microsecond precision.
 //			Exclamation("SQL_UTCDATETIME not supported"); break;
 //		case SQL_TYPE_UTCTIME: // Hour, minute, second, utchour, and utcminute fields. The utchour and utcminute fields have 1/10 microsecond precision..
 //			Exclamation("SQL_UTCTIME not supported"); break;
 		case SQL_INTERVAL_MONTH:
 			Exclamation("SQL_INTERVAL_MONTH not supported"); break;
+
+		//______________________________________________________________________________________
+		// Character processing
+		case SQL_VARCHAR: // Variable-length character string with a maximum string length n.
+			{
+				//DB2 Note: After a fetch for an SQL_VARCHAR column, DB2 for i5/OS CLI returns the bytes that are fetched in the first 2 bytes of the VARCHAR structure that is bound. DB2 for i5/OS CLI does not return the length in pcbValue as it does for SQL_CHAR.
+				//http://publib.boulder.ibm.com/infocenter/iseries/v6r1m0/index.jsp?topic=/cli/rzadpfnbindc.htm
+				SQLCHAR *strdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT * (ColumnSize + 1)]; 
+				rowdata.Add(nm, (byte *)strdata);
+				f.valuetype = STRING_V;
+				f.bindtype = BIND_CHAR;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicatorptr))) return false;
+			}
+			break;
+			
+		case SQL_CHAR:			
+			{
+				SQLCHAR *strdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT * (ColumnSize + 1)];
+				rowdata.Add(nm, (byte *)strdata);
+				f.valuetype = STRING_V;
+				f.bindtype = BIND_CHAR;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_CHAR, strdata, ColumnSize + 1, indicatorptr))) return false;
+				break;
+			}
+			
+		case SQL_LONGVARCHAR: Exclamation("SQL_LONGVARCHAR not supported"); break;
+		case SQL_WCHAR: // Unicode character string of fixed string length n
+			Exclamation("SQL_WCHAR not supported"); break;
+		case SQL_WVARCHAR: Exclamation("SQL_WVARCHAR not supported"); break;
+		case SQL_WLONGVARCHAR: Exclamation("SQL_WLONGVARCHAR not supported"); break;
+
+		//______________________________________________________________________________________
+		// Boolean processing
+		case SQL_BIT: // Single bit binary
+			{
+				SQLCHAR *bitdata = (SQLCHAR *)new SQLCHAR[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)bitdata);
+				f.valuetype = BOOL_V;
+				f.bindtype = BIND_BOOL; // No real bit storage, though SQL Server native may have something
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_BIT, bitdata, sizeof(SQLCHAR), indicatorptr))) return false;
+				break;
+			}
+			break;
+		
+		//______________________________________________________________________________________
+		// Binary processing
+		case SQL_BINARY: // Binary data of fixed length n.[9]
+			Exclamation("SQL_BINARY not supported"); break;
+		case SQL_VARBINARY: // Variable length binary data of maximum length n. The maximum is set by the user.[9]
+			Exclamation("SQL_VARBINARY not supported"); break;
+		case SQL_LONGVARBINARY: // Variable length binary data. Maximum length is data source–dependent.[9]
+			Exclamation("SQL_LONGVARBINARY not supported"); break;
 		default:
 			Exclamation("Unsupported type");
 		}
-		
-		flegacy.type = f.type; // Copy to legacy
 	}
 
 	LOG(collist);
@@ -720,9 +747,9 @@ bool ODBCConnection::Fetch0() {
 	if (!fetchedSet) {
 		ret = SQLExtendedFetch(session->hstmt, SQL_FETCH_NEXT, 0, &rowsFetched, rowStatus);
 		if(ret == SQL_NO_DATA || !IsOk(ret)) {
-			for(int i = 0; i < myinfo.GetCount(); i++) {
-				if (rowdata.Find(myinfo[i].name) >= 0) {
-					byte *b = rowdata.Get(myinfo[i].name);
+			for(int i = 0; i < info.GetCount(); i++) {
+				if (rowdata.Find(info[i].name) >= 0) {
+					byte *b = rowdata.Get(info[i].name);
 					
 					delete b;
 				}
@@ -755,39 +782,46 @@ bool ODBCConnection::Fetch0() {
 	
 	// Walk through each column
 	
-	for(int i = 0; i < myinfo.GetCount(); i++) {
-		int ColumnSize = myinfo[i].width;
+	for(int i = 0; i < info.GetCount(); i++) {
+		int ColumnSize = info[i].width;
 		Value v = Null;
 		SQLLEN ind = indicator[nextFetchSetRow + (ROW_FETCH_COUNT * i)];
-		String nm = myinfo[i].name;
+		String nm = info[i].name;
 		
 		if (ind != SQL_NULL_DATA) {
 			byte *b = (byte *)rowdata.Get(nm);
 			
-			switch(myinfo[i].type) {
+			switch(info[i].bindtype) {
 
-			case DOUBLE_V:
+			case BIND_DOUBLE:
 				{	
 					SQLDOUBLE *x = (SQLDOUBLE *)&(b[(sizeof(SQLDOUBLE)) * nextFetchSetRow]);
 					v = (double)*x;
 				}
 				break;
 				
-			case INT_V:
+			case BIND_INT8:
 				{	
 					SQLCHAR *x = (SQLCHAR *)&(b[(sizeof(SQLCHAR)) * nextFetchSetRow]);
 					v = (byte)*x;
 				}
 				break;
 
-			case INT64_V:
+			case BIND_INT32:
 				{	
 					SQLINTEGER *x = (SQLINTEGER *)&(b[(sizeof(SQLINTEGER)) * nextFetchSetRow]);
 					v = (int64)*x;
 				}
 				break;
 				
-			case DATE_V:
+			case BIND_INT64:
+				{	
+					SQLBIGINT *x = (SQLBIGINT *)&(b[(sizeof(SQLBIGINT)) * nextFetchSetRow]);
+					v = (int64)*x;
+				}
+				break;
+				
+			case BIND_DATE:
 				{	
 					SQL_DATE_STRUCT *x = (SQL_DATE_STRUCT *)&(b[(sizeof(SQL_DATE_STRUCT)) * nextFetchSetRow]);
 					Date d;
@@ -798,7 +832,7 @@ bool ODBCConnection::Fetch0() {
 				}
 				break;
 			
-			case TIME_V: // Same for timestamps and date SQL Server types
+			case BIND_DATETIME: // Same for timestamps and date SQL Server types
 				{	
 					SQL_TIMESTAMP_STRUCT *x = (SQL_TIMESTAMP_STRUCT *)&(b[(sizeof(SQL_TIMESTAMP_STRUCT)) * nextFetchSetRow]);
 					Time m;
@@ -812,14 +846,14 @@ bool ODBCConnection::Fetch0() {
 				}
 				break;
 
-			case STRING_V:
+			case BIND_CHAR:
 				{
 					SQLCHAR *x = (SQLCHAR *)&(b[(ColumnSize + 1) * nextFetchSetRow]);
 					v = String((char *)(x));
 					break;
 				}
 
-			case BOOL_V:
+			case BIND_BOOL:
 				{
 					SQLCHAR *x = (SQLCHAR *)&(b[sizeof(SQLCHAR) * nextFetchSetRow]);
 					v = *((bool *)(x));
@@ -851,9 +885,9 @@ bool ODBCConnection::Fetch()
 	if(rowi >= rowcount)
 		return false;
 	fetchrow.Clear();
-	for(int i = 0; i < myinfo.GetCount(); i++) {
+	for(int i = 0; i < info.GetCount(); i++) {
 		Value v;
-		switch(myinfo[i].type) {
+		switch(info[i].valuetype) {
 		case DOUBLE_V:
 			v = number[i][rowi];
 			break;
@@ -885,15 +919,15 @@ void ODBCConnection::Flush()
 	rowcount = 0;
 	rowi = 0;
 	number.Clear();
-	number.SetCount(myinfo.GetCount());
+	number.SetCount(info.GetCount());
 	text.Clear();
-	text.SetCount(myinfo.GetCount());
+	text.SetCount(info.GetCount());
 	time.Clear();
-	time.SetCount(myinfo.GetCount());
-	while(myinfo.GetCount() && Fetch0()) {
+	time.SetCount(info.GetCount());
+	while(info.GetCount() && Fetch0()) {
 		rowcount++;
-		for(int i = 0; i < myinfo.GetCount(); i++)
-			switch(myinfo[i].type) {
+		for(int i = 0; i < info.GetCount(); i++)
+			switch(info[i].valuetype) {
 			case DOUBLE_V:
 				number[i].Add(fetchrow[i]);
 				break;
