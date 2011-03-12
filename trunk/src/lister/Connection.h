@@ -115,12 +115,11 @@ public:
 	bool HandleDbError(int actioncode, String *cmd = NULL, bool log = false, bool batchMode = false);
 };
 
-//==========================================================================================	
+//==============================================================================================
 //  Use a connection factory to get our connections.  VectorMap had to be function, not an
 //  actual variable, got a link error, inorder to be static.  See http://www.ultimatepp.org/forum/index.php?t=msg&goto=26714&
 //  I use pointers because I didn't want to write a Deep copy constructor for the connections.
-//==========================================================================================	
-
+//==============================================================================================
 class ConnectionFactory {
 public:
 	static Connection *controlConnection;
