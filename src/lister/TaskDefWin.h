@@ -5,8 +5,10 @@
 #include "shared_layout.h"
 #include "Task.h"
 #include <lister/Urp/UrpConfigWindow.h>
+
 class Connection;
 
+//==============================================================================================
 class TaskDefWin : public WithTaskDefWinLayout<UrpConfigWindow> {
 public:
 	typedef TaskDefWin CLASSNAME; // THISBACK won't work without this
