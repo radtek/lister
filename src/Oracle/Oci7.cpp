@@ -440,27 +440,27 @@ bool OCI7Connection::GetColumnInfo()
 		SqlColumnInfo& ii = info[i];
 		switch(tp[i]) {
 		case SQLT_NUM:
-			ii.type = DOUBLE_V;
+			ii.valuetype = DOUBLE_V;
 			AddColumn(SQLT_FLT, sizeof(double));
 			break;
 		case SQLT_DAT:
-			ii.type = TIME_V;
+			ii.valuetype = TIME_V;
 			AddColumn(SQLT_DAT, 7);
 			break;
 		case SQLT_LBI:
-			ii.type = STRING_V;
+			ii.valuetype = STRING_V;
 			AddColumn(SQLT_LBI, 4096);
 			break;
 		case SQLT_CLOB:
-			ii.type = STRING_V;
+			ii.valuetype = STRING_V;
 			AddColumn(SQLT_LNG, 65520, true);
 			break;
 		case SQLT_BLOB:
-			ii.type = STRING_V;
+			ii.valuetype = STRING_V;
 			AddColumn(SQLT_LBI, 65520, true);
 			break;
 		default:
-			ii.type = STRING_V;
+			ii.valuetype = STRING_V;
 			AddColumn(SQLT_STR, ii.width ? ii.width + 1 : longsize);
 			break;
 		}

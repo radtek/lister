@@ -846,7 +846,7 @@ bool OCI8Connection::GetColumnInfo() {
 			const Item& p = param[dynamic_param[i]];
 			SqlColumnInfo& ci = info.Add();
 			ci.name = Format("#%d", i + 1);
-			ci.type = p.dyna_vtype;
+			ci.valuetype = p.dyna_vtype;
 			ci.width = p.dyna_width;
 			ci.precision = Null;
 			ci.scale = Null;
@@ -880,30 +880,30 @@ bool OCI8Connection::GetColumnInfo() {
 		bool blob = false;
 		switch(type) {
 		case SQLT_NUM:
-			ii.type = DOUBLE_V;
+			ii.valuetype = DOUBLE_V;
 			AddColumn(SQLT_FLT, sizeof(double));
 			break;
 		case SQLT_DAT:
-			ii.type = TIME_V;
+			ii.valuetype = TIME_V;
 			AddColumn(SQLT_DAT, 7);
 			break;
 		case SQLT_BLOB:
-			ii.type = ORA_BLOB_V;
+			ii.valuetype = ORA_BLOB_V;
 			AddColumn(SQLT_BLOB, sizeof(OCILobLocator *));
 			blob = true;
 			break;
 		case SQLT_CLOB:
-			ii.type = ORA_CLOB_V;
+			ii.valuetype = ORA_CLOB_V;
 			AddColumn(SQLT_CLOB, sizeof(OCILobLocator *));
 			blob = true;
 			break;
 		case SQLT_RDD:
-			ii.type = STRING_V;
+			ii.valuetype = STRING_V;
 			AddColumn(SQLT_STR, 64);
 			break;
 		case SQLT_TIMESTAMP: // This was found in CSDR database, TRADE table
 			//AddColumn(SQLT_TIMESTAMP, sizeof(OCIDateTime *));
-			ii.type = STRING_V;
+			ii.valuetype = STRING_V;
 			// ii.width for type 187 (TIMESTAMP) is 11, but that is not the string size, but byte size.
 			// The size as a string comes out according to what your default timestamp format is.
 			// For me, <03-DEC-10 12.00.00.000000 AM >is the default value, 30 characters.  A
@@ -917,7 +917,7 @@ bool OCI8Connection::GetColumnInfo() {
 			ASSERT_(1==0, "SQLT_TIMESTAMP_LTZ in GetColumnInfo not supported yet.  Please code.");
 			break;
 		default:
-			ii.type = STRING_V;
+			ii.valuetype = STRING_V;
 			AddColumn(SQLT_STR, ii.width ? ii.width + 1 : longsize);
 			break;
 		}
