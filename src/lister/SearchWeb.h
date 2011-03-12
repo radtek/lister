@@ -14,6 +14,7 @@
 
 #include <Core/Core.h>
 #include <Web/Web.h>
+
 using namespace Upp;
 
 /*
@@ -71,8 +72,8 @@ NAMESPACE_UPP
 #define LLOGBLOCK(x)  // RLOGBLOCK(x)
 #define LDUMP(x)      // RDUMP(x)
 
-HttpClient::HttpClient()
-{
+//==============================================================================================
+HttpClient::HttpClient() {
 	port = DEFAULT_PORT;
 	timeout_msecs = DEFAULT_TIMEOUT_MSECS;
 	max_header_size = DEFAULT_MAX_HEADER_SIZE;
@@ -82,8 +83,8 @@ HttpClient::HttpClient()
 	method = METHOD_GET;
 }
 
-HttpClient& HttpClient::URL(const char *u)
-{
+//==============================================================================================
+HttpClient& HttpClient::URL(const char *u) {
 	const char *t = u;
 	while(*t && *t != '?')
 		if(*t++ == '/' && *t == '/') {
@@ -101,8 +102,8 @@ HttpClient& HttpClient::URL(const char *u)
 	return *this;
 }
 
-HttpClient& HttpClient::Proxy(const char *p)
-{
+//==============================================================================================
+HttpClient& HttpClient::Proxy(const char *p) {
 	const char *t = p;
 	while(*p && *p != ':')
 		p++;
@@ -113,8 +114,8 @@ HttpClient& HttpClient::Proxy(const char *p)
 	return *this;
 }
 
-String HttpClient::ExecuteRedirect(int max_redirect, int retries, Gate2<int, int> progress)
-{
+//==============================================================================================
+String HttpClient::ExecuteRedirect(int max_redirect, int retries, Gate2<int, int> progress) {
 	int nredir = 0;
 	for(;;) {
 		String data = Execute(progress);
@@ -138,8 +139,8 @@ String HttpClient::ExecuteRedirect(int max_redirect, int retries, Gate2<int, int
 	}
 }
 
-String HttpClient::ReadUntilProgress(char until, int start_time, int end_time, Gate2<int, int> progress)
-{
+//==============================================================================================
+String HttpClient::ReadUntilProgress(char until, int start_time, int end_time, Gate2<int, int> progress) {
 	String out;
 	while(!socket.IsEof() && !socket.IsError()) {
 		out.Cat(socket.Read(1000, 1000));
