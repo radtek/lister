@@ -84,9 +84,8 @@ static int waveCurrentBlock;
 #include <iostream> // Use console IO
 using namespace std;
 
-
 //void main(int argn,char *argv[])
-//==========================================================================================	
+//==============================================================================================
 void convwavtoraw(String wav)
 {
      // Show header
@@ -242,7 +241,7 @@ for(i = 0; i < count; i++) {
 return blocks;
 }
 
-//==========================================================================================	
+//==============================================================================================
 void freeBlocks(WAVEHDR* blockArray) {
 	/* 
 	 * and this is why allocateBlocks works the way it does
@@ -250,7 +249,7 @@ void freeBlocks(WAVEHDR* blockArray) {
 	HeapFree(GetProcessHeap(), 0, blockArray);
 }
 
-//==========================================================================================	
+//==============================================================================================
 void writeAudio(HWAVEOUT hWaveOut, LPSTR data, int size) {
 	WAVEHDR* current;
 	int remain;
@@ -291,7 +290,7 @@ void writeAudio(HWAVEOUT hWaveOut, LPSTR data, int size) {
 	}
 	}
 	
-//==========================================================================================	
+//==============================================================================================
 int PlaySound2(String soundFile) {
 	HWAVEOUT hWaveOut; /* device handle */
 	HANDLE hFile;/* file handle */
@@ -390,7 +389,7 @@ int PlaySound2(String soundFile) {
 	return 0;
 }
 
-//==========================================================================================	
+//==============================================================================================
 //waveOut... API 
 //DirectSound
 void Speak(EnumEventSound enumEventSound) {
