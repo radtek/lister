@@ -8,7 +8,7 @@ class OutputStat;
 
 // These can't change; stuffed in database.
 
-
+//==============================================================================================
 class Script : public Moveable<Script> { // MoveableAndDeepCopyOption?? See Vcont.h for sample
 public:
 	enum ScriptTarget { 
