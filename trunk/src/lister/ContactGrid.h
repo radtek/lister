@@ -7,7 +7,7 @@
 class Connection;
 
 //==============================================================================================
-class ContactGrid : public UrpSqlGrid {
+class ContactGrid : public UrpSqlGrid { 
 public:
 	EditString  contactName
 			,	emailAddress
