@@ -1,6 +1,7 @@
 #ifndef _SoundHandler_h_
 #define _SoundHandler_h_
 
+//==============================================================================================
 enum EnumEventSound { 
 		EVS_CONNECT_SUCCEEDED
 	,	EVS_CONNECT_FAILED
@@ -24,7 +25,7 @@ enum EnumEventSound {
 
 };
 
-//==========================================================================================	
+//==============================================================================================
 //waveOut... API 
 //DirectSound
 void Speak(EnumEventSound enumEventSound);
