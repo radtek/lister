@@ -83,6 +83,7 @@ public:
 	void              ToggleMainGridSelectRow(); 
 	                  // Copy all the column names to a list so we can paste them back into the query, 
 	                  // replacing "*" markers so we can subtract specific columns or insert calc cols at certain points
+	void              CopyColListCommaDelimWthPrefix(); 
 	void              CopyColListCommaDelim(); 
 	void              CopyColListCommaDelimByType(); // List grouped by data type so we can filter
 	void              MainGridContextMenu(Bar &bar); // Right-click over main output data.
