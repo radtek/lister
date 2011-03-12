@@ -1,15 +1,19 @@
 #include "ElementGrid.h"
 #include "Connection.h"
 
+//==============================================================================================
 ElementGrid::ElementGrid() : UrpSqlGrid() {
 }
 
+//==============================================================================================
 void ElementGrid::UpdatingRow() {
 	// Called from WhenStartEdit from inside StartEdit	
 	if (IsInsert()) { // Not IsInserting, this checks insertmode
 		Set(TASKID, taskId);
 	}
 }
+
+//==============================================================================================
 void ElementGrid::Build(Connection *pconnection) {
 	// Build columns
 	connection = pconnection;
@@ -25,11 +29,13 @@ void ElementGrid::Build(Connection *pconnection) {
 	WhenStartEdit = THISBACK(UpdatingRow);
 }
 
+//==============================================================================================
 void ElementGrid::SetTaskId(int ptaskId) {
 	taskId = ptaskId;
 	SetWhere((TASKID == taskId));
 }
 
+//==============================================================================================
 void ElementGrid::Load() {
 	SetSession(*(connection->session));
 	SetSortColumn(ELEMENTNAME);
@@ -37,6 +43,7 @@ void ElementGrid::Load() {
 	loaded = true;
 }
 
+//==============================================================================================
 /*static */void ElementGrid::LoadElement(Connection *connection, DropGrid &dropGrid) {
 	
 	if (!connection->SendQueryDataScript("select elementid, elementname, elementdesc, taskid, note, status from elements order by elementname")) {

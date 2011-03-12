@@ -5,6 +5,7 @@
 #include "shared_db.h"
 class Connection;
 
+//==============================================================================================
 class ElementGrid : public UrpSqlGrid {
 public:
 	typedef ElementGrid CLASSNAME;
