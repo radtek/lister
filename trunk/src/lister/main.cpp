@@ -1,6 +1,7 @@
 #include "lister.h"
 #include "LogWin.h"
 
+//==============================================================================================
 GUI_APP_MAIN
 {
 	// Bizarre bug fix: Eventually U++ will corrupt a package's StdFont permanently (any package) 
