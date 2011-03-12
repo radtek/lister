@@ -6,6 +6,7 @@
 class Connection;
 #include "Script.h"
 
+//==============================================================================================
 class ScriptGrid : public UrpSqlGrid {
 public:
 	typedef ScriptGrid CLASSNAME;
