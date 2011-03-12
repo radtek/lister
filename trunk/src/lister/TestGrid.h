@@ -46,7 +46,7 @@ class Connection;
 #define COMPTYP_WITHIN_X_PCT_OF_Y         15
 #define COMPTYP_WITHIN_X_OF_Y             16
 
-//==========================================================================================	
+//==============================================================================================
 class TestGrid : public UrpGrid, ConnectedCtrl {
 public:
 	EditInt fldTestId;
