@@ -708,9 +708,9 @@ MyRichEdit::KeyProcessorResponse MyRichEdit::PopupRequested(bool ShowAllColumns)
 			Vector<SqlColumnInfo> columns = connection->session->EnumColumns(schemaName, tableName);
 			String columnlist;
 			for (int i = 0; i < columns.GetCount(); i++) {
-				int datatype = columns[i].type;
+				int datatype = columns[i].valuetype;
 				if (In(datatype, 1, 2, 3)) {
-					columnlist << (i?", ":"") << aliasName << "." << columns[i].name << "/* " << columns[i].type << " */";
+					columnlist << (i?", ":"") << aliasName << "." << columns[i].name << "/* " << columns[i].valuetype << " */";
 				}
 			}
 			
