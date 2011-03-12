@@ -52,6 +52,7 @@ class TaskDefWin;
 #define OB_REPORTINGAPPS      42
 #define OB_TASKS              43
 
+//==============================================================================================
 class TaskGrid : public UrpSqlGrid {
 public:
 	typedef TaskGrid CLASSNAME; // THISBACK won't work without this
