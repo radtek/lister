@@ -3,6 +3,7 @@
 
 class Connection;
 
+//==============================================================================================
 class ConnectedCtrl {
 public:
 	Connection         *connection;

@@ -5,6 +5,7 @@
 #include "shared_db.h"
 class Connection;
 
+//==============================================================================================
 class AnalysisByDateGrid : public UrpSqlGrid {
 public:
 	typedef AnalysisByDateGrid CLASSNAME;
