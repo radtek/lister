@@ -3,8 +3,10 @@
 
 #include "shared.h"
 #include "shared_db.h"
+
 class Connection;
 
+//==============================================================================================
 class LinkGrid : public UrpSqlGrid {
 public:
 	typedef LinkGrid CLASSNAME;
