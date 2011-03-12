@@ -5,6 +5,7 @@
 
 using namespace Upp;
 
+//==============================================================================================
 class TestButton : public Button {
 public:
 	typedef TestButton CLASSNAME;
