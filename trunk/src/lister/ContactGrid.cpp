@@ -14,7 +14,7 @@ ContactGrid::ContactGrid() : UrpSqlGrid() {
 	AddColumn(NONWORKEMAILADDRESS, "personal email", 100).Edit(personalEmailAddress);
 	AddColumn(NOTE, "note", 200).Edit(note);
 }
-
+ 
 //==============================================================================================
 void ContactGrid::Load(Connection *pconnection) {
 	connection = pconnection;
