@@ -5,7 +5,7 @@
 #include "Connection.h"
 #include "shared_db.h"
 
-//==========================================================================================	
+//==============================================================================================
 Id IDTestState("State");
 Id IDTestId("TestId");
 Id IDTestName("TestName");
@@ -25,29 +25,29 @@ Id IDTESTDUMMY("Err");
 
 using namespace Upp;
 
-//==========================================================================================	
+//==============================================================================================
 void MakeTestButton(One<Ctrl>& ctrl) {
 	ctrl.Create<TestButton>();
 	ctrl->WantFocus();
 }
 
-//==========================================================================================	
+//==============================================================================================
 void MakeTestState(One<Ctrl>& ctrl) {
 	ctrl.Create<TestState>();
 	ctrl->WantFocus();
 }
 
-//==========================================================================================	
+//==============================================================================================
 TestGrid::TestGrid() {
 	built = false;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Added manually from appending a row.
 void TestGrid::NewTest() {
 }
 
-//==========================================================================================	
+//==============================================================================================
 // GridCtrl will remove the row if we do not cancel the remove.
 void TestGrid::RemoveTest() {
 	ASSERT(connection);
@@ -69,7 +69,7 @@ void TestGrid::RemoveTest() {
 	}
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Added from the Script Editor, which only provides these three pieces of info.
 // Create a bare-bones frame for a new test based on a script with a valid scriptid.
 void TestGrid::AddTest(String script, int scriptId, int connId) {
@@ -85,7 +85,7 @@ void TestGrid::AddTest(String script, int scriptId, int connId) {
 	Set(IDTestConnId, connId);
 }
 
-//==========================================================================================	
+//==============================================================================================
 void TestGrid::Build() {
 	WhenNewRow = THISBACK(NewTest);
 	WhenRemoveRow = THISBACK(RemoveTest);
@@ -118,7 +118,7 @@ void TestGrid::Build() {
 	built = true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 int    TestGrid::GetTestId            (int row)							  { return Get(row, IDTestId); }
 void   TestGrid::SetTestId            (int row, int ptestId)			  { Set(row, IDTestId, ptestId); }
 String TestGrid::GetTestName          (int row)							  { return TrimBoth(Get(row, IDTestName)); }
@@ -135,7 +135,7 @@ String TestGrid::GetActualOutcome     (int row)        					  { return Get(row, 
 void   TestGrid::SetActualOutcome     (int row, String pactualOutcome)	  { Set(row, IDActualOutcome, pactualOutcome); }
 String TestGrid::GetOutputValue       (int row)          				  { return Get(row, IDOutputValue); }
 
-//==========================================================================================	
+//==============================================================================================
 void TestGrid::SaveTest() {
 	ASSERT(connection);
 	ASSERT(connection->session->IsOpen());
@@ -219,7 +219,7 @@ void TestGrid::SaveTest() {
 	}
 }
 
-//==========================================================================================	
+//==============================================================================================
 /*virtual*/ void TestGrid::Load(Connection *pconnection) {
 	ConnectedCtrl::Load(pconnection);
 
@@ -289,7 +289,7 @@ void TestGrid::SaveTest() {
 	loaded = true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 bool TestGrid::MeaningfulDataChange() {
 	if (!IsModifiedRow()) return false; // No change
 	
@@ -310,7 +310,7 @@ bool TestGrid::MeaningfulDataChange() {
 	return true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 bool TestGrid::WasTestRequested() {
 	int rowno = GetCursor();
 	if (rowno == -1) return false;
