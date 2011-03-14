@@ -58,6 +58,7 @@ public:
 	String                       instanceAddress;
 	String                       dbName; // Can be used complete SQL that doesn' set the default dtabase
 	String                       portNo;
+	String                       envLetter; // Letter that gets stuffed in as [[ENV]] when active connection changes
 	Thread                       connectThread;
 	TopWindow                   *topWindow;
 

@@ -731,6 +731,7 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 		",  EnvStdName"       // 11
 		",  dbName"           // 12
 		",  portNo"           // 13
+		",  EnvLetter"        // 14
 		" from v_conn where ConnId = %d", connId);
 		
 	if (!lcontrolConnection->SendQueryDataScript(FetchConnDtlById)) {
@@ -746,6 +747,7 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 	String instanceAddress 	= lcontrolConnection->Get(7);
 	String dbName 			= lcontrolConnection->Get(12);
 	String portNo           = ToString((int)lcontrolConnection->Get(13)); // We treat portno as a string in case some weirdness involved for some sources
+	String envLetter        = lcontrolConnection->Get(14);
 	
 	if (useIfFoundInPool) {
 		Connection *conn = GetConnection(connName);
@@ -754,7 +756,7 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 		}
 	}
 	
-	return Connect(
+	Connection *c = Connect(
 			win
 		,	connName
 		,	instanceTypeName
@@ -764,6 +766,10 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 		,	dbName
 		,   portNo
 	);
+	
+	// Populate some of the other attributes we fetched from the v_conn, that are descriptive and not required to connect.
+	
+	c->envLetter = envLetter;
 	
 }
 

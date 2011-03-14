@@ -34,86 +34,98 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 			inputText = UrpString::ReplaceInWhatWith(inputText, searchMacro, macPair.expansion);
 		}
 	}
-	
+
+	bool expansionerror = false;	
 	String macro;
 	String expansion;
 	
 	Date curDate = GetSysDate();
 
-	// Search for macros in the form [[AAAANN]] to transform into values
-	// http://www.regextester.com/pregsyntax.html
-	// Matches can be TPLUS1, TPLUS5, TMINUS3
-	
-	String searchFor = "\\[\\[([a-zA-Z]+)(\\d+)\\]\\]"; // Parens force the digits to be inserted into r0[0], r0[1]
-	RegExp r0(searchFor);
-	
-	if (r0.Match(inputText)) {
-		String command = r0[0]; 
-		String subcommand1, subcommand2;
-		String arg1 = r0[1];
-		macro << "[[" << command << arg1 << "]]";
-		ToUpper(Trim(command));
-		if (In(command, 
-				"TPLUS"        , "TMINUS"        , 
-				"TPLUSORA"     , "TMINUSORA"     , 
-				"TPLUSMSSQLUK" , "TMINUSMSSQLUK" , 
-				"TPLUSSYBASE"  , "TMINUSSYBASE"
-			)) {
-			if (arg1 == "") {
-				expansion << "{Missing numeric argument for command " << command << "}";
-			} else {
-				int arg1num = ToInt(arg1, 0);
-					
-				// Looking back
-				if (command.StartsWith("TPLUS")) {
-					arg1num *= -1;
-					subcommand1 = RestOf(command, "TPLUS");
-				// Looking foward
-				} else if (command.StartsWith("TMINUS")) {
-					subcommand1 = RestOf(command, "TMINUS");
-				}
-				
-					
-				Date endDate = GetDateFromDateBDays(curDate, arg1num);
-				
-				// The business days are now converted to physical days
-				int actualphysicaldays = endDate - curDate;
-
-				// They just want the number
-				if (subcommand1 == "") {
-					expansion = ToString(Abs(actualphysicaldays));
-				} else if (subcommand1.StartsWith("ORA")) {
-					// All oracles use dd-mon-yyyy as their default date format. 
-					// Date.month must be converted to zero-base index
-					expansion = Format("'%02d-%s-%d'", endDate.day, Upper(MonName(endDate.month-1)), endDate.year);
-				} else if (subcommand1.StartsWith("SYBASE")) {
-					// This is the default format that Sybase 12.5 ASE reads
-					expansion = Format("'%4d-%02d-%02d'", endDate.year, endDate.month, endDate.day);
-				} else if (subcommand1.StartsWith("MSSQLUK")) {
-					// English format for London
-					expansion = Format("'%02d-%02d-%04d'", endDate.day, endDate.month, endDate.year);
+	// Scan repeatedly until no more matches
+	while (true) {
+		// Search for macros in the form [[AAAANN]] to transform into values
+		// http://www.regextester.com/pregsyntax.html
+		// Matches can be TPLUS1, TPLUS5, TMINUS3
+		
+		String searchFor = "\\[\\[([a-zA-Z]+)(\\d+)\\]\\]"; // Parens force the digits to be inserted into r0[0], r0[1]
+		RegExp r0(searchFor);
+		
+		if (r0.Match(inputText)) {
+			String command = r0[0]; 
+			String subcommand1, subcommand2;
+			String arg1 = r0[1];
+			macro << "[[" << command << arg1 << "]]";
+			ToUpper(Trim(command));
+			if (In(command, 
+					"TPLUS"        , "TMINUS"        , 
+					"TPLUSORA"     , "TMINUSORA"     , 
+					"TPLUSMSSQLUK" , "TMINUSMSSQLUK" , 
+					"TPLUSSYBASE"  , "TMINUSSYBASE"
+				)) {
+				if (arg1 == "") {
+					expansion << "{Missing numeric argument for command " << command << "}";
 				} else {
-					expansion << "{unrecognized subcommand after TMINUS/TPLUS " << subcommand1 << ", looking for ORA, SYBASE, or MSSQLUK}";
+					int arg1num = ToInt(arg1, 0);
+						
+					// Looking back
+					if (command.StartsWith("TPLUS")) {
+						arg1num *= -1;
+						subcommand1 = RestOf(command, "TPLUS");
+					// Looking foward
+					} else if (command.StartsWith("TMINUS")) {
+						subcommand1 = RestOf(command, "TMINUS");
+					}
+					
+						
+					Date endDate = GetDateFromDateBDays(curDate, arg1num);
+					
+					// The business days are now converted to physical days
+					int actualphysicaldays = endDate - curDate;
+	
+					// They just want the number
+					if (subcommand1 == "") {
+						expansion = ToString(Abs(actualphysicaldays));
+					} else if (subcommand1.StartsWith("ORA")) {
+						// All oracles use dd-mon-yyyy as their default date format. 
+						// Date.month must be converted to zero-base index
+						expansion = Format("'%02d-%s-%d'", endDate.day, Upper(MonName(endDate.month-1)), endDate.year);
+					} else if (subcommand1.StartsWith("SYBASE")) {
+						// This is the default format that Sybase 12.5 ASE reads
+						expansion = Format("'%4d-%02d-%02d'", endDate.year, endDate.month, endDate.day);
+					} else if (subcommand1.StartsWith("MSSQLUK")) {
+						// English format for London
+						expansion = Format("'%02d-%02d-%04d'", endDate.day, endDate.month, endDate.year);
+					} else {
+						expansion << "{unrecognized subcommand after TMINUS/TPLUS " << subcommand1 << ", looking for ORA, SYBASE, or MSSQLUK}";
+						expansionerror = true;
+					}
 				}
+			} else {
+				expansion << "{Unsupported command " << command << "}";
+				expansionerror = true;
+			}
+				
+			
+		// Command/arg format not found; Just isolate the macro if there and push error message out
+		} else {
+			searchFor = "\\[\\[(\\w+)\\]\\]";
+			RegExp r1(searchFor);
+			if (r1.Match(inputText)) {
+				String command = r1[0];
+				macro << "[[" << command << "]]";
+				expansion << "{Unrecognized macro format: " << command << ", must be [[AAAANN]]}";
+				expansionerror = true;
+		}
+		}
+	
+		if (expansion.GetCount() > 0) {
+			inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
+			if (expansionerror) {
+				break;
 			}
 		} else {
-			expansion << "{Unsupported command " << command << "}";
+			break;
 		}
-			
-		
-	// Command/arg format not found; Just isolate the macro if there and push error message out
-	} else {
-		searchFor = "\\[\\[(\\w+)\\]\\]";
-		RegExp r1(searchFor);
-		if (r1.Match(inputText)) {
-			String command = r1[0];
-			macro << "[[" << command << "]]";
-			expansion << "{Unrecognized macro format: " << command << ", must be [[AAAANN]]}";
-		}
-	}
-
-	if (expansion.GetCount() > 0) {
-		inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
 	}
 	
 	return inputText;

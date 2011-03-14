@@ -326,7 +326,7 @@ void Lister::MainGridContextMenu(Bar &bar) {
 
 //==============================================================================================	
 void Lister::ExpandScript() {
-	String msg = Format("[* \1%s\1].", DeQtf(ExpandMacros(scriptEditor.GetScriptPlainText(), &activeContextMacros)));
+	String msg = Format("[* \1%s\1].", ExpandMacros(scriptEditor.GetScriptPlainText(), &activeContextMacros));
 	Exclamation(msg);
 }
 
@@ -1011,6 +1011,13 @@ void Lister::ActiveTaskChanged() {
 	// Move macro code out of CursorHandler and into MacroHandler.cpp
 	// Alter macro function to rerun macros in CurrentTaskMacroList, then macros in current script.
 	activeContextMacros.taskMacros.Clear();
+	
+	// Set connection-based macros first
+	// Nice ENV macro to allow code reuse across environments where there are stereotypical differences between them
+	if (activeConnection) {
+		activeContextMacros.taskMacros.Add("ENV", MacPair(activeConnection->envLetter, activeConnection->envLetter));
+	} else if (scriptGrid.GetConnId()
+	
 	int taskId = taskGrid.GetTaskId();
 	if (controlConnection->SendQueryDataScript(SqlStatement(SqlSelect(SEARCHFOR, REPLACEWITH).From(TASKMACROS).Where(TASKID==taskId).OrderBy(PROCESSORDER)).GetText())) {
 		while(controlConnection->Fetch()) {

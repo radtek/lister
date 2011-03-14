@@ -62,45 +62,39 @@ void TaskGrid::Load(Connection *pconnection) {
 
 //==========================================================================================	
 int TaskGrid::GetTaskId(int row/*=-1*/) {
-	if (row == -1) {
-		if (IsCursor()) {
-			return Get(GetCursor(), TASKID);
-		} else {
-			return -1;
-		}
 	} else {
-		return Get(row, TASKID);
+		return Get(CalcCorrectRow(row), TASKID);
 	}
 }
 
 //==========================================================================================	
 String TaskGrid::GetTaskName(int row) {
-	return Get(row, TASKNAME);
+	return Get(CalcCorrectRow(row), TASKNAME);
 }
 
 //==========================================================================================	
 String TaskGrid::GetTaskDesc(int row) {
-	return Get(row, TASKDESC);
+	return Get(CalcCorrectRow(row), TASKDESC);
 }
 
 //==========================================================================================	
 String TaskGrid::GetSolutionDesc(int row) {
-	return Get(row, SOLUTIONDESC);
+	return Get(CalcCorrectRow(row), SOLUTIONDESC);
 }
 
 //==========================================================================================	
 String TaskGrid::GetSrcCode(int row) {
-	return Get(row, SRCCODE);
+	return Get(CalcCorrectRow(row), SRCCODE);
 }
 
 //==========================================================================================	
 String TaskGrid::GetProjectName(int row) {
-	return Get(row, PROJECTNAME);
+	return Get(CalcCorrectRow(row), PROJECTNAME);
 }
 
 //==========================================================================================	
 String TaskGrid::GetNote(int row) {
-	return Get(row, NOTE);
+	return Get(CalcCorrectRow(row), NOTE);
 }
 
 //==========================================================================================	
@@ -113,72 +107,72 @@ int TaskGrid::GetAssignedByWho(int row) {
 }
 //==========================================================================================	
 Date TaskGrid::GetPriorityAssignedDate(int row) {
-	return Get(row, PRIORITYASSIGNEDDATE);
+	return Get(CalcCorrectRow(row), PRIORITYASSIGNEDDATE);
 }
 //==========================================================================================	
 Date TaskGrid::GetNextTargetDate(int row) {
-	return Get(row, NEXTTARGETDATE);
+	return Get(CalcCorrectRow(row), NEXTTARGETDATE);
 }
 //==========================================================================================	
 String TaskGrid::GetTargetDateExpectation(int row) {
-	return Get(row, TARGETDATEEXPECTATION);
+	return Get(CalcCorrectRow(row), TARGETDATEEXPECTATION);
 }
 //==========================================================================================	
 int TaskGrid::GetPriorityWithinProject(int row) {
-	return Get(row, PRIORITYWITHINPROJECT);
+	return Get(CalcCorrectRow(row), PRIORITYWITHINPROJECT);
 }
 //==========================================================================================	
 int TaskGrid::GetDepOnWho(int row) {
-	return Get(row, DEPONWHO);
+	return Get(CalcCorrectRow(row), DEPONWHO);
 }
 //==========================================================================================	
 int TaskGrid::GetDepOnWho2(int row) {
-	return Get(row, DEPONWHO2);
+	return Get(CalcCorrectRow(row), DEPONWHO2);
 }
 //==========================================================================================	
 int TaskGrid::GetDepOnWho3(int row) {
-	return Get(row, DEPONWHO3);
+	return Get(CalcCorrectRow(row), DEPONWHO3);
 }
 //==========================================================================================	
 int TaskGrid::GetDepOnWho4(int row) {
-	return Get(row, DEPONWHO4);
+	return Get(CalcCorrectRow(row), DEPONWHO4);
 }
 //==========================================================================================	
 int TaskGrid::GetDepOnWho5(int row) {
-	return Get(row, DEPONWHO5);
+	return Get(CalcCorrectRow(row), DEPONWHO5);
 }
 //==========================================================================================	
 Date TaskGrid::GetDepAssignedWhen(int row) {
 	Date d = Get(row, DEPASSIGNEDWHEN);
-	return Get(row, DEPASSIGNEDWHEN);
+	return Get(CalcCorrectRow(row), DEPASSIGNEDWHEN);
 }
 //==========================================================================================	
 Date TaskGrid::GetDepExpectSampWhen(int row) {
-	return Get(row, DEPEXPECTSAMPWHEN);
+	return Get(CalcCorrectRow(row), DEPEXPECTSAMPWHEN);
 }
 //==========================================================================================	
 String TaskGrid::GetDepAssignDesc(int row) {
-	return Get(row, DEPASSIGNDESC);
+	return Get(CalcCorrectRow(row), DEPASSIGNDESC);
 }
 //==========================================================================================	
 String TaskGrid::GetDepFeedback(int row) {
-	return Get(row, DEPFEEDBACK);
+	return Get(CalcCorrectRow(row), DEPFEEDBACK);
 }
 
 //==========================================================================================	
 Task TaskGrid::BuildTask(int row) {
 	Task task(
-				GetTaskId(row)
-			,	GetTaskName(row)
-			,	GetTaskDesc(row)
-			,	GetSolutionDesc(row)
-			,	GetProjectName(row)
-			,	GetSrcCode(row)
-			,	GetNote(row)
-			,	GetAssignedToWho(row)
-			,	GetAssignedByWho(row)
-			,	GetPriorityAssignedDate(row)
-			,	GetNextTargetDate(row)
+				GetTaskId                (row)
+			,	GetTaskName              (row)
+			,	GetTaskDesc              (row)
+			,	GetSolutionDesc          (row)
+			,	GetProjectName           (row)
+			,	GetSrcCode               (row)
+			,	GetNote                  (row)
+			,	GetAssignedToWho         (row)
+			,	GetAssignedByWho         (row)
+			,	GetPriorityAssignedDate  (row)
+			,	GetNextTargetDate        (row)
 			,	GetTargetDateExpectation(row)
 			,	GetPriorityWithinProject(row)
 			,	GetDepOnWho(row)
