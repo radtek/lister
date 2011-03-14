@@ -62,9 +62,7 @@ void TaskGrid::Load(Connection *pconnection) {
 
 //==========================================================================================	
 int TaskGrid::GetTaskId(int row/*=-1*/) {
-	} else {
-		return Get(CalcCorrectRow(row), TASKID);
-	}
+	return Get(CalcCorrectRow(row), TASKID);
 }
 
 //==========================================================================================	
@@ -173,17 +171,17 @@ Task TaskGrid::BuildTask(int row) {
 			,	GetAssignedByWho         (row)
 			,	GetPriorityAssignedDate  (row)
 			,	GetNextTargetDate        (row)
-			,	GetTargetDateExpectation(row)
-			,	GetPriorityWithinProject(row)
-			,	GetDepOnWho(row)
-			,	GetDepOnWho2(row)
-			,	GetDepOnWho3(row)
-			,	GetDepOnWho4(row)
-			,	GetDepOnWho5(row)
-			,	GetDepAssignedWhen(row)
-			,	GetDepExpectSampWhen(row)
-			,	GetDepAssignDesc(row)
-			,	GetDepFeedback(row)
+			,	GetTargetDateExpectation (row)
+			,	GetPriorityWithinProject (row)
+			,	GetDepOnWho              (row)
+			,	GetDepOnWho2             (row)
+			,	GetDepOnWho3             (row)
+			,	GetDepOnWho4             (row)
+			,	GetDepOnWho5             (row)
+			,	GetDepAssignedWhen       (row)
+			,	GetDepExpectSampWhen     (row)
+			,	GetDepAssignDesc         (row)
+			,	GetDepFeedback           (row)
 	);
 	return task;
 }
@@ -192,27 +190,27 @@ Task TaskGrid::BuildTask(int row) {
 bool TaskGrid::SaveTask(Task &task) {
 	int row = Find(task.taskId, TASKID);
 	if (row < 0) return false;
-	Set(row, TASKNAME, task.taskName);
-	Set(row, TASKDESC, task.taskDesc);
-	Set(row, SOLUTIONDESC, task.solutionDesc);
-	Set(row, PROJECTNAME, task.projectName);
-	Set(row, SRCCODE, task.srcCode);
-	Set(row, NOTE, task.note);
-	Set(row, ASSIGNEDTOWHO, task.assignedToWho);
-	Set(row, ASSIGNEDBYWHO, task.assignedByWho);
-	Set(row, PRIORITYASSIGNEDDATE, task.nextTargetDate);
-	Set(row, NEXTTARGETDATE, task.nextTargetDate);
-	Set(row, TARGETDATEEXPECTATION, task.targetDateExpectation);
-	Set(row, PRIORITYWITHINPROJECT, task.priorityWithinProject);
-	Set(row, DEPONWHO, task.depOnWho);
-	Set(row, DEPONWHO2, task.depOnWho2);
-	Set(row, DEPONWHO3, task.depOnWho3);
-	Set(row, DEPONWHO4, task.depOnWho4);
-	Set(row, DEPONWHO5, task.depOnWho5);
-	Set(row, DEPASSIGNEDWHEN, task.depAssignedWhen);
-	Set(row, DEPEXPECTSAMPWHEN, task.depExpectSampWhen);
-	Set(row, DEPASSIGNDESC, task.depAssignDesc);
-	Set(row, DEPFEEDBACK, task.depFeedback);
+	Set(row, TASKNAME               , task.taskName);
+	Set(row, TASKDESC               , task.taskDesc);
+	Set(row, SOLUTIONDESC           , task.solutionDesc);
+	Set(row, PROJECTNAME            , task.projectName);
+	Set(row, SRCCODE                , task.srcCode);
+	Set(row, NOTE                   , task.note);
+	Set(row, ASSIGNEDTOWHO          , task.assignedToWho);
+	Set(row, ASSIGNEDBYWHO          , task.assignedByWho);
+	Set(row, PRIORITYASSIGNEDDATE   , task.nextTargetDate);
+	Set(row, NEXTTARGETDATE         , task.nextTargetDate);
+	Set(row, TARGETDATEEXPECTATION  , task.targetDateExpectation);
+	Set(row, PRIORITYWITHINPROJECT  , task.priorityWithinProject);
+	Set(row, DEPONWHO               , task.depOnWho);
+	Set(row, DEPONWHO2              , task.depOnWho2);
+	Set(row, DEPONWHO3              , task.depOnWho3);
+	Set(row, DEPONWHO4              , task.depOnWho4);
+	Set(row, DEPONWHO5              , task.depOnWho5);
+	Set(row, DEPASSIGNEDWHEN        , task.depAssignedWhen);
+	Set(row, DEPEXPECTSAMPWHEN      , task.depExpectSampWhen);
+	Set(row, DEPASSIGNDESC          , task.depAssignDesc);
+	Set(row, DEPFEEDBACK            , task.depFeedback);
 		
 	Accept();
 	return true;
