@@ -24,14 +24,18 @@ void UpdateMacroList(DropGrid &macrosAvailableList) {
 //==============================================================================================
 // Convert [[]] codes to values.
 String ExpandMacros(String inputText, ContextMacros *contextMacros) {
-	MacMap &taskMacros = contextMacros->taskMacros;
 	if (contextMacros) {
-		for (int i = 0; i < taskMacros.GetCount(); i++) {
-			String searchMacro;
-			String searchFor(taskMacros.GetKey(i));
-			searchMacro << "[[" << searchFor << "]]";
-			MacPair macPair = taskMacros.Get(searchFor);
-			inputText = UrpString::ReplaceInWhatWith(inputText, searchMacro, macPair.expansion);
+
+		for (int j = 0; j < contextMacros->allMacros.GetCount(); j++) {
+			MacMap &macros = *(contextMacros->allMacros[j]);
+
+			for (int i = 0; i < macros.GetCount(); i++) {
+				String searchMacro;
+				String searchFor(macros.GetKey(i));
+				searchMacro << "[[" << searchFor << "]]";
+				MacPair macPair = macros.Get(searchFor);
+				inputText = UrpString::ReplaceInWhatWith(inputText, searchMacro, macPair.expansion);
+			}
 		}
 	}
 
