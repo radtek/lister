@@ -61,59 +61,61 @@ public:
 	String                       envLetter; // Letter that gets stuffed in as [[ENV]] when active connection changes
 	Thread                       connectThread;
 	TopWindow                   *topWindow;
-
+    bool                         informationalOnly; // Not actually connected; just informational
 	// Set to 1 to cancel any activity against the connection that is cancellable.  Ignored
 	// if nothing active.
-	volatile Atomic cancelAnyActiveStatements;	
+	volatile Atomic              cancelAnyActiveStatements;	
 	// Lock any connection information update or read using this mutex
-	Mutex connectInfoUpdating;
-		String connectErrorMessage;  // If connection fails, this is updated with the info (No access to GUI in thread) within Mutex
+	Mutex                        connectInfoUpdating;
+	// If connection fails, this is updated with the info (No access to GUI in thread) within Mutex
+	String                       connectErrorMessage;  
 		
 	// Self-locking flag to interface between the ConnectThread and Connect method
-	volatile Atomic connectThreadStatus;
+	volatile Atomic              connectThreadStatus;
 	enum ConnectThreadStatus {
 			CONNECTSTATUS_UNDEF, CONNECTSTATUS_KILL, CONNECTSTATUS_NOTENOUGHINFO
 		,	CONNECTSTATUS_SUCCEED, CONNECTSTATUS_FAIL, CONNECTSTATUS_UNKNOWN
 	};
 	
 protected:	
-	// Use the ConnectionFactory.Connect to create a new connection.
-	Connection();
-	// Called from within OCI8Connection in Oci8.cpp Execute() or Fetch() function during
-	// OCI_STILL_EXECUTING status.
-	void WhenStillExecuting();
-	bool Connect(TopWindow *ptopWindow);
-	// postcondition: Sets enumConnState, instType
-	// precondition: Connects strictly from ConnectFactory
-	// TopWindow is currently only supported by Oracle driver (I added :))
-	void ConnectThread(TopWindow *topWindow);
+	            // Use the ConnectionFactory.Connect to create a new connection. ConnectionFactoryCanCreate
+	            Connection();
+	            // Called from within OCI8Connection in Oci8.cpp Execute() or Fetch() function during
+	            // OCI_STILL_EXECUTING status.
+	void        WhenStillExecuting();
+	bool        Connect(TopWindow *ptopWindow);
+	            // postcondition: Sets enumConnState, instType
+	            // precondition: Connects strictly from ConnectFactory
+	            // TopWindow is currently only supported by Oracle driver (I added :))
+	void        ConnectThread(TopWindow *topWindow);
 
 public:
 	SqlSession &GetSession();
-	String PrepTextDataForSend(const String &textData);
-	// Oracle breaks with odd aposts in line comments
-	String PrepScriptForSend(const String &script, bool log = false);
-	// This is a prep for actual execution by the receiving instance, not for insertion into 
-	// the control db as a saved script text.
-	String PrepOracleScriptForSend(const String script, bool log = false);
-	String PrepForPostgresCopyFrom(const String scriptText);
-	//  Wrap script method implementation and error handling.  Will allow reconnects and reexecutes.
-	bool ProcessQueryDataScript(Script &sob, JobSpec &jspec, ContextMacros *contextMacros);
-	bool SendQueryDataScript(const char *scriptText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false, bool log = false);
-	bool SendAddDataScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
-	bool SendChangeDataScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
-	bool SendRemoveDataScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
-	bool SendChangeEnvScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
-	bool SendQueryEnvScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
-	bool SendChangeStructureScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
-	int GetInsertedId(String tableName, String columnName);
-	// Only works for PostgreSQL.
-	int GetPostgreSQLInsertedId(String tableName, String columnName);
-	int GetPostgreSQLInsertedId(String sequenceName);
-	Value Get(SqlId i) const;
-	bool GetBool(int i) const; // PostgreSQL driver does not properly deal with bool
-	Value Get(int i) const;
-	bool HandleDbError(int actioncode, String *cmd = NULL, bool log = false, bool batchMode = false);
+	String      PrepTextDataForSend(const String &textData);
+	            // Oracle breaks with odd aposts in line comments
+	String      PrepScriptForSend(const String &script, bool log = false);
+	            // This is a prep for actual execution by the receiving instance, not for insertion into 
+	            // the control db as a saved script text.
+	String      PrepOracleScriptForSend(const String script, bool log = false);
+	String      PrepForPostgresCopyFrom(const String scriptText);
+	            //  Wrap script method implementation and error handling.  Will allow reconnects and reexecutes.
+	bool        ProcessQueryDataScript(Script &sob, JobSpec &jspec, ContextMacros *contextMacros);
+	bool        SendQueryDataScript(const char *scriptText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false, bool log = false);
+	bool        SendAddDataScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	bool        SendChangeDataScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	bool        SendRemoveDataScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	bool        SendChangeEnvScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	bool        SendQueryEnvScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	bool        SendChangeStructureScript(const char *sqlText, ContextMacros *contextMacros = NULL, bool silent = false, bool expandMacros = false);
+	int         GetInsertedId(String tableName, String columnName);
+	            // Only works for PostgreSQL.
+	int         GetPostgreSQLInsertedId(String tableName, String columnName);
+	int         GetPostgreSQLInsertedId(String sequenceName);
+	Value       Get(SqlId i) const;
+	            // PostgreSQL driver does not properly deal with bool
+	bool        GetBool(int i) const;
+	Value       Get(int i) const;
+	bool        HandleDbError(int actioncode, String *cmd = NULL, bool log = false, bool batchMode = false);
 };
 
 //==============================================================================================
@@ -126,14 +128,19 @@ public:
 	static Connection *controlConnection;
 
 	static VectorMap<String,Connection *>& Connections();
-	ConnectionFactory(Connection *pcontrolConnection = NULL);
-	~ConnectionFactory();
+	
+	              ConnectionFactory(Connection *pcontrolConnection = NULL);
+	             ~ConnectionFactory();
 	static String ControlInstanceType();
-	Connection *GetConnection(String connName); // Fetch a connection if it allready exists and is open, else return null
-	Connection *Connect(TopWindow *win, int connId, bool useIfFoundInPool = false, Connection *pcontrolConnection = NULL);
-	// Connection factory (Takes window for async connection spinning.
-	// Assumption: connName is unique per connection.  No support for multiple connections per connection definition
-	Connection *Connect(
+	              // Warning: This does not store the connection in Connections pool since it is informational only
+	              // and I don't want Connect searches to get confused with informationals.  Could get nasty.
+	              // So remember to destroy.
+	Connection   *FetchConnInfo(int connId, Connection *pcontrolConnection = NULL); // No connect; just lookup detail in database!
+	Connection   *GetConnection(String connName); // Fetch a connection if it allready exists and is open, else return null
+	Connection   *Connect(TopWindow *win, int connId, bool useIfFoundInPool = false, Connection *pcontrolConnection = NULL);
+	              // Connection factory (Takes window for async connection spinning.
+	              // Assumption: connName is unique per connection.  No support for multiple connections per connection definition
+	Connection   *Connect(
 		TopWindow *win, String connName, String instanceTypeName
 	,	String loginStr, String loginPwd, String instanceAddress, String dbName = Null, String portNo = Null, bool log = false);
 };

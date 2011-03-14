@@ -693,12 +693,80 @@ ConnectionFactory::~ConnectionFactory() {
 }
 
 //==============================================================================================
-// Connections are just live connections, so no automatic connecting here.
+	// Connections are just live connections, so no automatic connecting here.
 Connection *ConnectionFactory::GetConnection(String connName) {
 	if (connName.IsEmpty()) return NULL; // Empty for a new row, for instance
 	ASSERT(!connName.IsEmpty());
 	return Connections().Get(connName, (Connection *)NULL);
 }
+
+//==============================================================================================
+	// Warning: This does not store the connection in Connections pool since it is informational only
+	// and I don't want Connect searches to get confused with informationals.  Could get nasty.
+	// So remember to destroy.
+Connection * ConnectionFactory::FetchConnInfo(int connId, Connection *pcontrolConnection) {
+	Connection *lcontrolConnection = NULL;
+	
+	// User passed a new control connection, we will use locally temporarily for this connection
+	if (pcontrolConnection) lcontrolConnection = pcontrolConnection;
+	
+	// If they passed a new control connection and we don't have a shared controlconnection already established, we'll use the new one as a shared one
+	if (lcontrolConnection && !controlConnection) controlConnection = lcontrolConnection;
+	
+	// If they didn't pass us a new control connection then they must want to use the shared one
+	if (!lcontrolConnection) lcontrolConnection = controlConnection;
+	
+	// If there wasn't a shared control connection set up, then we can't look up any other connection information from a control database
+	if (!lcontrolConnection) return NULL;
+
+	String FetchConnDtlById = Format("select "
+			"ConnId"          // 0
+		",	ConnName"         // 1
+		",  LoginId"          // 2
+		",  LoginStr"         // 3
+		",  LoginPwd"         // 4
+		",  InstanceId"       // 5
+		",  InstanceName"     // 6
+		",  InstanceAddress"  // 7
+		",  InstTypID"        // 8
+		",  InstTypName"      // 9
+		",  EnvId"            // 10
+		",  EnvStdName"       // 11
+		",  dbName"           // 12
+		",  portNo"           // 13
+		",  EnvLetter"        // 14
+		" from v_conn where ConnId = %d", connId);
+		
+	if (!lcontrolConnection->SendQueryDataScript(FetchConnDtlById)) {
+		return NULL;
+	}
+	lcontrolConnection->Fetch();
+	
+	String connName			= lcontrolConnection->Get(1);
+	String instanceTypeName = lcontrolConnection->Get(9);
+	String loginStr 		= lcontrolConnection->Get(3);
+	String loginPwd 		= lcontrolConnection->Get(4);
+	String instanceAddress 	= lcontrolConnection->Get(7);
+	String dbName 			= lcontrolConnection->Get(12);
+	String portNo           = ToString((int)lcontrolConnection->Get(13)); // We treat portno as a string in case some weirdness involved for some sources
+	String envLetter        = lcontrolConnection->Get(14);
+
+	Connection *connection = new Connection();
+
+	connection->instanceTypeName = instanceTypeName;
+	connection->connName         =         connName;
+	connection->loginStr         =         loginStr;
+	connection->loginPwd         =         loginPwd; // For reconnecting, or changing password, you have to pass the old one
+	connection->instanceAddress  =  instanceAddress;
+	connection->dbName           =           dbName;
+	connection->portNo           =           portNo;
+	connection->envLetter        =        envLetter;
+	connection->connId           =           connId;
+	connection->informationalOnly = true;
+	
+	return connection;
+}
+
 
 //==============================================================================================
 Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFoundInPool /*=false*/, Connection *pcontrolConnection/* = NULL*/) {
@@ -756,7 +824,7 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 		}
 	}
 	
-	Connection *c = Connect(
+	Connection *connection = Connect(
 			win
 		,	connName
 		,	instanceTypeName
@@ -769,8 +837,10 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 	
 	// Populate some of the other attributes we fetched from the v_conn, that are descriptive and not required to connect.
 	
-	c->envLetter = envLetter;
-	
+	connection->connId    = connId;
+	connection->envLetter = envLetter;
+	connection->informationalOnly = false;  // real connection
+	return connection;
 }
 
 //==============================================================================================
