@@ -5,9 +5,10 @@
 #include "Script.h"
 #include "JobSpec.h"
 #include "ContextMacros.h"
+#include "OutputGrid.h"
 
 class Connection;
-class OutputGrid;
+//class OutputGrid;
 //==============================================================================================
 class CursorHandler : public TopWindow {
 public:
