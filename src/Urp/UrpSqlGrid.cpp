@@ -264,6 +264,26 @@ Value UrpSqlGrid::GetMaxValue(Id column) {
 }
 
 //==============================================================================================
+int UrpSqlGrid::CalcCorrectRow(int row) {
+	if (row == -1) {
+		if (IsCursor()) {
+			return GetCursor();
+		} else if (IsSelection()) {
+			for (int i=0; i < GetCount(); i++) {
+				if (IsSelected(i)) {
+					return i; // Can't force visible since this may be part of an informational lookup
+				}
+			}
+			// Error if here
+		} else {
+			return -1;
+		}
+	} else {
+		return row;
+	}
+}
+
+//==============================================================================================
 //  GridCtrl is supposed to Xmlize, but I don't see it doing anything, so I've written my own.
 //  Have to save by name so that code changes that add/subtract columns will not cause confusion.
 //  Also, we save hidden state by name instead of position, which can really mess with a grid.
@@ -279,13 +299,19 @@ void UrpSqlGrid::Xmlize(XmlIO xml) {
 		xml("rowselected", rowselected);
 		// Trap if no such attribute
 		if (IfNull(rowselected, NOSELECTION) != NOSELECTION) {
-			SetCursor(rowselected);
-			CenterCursor();
-			Select(rowselected, true /*sel*/); // Trigger click?
+			// An empty grid sets this to -1
+			if (rowselected == -1) { // Correct to be NOSELECTION
+				rowselected = NOSELECTION;
+			} else {
+				SetCursor(rowselected);
+				CenterCursor();
+				Select(rowselected, true /*sel*/); // Trigger click?
+			}
 		}
 		
 		// Read vector from store
 		xml("columnwidths", floatingColumnWidths);
+
 		int floatingColumnCount = GetFloatingColumnCount();
 		for (int i = 0; i < floatingColumnCount; i++) {
 			String colIdName = GetFloatingColumnId(i).ToString();
@@ -322,6 +348,7 @@ void UrpSqlGrid::Xmlize(XmlIO xml) {
 		// Save the first selection the user made
 		if (IsSelection()) {
 			rowselected = GetFirstSelection();
+			
 		} else {
 			rowselected = NOSELECTION;
 		}

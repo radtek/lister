@@ -40,7 +40,8 @@ public:
 	               // Useful for when grid is not active and cursor is -1, but an item is selected
 	int            GetFirstSelection();
 	Value          GetMaxValue(Id column);
-		
+	int            CalcCorrectRow(int row);
+	
 	//	GridCtrl::ItemRect& GetFloatingColumn(int n);
 	//  GridCtrl is supposed to Xmlize, but I don't see it doing anything, so I've written my own.
 	//  Have to save by name so that code changes that add/subtract columns will not cause confusion.
