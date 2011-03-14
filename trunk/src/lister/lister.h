@@ -74,7 +74,9 @@ public:
 	ContextMacros     activeContextMacros; // input/output from taskmacro table; loaded per task selection.
 	DropGrid          macrosAvailableList; // Coalesce of all macros in context for script
 	bool              showHiddenTasks;
-	
+	String            envLetter;           // Track at session level to reduce rebuilding macros if no env change from script to script within the same task.
+	bool              rebuildTaskMacros;    // When the task changes, task macros must be loaded.
+	//------------------------------------------------------------------------------------------
 	                  Lister();
 	                 ~Lister();
 	void              ViewMappings();
