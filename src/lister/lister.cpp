@@ -314,7 +314,6 @@ void Lister::CopyColListCommaDelimByType() {
 
 //==============================================================================================	
 void Lister::MainGridContextMenu(Bar &bar) {
-	mainGrid.SelectMenu(bar);
 	bar.Add("Select entire row", THISBACK(ToggleMainGridSelectRow))
 		.Check(maingridselectrow)
 		.Help("Select the whole row or select individual cells");
@@ -1006,50 +1005,85 @@ void Lister::SetActiveConnection(Connection *newConnection) {
 //==============================================================================================	
 // When user selects a task, the script becomes eligible to be attached to it.
 void Lister::ActiveTaskChanged() {
-	ToolBarRefresh();
-	// Flush CurrentTaskMacroList; fetch from taskmacros.  Apply logic from CursorHandler macro function as each is loaded.
-	// Move macro code out of CursorHandler and into MacroHandler.cpp
-	// Alter macro function to rerun macros in CurrentTaskMacroList, then macros in current script.
-	activeContextMacros.taskMacros.Clear();
+	// For some reason, using the Join() function means the right-hand joined grid doesn't
+	// trigger a change event, so we must force.
 	
-	// Set connection-based macros first
-	// Nice ENV macro to allow code reuse across environments where there are stereotypical differences between them
-	if (activeConnection) {
-		activeContextMacros.taskMacros.Add("ENV", MacPair(activeConnection->envLetter, activeConnection->envLetter));
-	} else if (scriptGrid.GetConnId()
-	
-	int taskId = taskGrid.GetTaskId();
-	if (controlConnection->SendQueryDataScript(SqlStatement(SqlSelect(SEARCHFOR, REPLACEWITH).From(TASKMACROS).Where(TASKID==taskId).OrderBy(PROCESSORDER)).GetText())) {
-		while(controlConnection->Fetch()) {
-			String searchFor = controlConnection->Get(0);
-			String replaceWith = controlConnection->Get(1);
-			
-			// Expand the output with any previous macros in task list, as well as the standard hardcoded ones
-			String expansion = ExpandMacros(replaceWith, &activeContextMacros);
-			
-			// Add it to the list and continue fetching and expanding
-			
-			activeContextMacros.taskMacros.Add(searchFor, MacPair(replaceWith, expansion));
-		}
-	}
-	
-	// Update the drop down so script-writer can see what macros are available
-	
-	activeContextMacros.UpdateAvailableMacros(macrosAvailableList, &activeContextMacros);
-
-	ToolBarRefresh();
-	
+	rebuildTaskMacros = true; // Set flag so that when they eventually select a script, they need to load up task macros
 }
 
 //==============================================================================================	
 // When user selects (WhenLeftClick) a task script, that script is stuffed in editor.
 void Lister::ActiveTaskScriptChanged() {
-	if (!scriptGrid.IsCursor()) return;
+	int row = -1;
+	bool hasFocus = scriptGrid.HasFocus(); // Capture early
+	bool hasCapture = scriptGrid.HasCapture();
+
+	if (!scriptGrid.IsCursor()) {
+		if (scriptGrid.IsSelection()) {
+			row = scriptGrid.GetFirstSelection();
+		} else {
+			return;
+		}
+	} else {
+		row = scriptGrid.GetCursor();
+	}
+	
 	// When you select tasks, this WhenCursor is triggered, but we don't want to copy a script
 	// over unless it was actually selected.
+
+	// Set connection-based macros first
+	// Nice ENV macro to allow code reuse across environments where there are stereotypical differences between them
+	// Use task scripts assigned connection whether its active or not
+
+	String loadedEnvLetter;
+		
+	if (!IsNull(scriptGrid.GetConnId(row)) && scriptGrid.GetConnId(row) != UNKNOWN) {
+		int connId = scriptGrid.GetConnId(row);
+		Connection *connInfo = connectionFactory.FetchConnInfo(connId);
+		loadedEnvLetter = connInfo->envLetter;
+		delete connInfo;  // We created an object that is not on a stack anywhere, so we must destroy
+	} else if (activeConnection) {
+		loadedEnvLetter = activeConnection->envLetter;
+	}
+
+	// Only reload environment macros if there was a change in environment
+	if (!loadedEnvLetter.IsEmpty() && loadedEnvLetter != envLetter) {
+		envLetter = loadedEnvLetter;
+		activeContextMacros.envMacros.Clear();
+		activeContextMacros.envMacros.Add("ENV", MacPair(envLetter, envLetter));
+		rebuildTaskMacros = true; // Force rebuild of task macros since they probably reference the ENV macro
+	}
 	
-	bool hasFocus = scriptGrid.HasFocus();
-	bool hasCapture = scriptGrid.HasCapture();
+	if (rebuildTaskMacros) {
+		rebuildTaskMacros = false; // Desensitize flag
+		
+		// Flush CurrentTaskMacroList; fetch from taskmacros.  Apply logic from CursorHandler macro function as each is loaded.
+		// Move macro code out of CursorHandler and into MacroHandler.cpp
+		// Alter macro function to rerun macros in CurrentTaskMacroList, then macros in current script.
+		activeContextMacros.taskMacros.Clear();
+		
+		int taskId = taskGrid.GetTaskId();
+		if (controlConnection->SendQueryDataScript(SqlStatement(SqlSelect(SEARCHFOR, REPLACEWITH).From(TASKMACROS).Where(TASKID==taskId).OrderBy(PROCESSORDER)).GetText())) {
+			while(controlConnection->Fetch()) {
+				String searchFor = controlConnection->Get(0);
+				String replaceWith = controlConnection->Get(1);
+				
+				// Expand the output with any previous macros in task list, as well as the standard hardcoded ones
+				String expansion = ExpandMacros(replaceWith, &activeContextMacros);
+				
+				// Add it to the list and continue fetching and expanding
+				
+				activeContextMacros.taskMacros.Add(searchFor, MacPair(replaceWith, expansion));
+			}
+		}
+		
+		// Update the drop down so script-writer can see what macros are available
+		
+		activeContextMacros.UpdateAvailableMacros(macrosAvailableList, &activeContextMacros);
+	}
+	
+	
+	ToolBarRefresh();
 	
 	// Activity in the Task Grid triggers cursor movement here, ignore.
 	if (!hasFocus) return;	
@@ -1064,10 +1098,9 @@ void Lister::ActiveTaskScriptChanged() {
 		}
 	}
 	
-	int scriptRow = scriptGrid.GetCursor();
 	JobSpec js;
 	WaitCursor wc; // Some scripts are slow to load, so show an hourglass
-	ProcessTaskScript(scriptRow, true /* load */, false /* don't execute */, js);
+	ProcessTaskScript(row, true /* load */, false /* don't execute */, js);
 	scriptGrid.SetFocus(); // Maintain our focus here, don't let scriptEditor capture it
 }
 
