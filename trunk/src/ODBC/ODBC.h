@@ -2,7 +2,7 @@
 #define _ODBC_ODBC_h
 
 #include <lister/Sql/Sql.h>
-#include <sql.h>
+#include <sql.h> // C:\Program Files\Microsoft SDKs\Windows\v7.0\Include/sql.h and sqltypes.h
 #include <sqlext.h>
 
 NAMESPACE_UPP
