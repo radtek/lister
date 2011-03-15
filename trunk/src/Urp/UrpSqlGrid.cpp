@@ -284,6 +284,30 @@ int UrpSqlGrid::CalcCorrectRow(int row) {
 }
 
 //==============================================================================================
+int UrpSqlGrid::GetProcessOrder(int row) {
+	return Upp::max((int)Get(CalcCorrectRow(row), "PROCESSORDER"), (int)-1);
+}
+
+//==============================================================================================
+int UrpSqlGrid::GetMaxProcessOrder() {
+	int max = 0;
+	
+	for (int i = 0; i < GetCount(); i++) {
+		int v = GetProcessOrder(i);
+		if (v > max) {
+			max = v;
+		}
+	}
+	
+	return max;
+}
+
+//==============================================================================================
+int UrpSqlGrid::GetNextProcessOrder() {
+	return GetMaxProcessOrder() + 1;
+}
+
+//==============================================================================================
 //  GridCtrl is supposed to Xmlize, but I don't see it doing anything, so I've written my own.
 //  Have to save by name so that code changes that add/subtract columns will not cause confusion.
 //  Also, we save hidden state by name instead of position, which can really mess with a grid.
