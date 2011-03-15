@@ -126,6 +126,7 @@ void ConnGrid::NewInstance() {
 		 	int envId              = newInstanceWin.envList.GetKey();
 		 	int portNo;
 		 	Value vportNo          = newInstanceWin.portNo.GetData();
+
 		 	if (vportNo == -1 || vportNo.IsNull()) { 
 		 		portNo = -1;
 		 	} else {
@@ -145,17 +146,19 @@ void ConnGrid::NewInstance() {
 			if (connection->SendAddDataScript(script)) {
 				// Fetch id
 				int id = connection->GetInsertedId("instances", "instanceid");
-				EndEdit();
 				instanceList.Add(id, newInstanceName);
-				
+				instanceList.FindMove(newInstanceName);
+								
 				SetInstanceId      (row, id);
 				SetInstanceName    (row, newInstanceName);
 				SetEnvId           (row, envId);
 				SetInstTypId       (row, instTypId);
 				SetInstanceAddress (row, instAddr);
-				SetPortNo          (row, portNo);
+				if (portNo != -1) {
+					SetPortNo          (row, portNo);
+				}
 				
-				instanceList.FindMove(newInstanceName);
+				EndEdit();
 			}
 		}
 		break;
