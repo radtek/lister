@@ -5,53 +5,53 @@
 
 // THESE NAMES MUST BE UNIQUE IN ORDER TO LABEL COLUMN WIDTHS USER CUSTOMIZATIONS WHEN XMLIZING
 
-Id IDConnState("ConnState");
-Id IDConnId("ConnId"); 
-Id IDConnName("ConnName"); 
-Id IDLoginId("LoginId");
-Id IDLoginStr("LoginStr"); 
-Id IDLoginPwd("LoginPwd"); 
-Id IDInstanceId("InstId");
-Id IDInstanceName("InstanceName"); 
-Id IDInstanceAddress("InstanceAddress"); 
-Id IDPortNo("PortNo");
-Id IDInstTypId("InstTypID");                                            // The Id of the server type; for the dropgrid and for updating the database
-Id IDInstTypName("InstTypName");    
-Id IDDatabaseName("Database"); // For connections to MS SQL and PostgreSQL, a database attribute should be passed in the connection
-Id IDEnvId("EnvId"); 
-Id IDEnvStdName("EnvStdName"); 
-Id IDConnNote("ConnNote"); 
-Id IDIsOSAuth("IsOSAuth");
-Id IDCONNECT("CONNECT!");
-Id IDDUMMY("Dummy");
+Id IDConnState       ("ConnState");
+Id IDConnId          ("ConnId"); 
+Id IDConnName        ("ConnName"); 
+Id IDLoginId         ("LoginId");
+Id IDLoginStr        ("LoginStr"); 
+Id IDLoginPwd        ("LoginPwd"); 
+Id IDInstanceId      ("InstId");
+Id IDInstanceName    ("InstanceName"); 
+Id IDInstanceAddress ("InstanceAddress"); 
+Id IDPortNo          ("PortNo");
+Id IDInstTypId       ("InstTypID");       // The Id of the server type; for the dropgrid and for updating the database
+Id IDInstTypName     ("InstTypName");    
+Id IDDatabaseName    ("Database");        // For connections to MS SQL and PostgreSQL, a database attribute should be passed in the connection
+Id IDEnvId           ("EnvId"); 
+Id IDEnvStdName      ("EnvStdName"); 
+Id IDConnNote        ("ConnNote"); 
+Id IDIsOSAuth        ("IsOSAuth");
+Id IDCONNECT         ("CONNECT!");
+Id IDDUMMY           ("Dummy");
 
-//==========================================================================================	
+//==============================================================================================
 void MakeButton(One<Ctrl>& ctrl) {
 	ctrl.Create<ConnButton>();
 	ctrl->WantFocus();
 }
 
-//==========================================================================================	
+//==============================================================================================
 void MakeConnState(One<Ctrl>& ctrl) {
 	ctrl.Create<ConnState>();
 	ctrl->WantFocus();
 }
 
-//==========================================================================================	
+//==============================================================================================
 ConnGrid::ConnGrid() : UrpGrid() {
 
 }
 
-//==========================================================================================	
-int        ConnGrid::GetConnId          (int row)				{ return Get(row, IDConnId); }
-void       ConnGrid::SetConnId          (int row, int pconnId)	{ Set(row, IDConnId, pconnId); }
-String     ConnGrid::GetConnName        (int row)				{ return TrimBoth(Get(row, IDConnName)); }
-String     ConnGrid::GetInstanceTypeName(int row)				{ return TrimBoth(Get(row, IDInstTypName)); }
-int        ConnGrid::GetInstanceId      (int row)				{ return Get(row, IDInstanceId); }
-void       ConnGrid::SetInstanceId      (int row, int pinstId)	{ Set(row, IDInstanceId, pinstId); }
-String     ConnGrid::GetInstanceName    (int row)				{ return TrimBoth(Get(row, IDInstanceName)); }
-void       ConnGrid::SetInstanceName    (int row, String pinstNm) { Set(row, IDInstanceName, pinstNm); }
-String     ConnGrid::GetInstanceAddress (int row)				{ return TrimBoth(Get(row, IDInstanceAddress)); }
+//==============================================================================================
+int        ConnGrid::GetConnId          (int row)				   { return Get(row, IDConnId); }
+void       ConnGrid::SetConnId          (int row, int pconnId)	   { Set(row, IDConnId, pconnId); }
+String     ConnGrid::GetConnName        (int row)				   { return TrimBoth(Get(row, IDConnName)); }
+String     ConnGrid::GetInstanceTypeName(int row)				   { return TrimBoth(Get(row, IDInstTypName)); }
+int        ConnGrid::GetInstanceId      (int row)				   { return Get(row, IDInstanceId); }
+void       ConnGrid::SetInstanceId      (int row, int pinstId)	   { Set(row, IDInstanceId, pinstId); }
+String     ConnGrid::GetInstanceName    (int row)				   { return TrimBoth(Get(row, IDInstanceName)); }
+void       ConnGrid::SetInstanceName    (int row, String pinstNm)  { Set(row, IDInstanceName, pinstNm); }
+String     ConnGrid::GetInstanceAddress (int row)				   { return TrimBoth(Get(row, IDInstanceAddress)); }
 void       ConnGrid::SetInstanceAddress (int row, String pinstAdr) { Set(row, IDInstanceAddress, pinstAdr); }
 int        ConnGrid::GetInstTypId       (int row)			    { return Get(row, IDInstTypId); }
 void       ConnGrid::SetInstTypId       (int row, int pinstTypId) { Set(row, IDInstTypId, pinstTypId); }
@@ -64,16 +64,16 @@ int        ConnGrid::GetLoginId         (int row)				{ return Get(row, IDLoginId
 String     ConnGrid::GetLoginStr        (int row)				{ return TrimBoth(Get(row, IDLoginStr)); }
 String     ConnGrid::GetLoginPwd        (int row)				{ return TrimBoth(Get(row, IDLoginPwd)); }
 ConnState *ConnGrid::GetConnState       (int row)       	    { return (ConnState *)GetCtrl(row, FindCol(IDConnState)); }
-bool       ConnGrid::GetOSAuth          (int row)               { return ((String)IfNull(Get(row, IDIsOSAuth), "0") == "1"); }
+bool       ConnGrid::GetOSAuth          (int row)               { return SqlToBool(Get(row, IDIsOSAuth)); }
 
 
-//==========================================================================================	
+//==============================================================================================
 void ConnGrid::NewConn() {
 	GoTo(GetCurrentRow(), 2);
 	StartEdit(); // Puts you into editmode so you can start typing the instance name right away.
 }
 
-//==========================================================================================	
+//==============================================================================================
 void ConnGrid::Build() {
 	
 	WhenNewRow = THISBACK(NewConn);
@@ -94,7 +94,7 @@ void ConnGrid::Build() {
 	AddColumn( IDLoginId        , "Login Id"    );
 	AddColumn( IDLoginStr       , "Login"       ).Edit(fldLoginStr       );                                                             
 	AddColumn( IDLoginPwd       , "Pwd"         ).Edit(fldLoginPwd       );                                                               
-	AddColumn( IDIsOSAuth       , "OS Auth?"    ).Edit(osAuthList        ).SetConvert(osAuthList  ).Fixed(10); // Login property.
+	AddColumn( IDIsOSAuth       , "OS Auth?"    ).Edit(osAuthList        ).SetConvert(osAuthList  ); // A Login property.
 	AddColumn( IDInstanceId     , "Instance"    ).Edit(instanceList      ).SetConvert(instanceList).Default(-1);
 	AddColumn( IDInstanceName   , "InstNm"      );
 	AddColumn( IDInstTypId      , "InstTyp"     ).Edit(instTypList       ).SetConvert(instTypList ).Default(-1);
@@ -111,7 +111,7 @@ void ConnGrid::Build() {
 	built = true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Popup to let user enter new connection instance details
 void ConnGrid::NewInstance() {
 	int row = GetCurrentRow(); // Save our place
@@ -121,35 +121,25 @@ void ConnGrid::NewInstance() {
 		Exclamation("Adding");
 		{
 			String newInstanceName = ToUpper(newInstanceWin.GetInstanceName());
-		 	String instAddr = newInstanceWin.instanceAddress.GetData().ToString();
-		 	int instTypId = newInstanceWin.instTypList.GetKey();
-		 	int envId = newInstanceWin.envList.GetKey();
+		 	String instAddr        = newInstanceWin.instanceAddress.GetData().ToString();
+		 	int instTypId          = newInstanceWin.instTypList.GetKey();
+		 	int envId              = newInstanceWin.envList.GetKey();
 		 	int portNo;
-		 	Value vportNo = newInstanceWin.portNo.GetData();
+		 	Value vportNo          = newInstanceWin.portNo.GetData();
 		 	if (vportNo == -1 || vportNo.IsNull()) { 
 		 		portNo = -1;
 		 	} else {
 		 		portNo = vportNo;
 		 	}
-/*
-			String script = SqlStatement
-				(
-					SqlInsert(INSTANCES)
-						(INSTANCENAME, newInstanceName)
-						(INSTANCEADDRESS, instAddr)
-						(INSTTYPID, instTypId)
-						(ENVID, envId)
-				)
-				.GetText();
-*/
 
-				SqlInsert q = ::Insert(INSTANCES);
-				q(INSTANCENAME, newInstanceName);
-				q.Column(INSTANCEADDRESS, instAddr);
-				q(INSTTYPID, instTypId);
-				q(ENVID, envId);
-				q(PORTNO, portNo);
-				;
+			SqlInsert q = ::Insert(INSTANCES);
+			
+			q(INSTANCENAME    , newInstanceName);
+			q(INSTANCEADDRESS , instAddr);
+			q(INSTTYPID       , instTypId);
+			q(ENVID           , envId);
+			q(PORTNO          , portNo);
+			;
 
 			String script = SqlStatement(q).Get(PGSQL);
 			if (connection->SendAddDataScript(script)) {
@@ -157,12 +147,14 @@ void ConnGrid::NewInstance() {
 				int id = connection->GetInsertedId("instances", "instanceid");
 				EndEdit();
 				instanceList.Add(id, newInstanceName);
-				SetInstanceId(row, id);
-				SetInstanceName(row, newInstanceName);
-				SetEnvId(row, envId);
-				SetInstTypId(row, instTypId);
-				SetInstanceAddress(row, instAddr);
-				SetPortNo(row, portNo);
+				
+				SetInstanceId      (row, id);
+				SetInstanceName    (row, newInstanceName);
+				SetEnvId           (row, envId);
+				SetInstTypId       (row, instTypId);
+				SetInstanceAddress (row, instAddr);
+				SetPortNo          (row, portNo);
+				
 				instanceList.FindMove(newInstanceName);
 			}
 		}
@@ -175,7 +167,7 @@ void ConnGrid::NewInstance() {
 }
 
 // Has to pass a connection that persists after this window closes
-//==========================================================================================	
+//==============================================================================================
 /*virtual*/ void ConnGrid::Load(Connection *pconnection) {
 	ConnectedCtrl::Load(pconnection);
 	connection = pconnection;
@@ -193,8 +185,8 @@ void ConnGrid::NewInstance() {
 	// Populate the instance list
 	
 	osAuthList.Clear();
-	osAuthList.Add("0", "Standard Authorization by password");
-	osAuthList.Add("1", "Set flag for OS authorization based on current NT login");
+	osAuthList.Add("0", "No");  //"Standard Authorization by password");
+	osAuthList.Add("1", "Yes"); //"Set flag for OS authorization based on current NT login");
 
 	if (connection->SendQueryDataScript("select i.instanceid, i.instancename, i.instanceaddress, i.note, it.insttypid, it.insttypname, i.envid from instances i left join insttyps it on i.insttypid = it.insttypid order by instancename")) {
 
@@ -218,7 +210,9 @@ void ConnGrid::NewInstance() {
 
 	// Populate the Connection List so user can select
 	
-	if (!connection->SendQueryDataScript("select ConnId, ConnName, LoginId, LoginStr, LoginPwd, InstanceId, InstanceName, InstanceAddress, InstTypID, InstTypName, dbName, EnvId, EnvStdName, PortNo from v_conn order by ConnName")) {
+	if (!connection->SendQueryDataScript("select ConnId, ConnName, LoginId, LoginStr, LoginPwd, InstanceId"
+	", InstanceName, InstanceAddress, InstTypID, InstTypName, dbName, EnvId, EnvStdName, PortNo, isOSAuth "
+	" from v_conn where ConnId <> -1 order by ConnName")) {
 		return;
 	}
 	
@@ -246,14 +240,14 @@ void ConnGrid::NewInstance() {
 	WhenAcceptedRow = THISBACK(AddedNewConnection);
 }
 
-//==========================================================================================	
+//==============================================================================================
 //  Let main interface set colors representing the state of the connection.
 void ConnGrid::SetConnState(int row, EnumConnState enumConnState) {
 	Color &connColor = ConnState::ConvertStateToColor(enumConnState);
 	Set(row, IDConnState, connColor);
 }
 
-//==========================================================================================	
+//==============================================================================================
 void ConnGrid::AddedNewConnection() {
 	ASSERT(connection);
 	ASSERT(IsCursor());
@@ -291,7 +285,7 @@ void ConnGrid::AddedNewConnection() {
 	}
 }
 	
-//==========================================================================================	
+//==============================================================================================
 // Don't care if the connect button changed, or the color changed.
 bool ConnGrid::MeaningfulDataChange() {
 	if (!IsModifiedRow()) return false; // No change
@@ -310,7 +304,8 @@ bool ConnGrid::MeaningfulDataChange() {
 		!IsModified(IDInstTypId       ) &&
 		!IsModified(IDConnNote        ) &&
 		!IsModified(IDInstanceAddress ) &&
-		!IsModified(IDInstanceName    )
+		!IsModified(IDInstanceName    ) &&
+		!IsModified(IDIsOSAuth        )
 		) return false;
 
 	return true;
@@ -327,7 +322,7 @@ bool ConnGrid::FindConnId(int pconnId, bool silent /*= false*/) {
 	return true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 //  The main interface calls this to position and select a specific connection, usually
 //  so it can trigger a connect event.
 bool ConnGrid::FindConnName(String pconnName, bool silent /*= false*/) {
@@ -339,7 +334,7 @@ bool ConnGrid::FindConnName(String pconnName, bool silent /*= false*/) {
 	return true;
 }
 
-//==========================================================================================	
+//==============================================================================================
 bool ConnGrid::WasConnectionRequested() {
 	int rowno = GetCursor();
 	if (rowno == -1) return false;
