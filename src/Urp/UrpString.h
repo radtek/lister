@@ -6,7 +6,7 @@
 class UrpString {
 public:
 	                // Crazy idea: Function name maps to the parameters, especially their order.
-	static String   ReplaceInWhatWith(const String in, const String what, const String with);
+	static String   ReplaceInWhatWith(const String in, const String what, const String with, int *replacementCount = NULL);
 	static String   Apostrophize(String in);
 	static void     TrimOff(String &in, int cnt); // Trim x number of characters off the end
 	static bool     IsIntegerString(String testStr);

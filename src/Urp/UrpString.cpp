@@ -2,7 +2,8 @@
 
 //==============================================================================================
 // Crazy idea: Function name maps to the parameters, especially their order.
-/*static*/ String UrpString::ReplaceInWhatWith(const String in, const String what, const String with) {
+/*static*/ String UrpString::ReplaceInWhatWith(const String in, const String what, const String with, int *replacementCount /*= NULL*/) {
+	if (replacementCount) *replacementCount = 0;
 	if (what.IsEmpty()) return in;
 	if (what == with) return in;
 	bool blockinfiniterecursion = false;
@@ -27,10 +28,11 @@
         // Replace all occurrences from left to right, which may create new occurrences next pass
         
         while(((found_pos = startFrom.Find(what, start_pos)) != -1)) {
-				// Keep portion between strings found
-				out.Cat(startFrom.Mid(start_pos, found_pos - start_pos));
-				out.Cat(with); // add the replacement string
-				start_pos = found_pos + what_len;
+            if (replacementCount) *replacementCount++;
+			// Keep portion between strings found
+			out.Cat(startFrom.Mid(start_pos, found_pos - start_pos));
+			out.Cat(with); // add the replacement string
+			start_pos = found_pos + what_len;
 		}
 
         if(start_pos < startFrom.GetCount())
