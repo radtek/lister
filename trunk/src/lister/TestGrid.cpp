@@ -21,7 +21,7 @@ Id IDCompareUsingX("X");
 Id IDCompareUsingY("Y");
 Id IDInvertComparison("InvertComparison"); // A "NOT" test
 Id IDTEST("TEST!");
-Id IDTESTDUMMY("Err");
+Id IDTESTDUMMY("Dummy");
 
 using namespace Upp;
 
@@ -90,7 +90,7 @@ void TestGrid::Build() {
 	WhenNewRow = THISBACK(NewTest);
 	WhenRemoveRow = THISBACK(RemoveTest);
 	
-	
+	// SizePos(); GRIDCTRL BUG: // Cannot SizePos in TestGrid.Build() or Graphics will cycle onto all cells (see SetImage(CtrlImg::go_forward())
 	// Make the dropgrids of values extend past the width of the column they are for, to improve readability without wasting grid space.
 	connList.SearchHideRows().Resizeable().Width(200);
 	scriptList.SearchHideRows().Resizeable().Width(200);
@@ -98,8 +98,8 @@ void TestGrid::Build() {
 	compTypList.SearchHideRows().Resizeable().Width(200);
 	
 	AddColumn(IDTestState, "").Ctrls(MakeTestState).Default(TestState::ConvertStateToColor(NOTEST_NEVER)).Fixed(16);
-	AddColumn(IDTestId, "Id").Edit(fldTestId).Default(Null);
-	AddColumn(IDTestName, "Name").Edit(fldTestName);
+	AddColumn(IDTestId, "Id", 100).Edit(fldTestId).Default(Null);
+	AddColumn(IDTestName, "Name", 100).Edit(fldTestName);
 	AddColumn(IDTestScriptId, "Script").Edit(scriptList).SetConvert(scriptList).Default(-1);
 	AddColumn(IDTestNote, "Note").Edit(fldTestNote);
 	AddColumn(IDTestConnId, "Conn").Edit(connList).SetConvert(connList).Default(-1);
@@ -111,10 +111,10 @@ void TestGrid::Build() {
 	AddColumn(IDDesiredOutcome, "Desired Outcome").Edit(desiredOutcomeList).SetConvert(desiredOutcomeList).Default("P");  // P)ass or F)ail
 	AddColumn(IDActualOutcome, "Actual Outcome");   // P)ass, F)ail, I)ndeterminate
 	AddColumn(IDOutputValue, "Output");
-	AddColumn(IDTEST, "Test!").Ctrls(MakeTestButton).Fixed(20).SetImage(CtrlImg::go_forward());
+	AddColumn(IDTEST, "").Ctrls(MakeTestButton).Fixed(20).SetImage(CtrlImg::go_forward());
 	AddColumn(IDTESTDUMMY, "").Fixed(1);
 	WhenAcceptedRow = THISBACK(SaveTest);
-	SizePos();
+	
 	built = true;
 }
 
