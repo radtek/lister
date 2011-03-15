@@ -5,3 +5,17 @@
   * February, 2011
     * Fixed DB2/AS400 connectivity using iSeries ODBC driver.
     * Got more data types to work with fetch arrays, SQLINTEGER.
+  * March, 2011
+    * Added Sybase ASE 12 connection.
+    * Added OS Authorization for MS SQL Server.
+    * Added Macro support at task level
+    * Can edit task macros, insert/delete (not reorder yet)
+    * Added Ctrl+S support for scripts, and F5 to run
+    * Added port # support for Sybase and MS SQL Server
+    * Added toolbar button to connect & run
+    * Fixed more data types, including TINY_INT and BIGINT.
+    * Refactored relationship between Binding and Fetching variables.
+    * Added Environment macros that follow the connection environment
+    * Added dropdown list of active macros
+    * Recalculate macros at script level
+    * Restarted on TestGrid
