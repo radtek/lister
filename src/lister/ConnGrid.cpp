@@ -20,10 +20,10 @@ Id IDInstTypName("InstTypName");
 Id IDDatabaseName("Database"); // For connections to MS SQL and PostgreSQL, a database attribute should be passed in the connection
 Id IDEnvId("EnvId"); 
 Id IDEnvStdName("EnvStdName"); 
-Id IDDUMMY("Dummy");
-Id IDCONNECT("CONNECT");
 Id IDConnNote("ConnNote"); 
 Id IDIsOSAuth("IsOSAuth");
+Id IDCONNECT("CONNECT!");
+Id IDDUMMY("Dummy");
 
 //==========================================================================================	
 void MakeButton(One<Ctrl>& ctrl) {
@@ -107,6 +107,8 @@ void ConnGrid::Build() {
 	AddColumn( IDCONNECT        , ""            ).Ctrls(MakeButton).Fixed(20).SetImage(CtrlImg::go_forward());
 	// Always last column, helps overcome bug in GridCtrl
 	AddColumn( IDDUMMY          , ""            )                  .Fixed(1); // This is required due to bug in GridCtrl where image clones across all downstream cells if at end of visible chain.
+	
+	built = true;
 }
 
 //==========================================================================================	
@@ -295,20 +297,20 @@ bool ConnGrid::MeaningfulDataChange() {
 	if (!IsModifiedRow()) return false; // No change
 	
 	if (
-		!IsModified(IDConnName) &&
+		!IsModified(IDConnName        ) &&
 		// Don't care, this is from a new record setting from GetInsertedId, !IsModified(IDConnId) &&
-		!IsModified(IDLoginId) &&
-		!IsModified(IDLoginStr) &&
-		!IsModified(IDLoginPwd) &&
-		!IsModified(IDInstanceId) &&
-		!IsModified(IDConnNote) &&
-		!IsModified(IDDatabaseName) &&
-		!IsModified(IDPortNo) &&
-		!IsModified(IDEnvId) &&
-		!IsModified(IDInstTypId) &&
-		!IsModified(IDConnNote) &&
-		!IsModified(IDInstanceAddress) &&
-		!IsModified(IDInstanceName)
+		!IsModified(IDLoginId         ) &&
+		!IsModified(IDLoginStr        ) &&
+		!IsModified(IDLoginPwd        ) &&
+		!IsModified(IDInstanceId      ) &&
+		!IsModified(IDConnNote        ) &&
+		!IsModified(IDDatabaseName    ) &&
+		!IsModified(IDPortNo          ) &&
+		!IsModified(IDEnvId           ) &&
+		!IsModified(IDInstTypId       ) &&
+		!IsModified(IDConnNote        ) &&
+		!IsModified(IDInstanceAddress ) &&
+		!IsModified(IDInstanceName    )
 		) return false;
 
 	return true;
