@@ -4,13 +4,6 @@
 #include <lister/Sql/Sql.h>
 #include <lister/Urp/UrpShared.h>
 
-NAMESPACE_UPP
-
-#define LLOG(x) // LOG(x)
-
-// Set some tunable amount
-#define ROW_FETCH_COUNT 100
-
 bool In(SQLCHAR *i
 	,	const char *in1
 	) { 
@@ -124,6 +117,14 @@ bool In(SQLCHAR *i
 	||	x.IsEqual(in8)
 	) return true; return false; }
 
+NAMESPACE_UPP
+
+#define LLOG(x) // LOG(x)
+
+// Set some tunable amount
+#define ROW_FETCH_COUNT 100
+
+
 class ODBCConnection : public SqlConnection
 {
 public:
@@ -184,7 +185,7 @@ private:
 	//SQLCHAR                  fetchedRows[MAX_COL_FETCH_COUNT][ROW_FETCH_COUNT][MAX_DATA_WIDTH_FETCH];
 	// Tells us if the value was null
 	//SQLLEN                   indicator[MAX_COL_FETCH_COUNT][ROW_FETCH_COUNT]; 
-	SQLLEN                   *indicator;
+	SQLLEN                  *indicator; // SQLLEN Usually defined as SQLINTEGER in sqltypes.h
 	// Actual data created as each column is identified
 	VectorMap<String, byte *> rowdata;
 };
@@ -530,6 +531,8 @@ bool ODBCConnection::Execute()
 
 	// Allocate a 2-dimensional array for the indicators col x row.
 	indicator = (SQLLEN *)new SQLLEN[ncol * ROW_FETCH_COUNT];
+	memset(indicator, 0, sizeof SQLLEN * ncol * ROW_FETCH_COUNT);
+	
 	session->current = this;
 	
 	for(int i = 0; i < info.GetCount(); i++) {
@@ -776,10 +779,12 @@ bool ODBCConnection::Fetch0() {
 	for(int i = 0; i < info.GetCount(); i++) {
 		int ColumnSize = info[i].width;
 		Value v = Null;
-		SQLLEN ind = indicator[nextFetchSetRow + (ROW_FETCH_COUNT * i)];
+		SQLINTEGER ind = indicator[nextFetchSetRow + (ROW_FETCH_COUNT * i)];
 		String nm = info[i].name;
 		
-		if (ind != SQL_NULL_DATA) {
+		// Since we are in UPP Space, we have to "::" to get to UrpShared.Between() functions
+		// Due to DB2 driver returning values like 1711276031 in ind for SQL_STRUCT_DATE types when the value is really null, I've had to put this quack logic in to restrict by size being meaningful
+		if (::Between((int)ind, 1, 10000)) { // DB2 v6r0 may return SQL_NTS http://publib.boulder.ibm.com/infocenter/iseries/v5r4/index.jsp?topic=%2Fcli%2Frzadpfnbndpm.htm (pcbValue)
 			byte *b = (byte *)rowdata.Get(nm);
 			
 			switch(info[i].bindtype) {
@@ -821,12 +826,14 @@ bool ODBCConnection::Fetch0() {
 				
 			case BIND_DATE:
 				{	
-					SQL_DATE_STRUCT *x = (SQL_DATE_STRUCT *)&(b[(sizeof(SQL_DATE_STRUCT)) * nextFetchSetRow]);
-					Date d;
-					d.year       = x->year;
-					d.month      = (byte)x->month;
-					d.day        = (byte)x->day;
-					v = d;
+					if (*b) { // Problems with crap from DB2 for this datatype
+						SQL_DATE_STRUCT *x = (SQL_DATE_STRUCT *)&(b[(sizeof(SQL_DATE_STRUCT)) * nextFetchSetRow]);
+						Date d;
+						d.year       = x->year;
+						d.month      = (byte)x->month;
+						d.day        = (byte)x->day;
+						v = d;
+					}
 				}
 				break;
 			
