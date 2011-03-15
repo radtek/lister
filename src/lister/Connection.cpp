@@ -122,17 +122,26 @@ void Connection::ConnectThread(TopWindow *topWindow) {
 	//__________________________________________________________________________________________
 	} else if (instanceTypeName == INSTTYPNM_MSSQLSERVER) {
 		instanceType = INSTTYP_MSSQLSERVER;
-		connStr 
-//			<< "Driver={SQL Server};" // Driver works
-			<< "Driver="	<< "{SQL Native Client}"	<< ";"
-//			<< "Driver="	<< "{SQL Server Native Client 10.0}"	<< ";"
-			<< "Server=" 	<< instanceAddress			<< ";"
-			<< "UID="		<< loginStr					<< ";"
-			<< "PWD="		<< loginPwd					<< ";"
-			<< "Database="	<< dbName					<< ";"
-			// Trusted_Connection=Yes;
-			;
-			
+		if (isOSAuth) {
+			connStr 
+				<< "Driver="				<< "{SQL Native Client}"	<< ";"
+				<< "Server="				<< instanceAddress			<< ";"
+				<< "Database="				<< dbName					<< ";"
+				<< "Trusted_Connection="	<< "Yes"					<< ";"
+				;
+		} else {
+			connStr 
+	//			<< "Driver={SQL Server};" // Driver works
+				<< "Driver="	<< "{SQL Native Client}"	<< ";"
+	//			<< "Driver="	<< "{SQL Server Native Client 10.0}"	<< ";"
+				<< "Server=" 	<< instanceAddress			<< ";"
+				<< "UID="		<< loginStr					<< ";"
+				<< "PWD="		<< loginPwd					<< ";"
+				<< "Database="	<< dbName					<< ";"
+				// Trusted_Connection=Yes;
+				;
+		}
+		
 		One<MSSQLSession> attemptingsession = new MSSQLSession;
 		
 		//SQLExecDirect(hstmt, "select * from authors; select * from titles", SQL_NTS);'
@@ -468,7 +477,6 @@ String Connection::PrepForPostgresCopyFrom(const String scriptText) {
 	return outText;
 }
 
-
 //==============================================================================================
 // Migrate logic from CursorHandler.  Traverse fetch and push out to screen or table.
 // Must be here because we want to push around connection pointer, not connection and cursor pointer.
@@ -735,6 +743,7 @@ Connection * ConnectionFactory::FetchConnInfo(int connId, Connection *pcontrolCo
 		",  dbName"           // 12
 		",  portNo"           // 13
 		",  EnvLetter"        // 14
+		",  isOSAuth"         // 15
 		" from v_conn where ConnId = %d", connId);
 		
 	if (!lcontrolConnection->SendQueryDataScript(FetchConnDtlById)) {
@@ -750,19 +759,20 @@ Connection * ConnectionFactory::FetchConnInfo(int connId, Connection *pcontrolCo
 	String dbName 			= lcontrolConnection->Get(12);
 	String portNo           = ToString((int)lcontrolConnection->Get(13)); // We treat portno as a string in case some weirdness involved for some sources
 	String envLetter        = lcontrolConnection->Get(14);
+	bool isOSAuth           = SqlToBool(lcontrolConnection->Get(15));
 
 	Connection *connection = new Connection();
 
-	connection->instanceTypeName = instanceTypeName;
-	connection->connName         =         connName;
-	connection->loginStr         =         loginStr;
-	connection->loginPwd         =         loginPwd; // For reconnecting, or changing password, you have to pass the old one
-	connection->instanceAddress  =  instanceAddress;
-	connection->dbName           =           dbName;
-	connection->portNo           =           portNo;
-	connection->envLetter        =        envLetter;
-	connection->connId           =           connId;
-	connection->informationalOnly = true;
+	connection->instanceTypeName  = instanceTypeName;
+	connection->connName          =         connName;
+	connection->loginStr          =         loginStr;
+	connection->loginPwd          =         loginPwd; // For reconnecting, or changing password, you have to pass the old one
+	connection->instanceAddress   =  instanceAddress;
+	connection->dbName            =           dbName;
+	connection->portNo            =           portNo;
+	connection->envLetter         =        envLetter;
+	connection->connId            =           connId;
+	connection->informationalOnly =             true;
 	
 	return connection;
 }
@@ -784,8 +794,9 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 	// If there wasn't a shared control connection set up, then we can't look up any other connection information from a control database
 	if (!lcontrolConnection) return NULL;
 	
-	String FetchConnDtlById = Format("select "
-			"ConnId"          // 0
+	String FetchConnDtlById = Format(
+	"SELECT "
+		   "ConnId"           // 0
 		",	ConnName"         // 1
 		",  LoginId"          // 2
 		",  LoginStr"         // 3
@@ -800,7 +811,8 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 		",  dbName"           // 12
 		",  portNo"           // 13
 		",  EnvLetter"        // 14
-		" from v_conn where ConnId = %d", connId);
+		",  isOSAuth"         // 15
+	" FROM v_conn WHERE ConnId = %d", connId);
 		
 	if (!lcontrolConnection->SendQueryDataScript(FetchConnDtlById)) {
 		return NULL;
@@ -808,14 +820,15 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 	
 	lcontrolConnection->Fetch();
 
-	String connName			= lcontrolConnection->Get(1);
-	String instanceTypeName = lcontrolConnection->Get(9);
-	String loginStr 		= lcontrolConnection->Get(3);
-	String loginPwd 		= lcontrolConnection->Get(4);
-	String instanceAddress 	= lcontrolConnection->Get(7);
-	String dbName 			= lcontrolConnection->Get(12);
+	String connName			=               lcontrolConnection->Get( 1);
+	String loginStr 		=               lcontrolConnection->Get( 3);
+	String loginPwd 		=               lcontrolConnection->Get( 4);
+	String instanceAddress 	=               lcontrolConnection->Get( 7);
+	String instanceTypeName =               lcontrolConnection->Get( 9);
+	String dbName 			=               lcontrolConnection->Get(12);
 	String portNo           = ToString((int)lcontrolConnection->Get(13)); // We treat portno as a string in case some weirdness involved for some sources
-	String envLetter        = lcontrolConnection->Get(14);
+	String envLetter        =               lcontrolConnection->Get(14);
+	bool isOSAuth           = SqlToBool(    lcontrolConnection->Get(15));
 	
 	if (useIfFoundInPool) {
 		Connection *conn = GetConnection(connName);
@@ -833,12 +846,13 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 		,	instanceAddress
 		,	dbName
 		,   portNo
+		,   isOSAuth
 	);
 	
 	// Populate some of the other attributes we fetched from the v_conn, that are descriptive and not required to connect.
 	
-	connection->connId    = connId;
-	connection->envLetter = envLetter;
+	connection->connId            = connId;
+	connection->envLetter         = envLetter;
 	connection->informationalOnly = false;  // real connection
 	return connection;
 }
@@ -847,7 +861,7 @@ Connection *ConnectionFactory::Connect(TopWindow *win, int connId, bool useIfFou
 // Connection factory (Takes window for async connection spinning.
 // Assumption: connName is unique per connection.  No support for multiple connections per connection definition
 Connection *ConnectionFactory::Connect(TopWindow *win, String connName, String instanceTypeName
-	, String loginStr, String loginPwd, String instanceAddress, String dbName/* = Null*/, String portNo/*=Null*/, bool log/*=false*/) {
+	, String loginStr, String loginPwd, String instanceAddress, String dbName/* = Null*/, String portNo/*=Null*/, bool isOSAuth /*=false*/, bool log/*=false*/) {
 	
 	Connection *connection = Connections().Get(connName, (Connection *)NULL);
 	if (!connection) {
@@ -866,7 +880,8 @@ Connection *ConnectionFactory::Connect(TopWindow *win, String connName, String i
 	connection->instanceAddress  =  instanceAddress;
 	connection->dbName           =           dbName;
 	connection->portNo           =           portNo;
-
+	connection->isOSAuth         =         isOSAuth;
+	
 	if (controlConnection) connection->controlConnection = controlConnection;
 	
 	// BUG: if connection information changed, it won't be representative of the actual connection
@@ -884,7 +899,7 @@ Connection *ConnectionFactory::Connect(TopWindow *win, String connName, String i
 	if (connName == CONTROL_CONN_NAME) {
 		controlConnection = Connections().Get(connName);
 		LOG("Set control Connection to " + connName + ", " + instanceTypeName 
-		+ ", login=" + loginStr + ", addr=" + instanceAddress + ", db=" + dbName + ", port=" + portNo);
+		+ ", login=" + loginStr + ", addr=" + instanceAddress + ", db=" + dbName + ", port=" + portNo + ", isosauth=" + isOSAuth);
 	}
 	
 	// Cycle through hooks
