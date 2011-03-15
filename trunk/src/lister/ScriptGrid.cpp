@@ -107,25 +107,6 @@ int ScriptGrid::GetRowLimit(int row) {
 }
 
 //==============================================================================================
-int ScriptGrid::GetProcessOrder(int row) {
-	return Upp::max((int)Get(CalcCorrectRow(row), PROCESSORDER), (int)-1);
-}
-
-//==============================================================================================
-int ScriptGrid::GetMaxProcessOrder() {
-	int max = -1;
-	
-	for (int i = 0; i < GetCount(); i++) {
-		int v = GetProcessOrder(i);
-		if (v > max) {
-			max = v;
-		}
-	}
-	
-	return max;
-}
-
-//==============================================================================================
 int ScriptGrid::GetConnId(int row) {
 	return Upp::max((int)Get(CalcCorrectRow(row), RELCONNID), UNKNOWN);
 }
