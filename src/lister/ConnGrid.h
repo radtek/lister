@@ -14,7 +14,7 @@ public:
 	
 	EditInt           fldConnId;
 	EditStringNotNull fldConnName;          // 0) A meaningful name; too many connections to track without a name
-	EditStringNotNull fldLoginStr;          // 1) The login string
+	EditString        fldLoginStr;          // 1) The login string (Can be null if osAuth)
 	EditString        fldLoginPwd;          // 2) The password in plain text
 	EditString        fldInstNm;            // 3) The server connecting to, to display to user
 	EditString        fldInstanceAddress;   // 4) The actual address code to pass to the connector function
@@ -44,7 +44,7 @@ public:
 	String            GetInstanceName       (int row);
 	void              SetInstanceName       (int row, String pinstNm);
 	String            GetInstanceAddress    (int row);
-	void              SetInstanceAddress (int row, String pinstAdr);
+	void              SetInstanceAddress    (int row, String pinstAdr);
 	int               GetInstTypId          (int row);
 	void              SetInstTypId          (int row, int pinstTypId);
 	String            GetDatabaseName       (int row);
