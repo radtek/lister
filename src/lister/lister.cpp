@@ -314,6 +314,7 @@ void Lister::CopyColListCommaDelimByType() {
 
 //==============================================================================================	
 void Lister::MainGridContextMenu(Bar &bar) {
+	mainGrid.StdMenuBar(bar);
 	bar.Add("Select entire row", THISBACK(ToggleMainGridSelectRow))
 		.Check(maingridselectrow)
 		.Help("Select the whole row or select individual cells");
@@ -479,7 +480,8 @@ void Lister::SelectedAvailableMacro() {
 	
 	newMac << "[[" << macro << "]]";
 	scriptEditor.PasteText(newMac);
-	//scriptEditor.Insert(scriptEditor.GetCursor(), AsRichText(newMac.ToWString()));
+	scriptEditor.SetModify(); // For some reason, pasting text does not modify the state
+	macrosAvailableList.Close(); // Raise the draw bridge.  Should be PickUp as opposite of Drop, or RaiseUp, RollUp?
 }
 
 //==============================================================================================	
