@@ -59,6 +59,7 @@ public:
 	String                       dbName; // Can be used complete SQL that doesn' set the default dtabase
 	String                       portNo;
 	String                       envLetter; // Letter that gets stuffed in as [[ENV]] when active connection changes
+	bool                         isOSAuth;
 	Thread                       connectThread;
 	TopWindow                   *topWindow;
     bool                         informationalOnly; // Not actually connected; just informational
@@ -142,7 +143,7 @@ public:
 	              // Assumption: connName is unique per connection.  No support for multiple connections per connection definition
 	Connection   *Connect(
 		TopWindow *win, String connName, String instanceTypeName
-	,	String loginStr, String loginPwd, String instanceAddress, String dbName = Null, String portNo = Null, bool log = false);
+	,	String loginStr, String loginPwd, String instanceAddress, String dbName = Null, String portNo = Null, bool isOSAuth = false, bool log = false);
 };
 
 #endif
