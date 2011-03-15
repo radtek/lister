@@ -154,12 +154,20 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 				ToUpper(Trim(command));
 				
 				// Search for commands we support
+				// Convert 'mm/dd/yyyy' to 'dd/mm/yyyy' in place
 				if (command == "TOUK") {
 					// We expect and require that the date arg string (arg1) is 'mm/dd/yyyy', including the apostrophes
 					int month, day, year;
 					// Flip month and day
 					sscanf(arg1, "'%02d/%02d/%04d'", &month, &day, &year);
 					expansion = Format("'%02d/%02d/%04d'", day, month, year);
+				// Convert 'mm/dd/yyyy' to yyyymmdd in place.  Apostophes expected and stripped
+				} else if (command == "TONUM") {
+					// We expect and require that the date arg string (arg1) is 'mm/dd/yyyy', including the apostrophes
+					int month, day, year;
+					// Flip month and day
+					sscanf(arg1, "'%02d/%02d/%04d'", &month, &day, &year);
+					expansion = Format("%04d%02d%02d", year, month, day);
 				} else {
 					expansion << "{Unsupported command " << command << "}";
 					expansionerror = true;
