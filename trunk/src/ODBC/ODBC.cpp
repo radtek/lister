@@ -596,11 +596,11 @@ bool ODBCConnection::Execute()
 
 		case SQL_SMALLINT: // Exact numeric value with precision 5 and scale 0 (signed: –32,768 <= n <= 32,767, unsigned: 0 <= n <= 65,535)[3].
 			{
-				SQLINTEGER *numdata = (SQLINTEGER *)new SQLINTEGER[ROW_FETCH_COUNT];
+				SQLSMALLINT *numdata = (SQLSMALLINT *)new SQLSMALLINT[ROW_FETCH_COUNT];
 				rowdata.Add(nm, (byte *)numdata);
 				f.valuetype = INT_V;
 				f.bindtype = BIND_INT16;
-				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SSHORT, numdata, sizeof(SQLINTEGER), indicatorptr))) return false;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SSHORT, numdata, sizeof(SQLSMALLINT), indicatorptr))) return false;
 				break;
 			}
 		case SQL_INTEGER:
@@ -800,7 +800,7 @@ bool ODBCConnection::Fetch0() {
 
 			case BIND_INT16:
 				{	
-					SQLINTEGER *x = (SQLINTEGER *)&(b[(sizeof(SQLINTEGER)) * nextFetchSetRow]);
+					SQLSMALLINT *x = (SQLSMALLINT *)&(b[(sizeof(SQLSMALLINT)) * nextFetchSetRow]);
 					v = (int)*x;
 				}
 				break;
