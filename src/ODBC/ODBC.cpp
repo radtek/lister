@@ -595,10 +595,14 @@ bool ODBCConnection::Execute()
 			break;
 
 		case SQL_SMALLINT: // Exact numeric value with precision 5 and scale 0 (signed: –32,768 <= n <= 32,767, unsigned: 0 <= n <= 65,535)[3].
-			Exclamation("SQL_SMALLINT not supported"); break;
-			f.valuetype = INT_V;
-			f.bindtype = BIND_INT16;
-
+			{
+				SQLINTEGER *numdata = (SQLINTEGER *)new SQLINTEGER[ROW_FETCH_COUNT];
+				rowdata.Add(nm, (byte *)numdata);
+				f.valuetype = INT_V;
+				f.bindtype = BIND_INT16;
+				if (!IsOk(SQLBindCol(session->hstmt, i, SQL_C_SSHORT, numdata, sizeof(SQLINTEGER), indicatorptr))) return false;
+				break;
+			}
 		case SQL_INTEGER:
 			{   // http://msdn.microsoft.com/en-us/library/ms714556(v=vs.85).aspx shows relationship between typedefs and identifiers
 				SQLINTEGER *numdata = (SQLINTEGER *)new SQLINTEGER[ROW_FETCH_COUNT];
@@ -766,19 +770,6 @@ bool ODBCConnection::Fetch0() {
 	}
 
 	fetchrow.Clear();
-//	double                 dbl;
-//	int64                  n64;
-	// Data Types Reference: http://msdn.microsoft.com/en-us/library/ms714556(v=vs.85).aspx
-//	SQL_TIMESTAMP_STRUCT   tmstmp;
-//	SQL_DATE_STRUCT        dt;
-//	SQL_TIME_STRUCT        tm;
-//	SQLLEN                 li;
-//	SQLGUID                guid;
-//	SQL_NUMERIC_STRUCT     n;
-//	SQL_INTERVAL_STRUCT    iv;
-//	SQLREAL                rl;    // Same as float
-//	SQLFLOAT               flt;   // Same as double
-//	SQLINTEGER             lint;  // long int
 	
 	// Walk through each column
 	
@@ -807,10 +798,17 @@ bool ODBCConnection::Fetch0() {
 				}
 				break;
 
+			case BIND_INT16:
+				{	
+					SQLINTEGER *x = (SQLINTEGER *)&(b[(sizeof(SQLINTEGER)) * nextFetchSetRow]);
+					v = (int)*x;
+				}
+				break;
+				
 			case BIND_INT32:
 				{	
 					SQLINTEGER *x = (SQLINTEGER *)&(b[(sizeof(SQLINTEGER)) * nextFetchSetRow]);
-					v = (int64)*x;
+					v = (int)*x;
 				}
 				break;
 				
@@ -860,7 +858,7 @@ bool ODBCConnection::Fetch0() {
 					break;
 				}
 			default:
-				v = "err";
+				v = Format("err:%d", info[i].bindtype);
 			}
 		}
 		
