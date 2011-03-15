@@ -29,8 +29,6 @@ public:
 	int                  GetScriptId                 (int row = -1);
 	int                  GetConnId                   (int row = -1);
 	int                  GetRowLimit                 (int row = -1);
-	int                  GetProcessOrder             (int row = -1);
-	int                  GetMaxProcessOrder();
 	RichText             GetScriptRichText           (int row = -1);
 	String               GetScriptPlainText          (int row = -1);
 	Script::ScriptTarget GetScriptTarget             (int row = -1);
