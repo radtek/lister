@@ -11,7 +11,7 @@ public:
 	typedef TaskMacroGrid CLASSNAME;
 	
 	int            taskId;
-	EditString     searchFor, replaceWith, expansion, note;
+	EditString     searchFor, replaceWith, expansion, note, processOrder;
 	Connection    *connection; // Our metadata about the query we will be running
 	
 	               TaskMacroGrid();
@@ -19,6 +19,7 @@ public:
 	void           Build(Connection *pconnection);
 	void           Load();
 	void           SetTaskId(int ptaskId);
+	bool           CompleteNewRow();
 	static void    LoadTaskMacro(Connection *connection, DropGrid &dropGrid);
 };
 

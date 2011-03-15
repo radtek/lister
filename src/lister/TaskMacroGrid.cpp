@@ -14,6 +14,17 @@ void TaskMacroGrid::UpdatingRow() {
 }
 
 //==============================================================================================
+	// Trick to ask DB (Postgresql) to populate with its default function
+struct ForceDBDefaultConvert : public Convert {
+	Value Format(const Value& v) const {
+		if (IsNull(v))
+			return "DEFAULT";
+		else
+			return v;
+	}
+};
+
+//==============================================================================================
 void TaskMacroGrid::Build(Connection *pconnection) {
 	// Build columns
 	connection = pconnection;
@@ -21,13 +32,27 @@ void TaskMacroGrid::Build(Connection *pconnection) {
 	AddKey(TASKMACID);
 	AddColumn(SEARCHFOR, "searchfor", 100).Edit(searchFor);
 	AddColumn(REPLACEWITH, "replacewith", 100).Edit(replaceWith);
-	AddColumn(PROCESSORDER, "order", 20); // Column must be visible in order to order by??
+	// Problem: Column must be visible in order to use SortColumn, but then the DEFAULT
+	// value defined in the db is not fetched and an NULL is pushed.
+	AddColumn(PROCESSORDER, "order", 20);
+	
 	HideColumn(PROCESSORDER);
 	AddColumn(NOTE, "note", 200).Edit(note);
 	AddIndex(TASKID);
+	WhenAcceptRow = THISBACK(CompleteNewRow);
 	built = true;
 	// DoInsert()->DoEdit()->StartEdit()
 	WhenStartEdit = THISBACK(UpdatingRow);
+}
+
+//==============================================================================================
+bool TaskMacroGrid::CompleteNewRow() {
+	Value currProcessOrder = Get(PROCESSORDER);
+	if (currProcessOrder.IsNull()) {
+		Set(PROCESSORDER, GetNextProcessOrder());
+	}
+	
+	return true;
 }
 
 //==============================================================================================
