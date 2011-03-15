@@ -25,16 +25,34 @@ void UpdateMacroList(DropGrid &macrosAvailableList) {
 // Convert [[]] codes to values.
 String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 	if (contextMacros) {
-
-		for (int j = 0; j < contextMacros->allMacros.GetCount(); j++) {
-			MacMap &macros = *(contextMacros->allMacros[j]);
-
-			for (int i = 0; i < macros.GetCount(); i++) {
-				String searchMacro;
-				String searchFor(macros.GetKey(i));
-				searchMacro << "[[" << searchFor << "]]";
-				MacPair macPair = macros.Get(searchFor);
-				inputText = UrpString::ReplaceInWhatWith(inputText, searchMacro, macPair.expansion);
+		int loopcnt = 0;
+		
+		while (true) {
+			int totalReplacementCount = 0;
+			
+			for (int j = 0; j < contextMacros->allMacros.GetCount(); j++) {
+				MacMap &macros = *(contextMacros->allMacros[j]);
+	
+				for (int i = 0; i < macros.GetCount(); i++) {
+					String searchMacro;
+					String searchFor(macros.GetKey(i));
+					searchMacro << "[[" << searchFor << "]]";
+					MacPair macPair = macros.Get(searchFor);
+					int replacementCount;
+					inputText = UrpString::ReplaceInWhatWith(inputText, searchMacro, macPair.expansion, &replacementCount);
+					totalReplacementCount+= replacementCount;
+				}
+			}
+			
+			// If no work done then stop
+			if (!totalReplacementCount) {
+				break;
+			}
+			loopcnt++;
+			
+			// Don't look forever
+			if (loopcnt > 30) {
+				break;
 			}
 		}
 	}
@@ -46,16 +64,18 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 	Date curDate = GetSysDate();
 
 	// Scan repeatedly until no more matches
+	int loopcnt = 0;
 	while (true) {
+		
 		// Search for macros in the form [[AAAANN]] to transform into values
 		// http://www.regextester.com/pregsyntax.html
 		// Matches can be TPLUS1, TPLUS5, TMINUS3
 		
 		String searchFor = "\\[\\[([a-zA-Z]+)(\\d+)\\]\\]"; // Parens force the digits to be inserted into r0[0], r0[1]
 		RegExp r0(searchFor);
-		
+		String command;
 		if (r0.Match(inputText)) {
-			String command = r0[0]; 
+			command = r0[0]; 
 			String subcommand1, subcommand2;
 			String arg1 = r0[1];
 			macro << "[[" << command << arg1 << "]]";
@@ -108,20 +128,56 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 				expansion << "{Unsupported command " << command << "}";
 				expansionerror = true;
 			}
-				
-			
-		// Command/arg format not found; Just isolate the macro if there and push error message out
+
 		} else {
-			searchFor = "\\[\\[(\\w+)\\]\\]";
-			RegExp r1(searchFor);
-			if (r1.Match(inputText)) {
-				String command = r1[0];
-				macro << "[[" << command << "]]";
-				expansion << "{Unrecognized macro format: " << command << ", must be [[AAAANN]]}";
-				expansionerror = true;
+			
+			// Now look for [[AAAA::anything]]  This is a pattern that will allow us to
+			// convert things like '03/09/2011' to '09/03/2011'.  It cannot be replaced by a
+			// SQL function due to the limits of SQL Server or whatever tool is executing
+			// For example, the following will not work: "set nocount on;exec api.sp_XTrades 'COMPLIANCE', convert(varchar, (convert('03/09/2011', 101), 103), [[TESTSOURCECSDR]]
+			// It must be: "set nocount on;exec api.sp_XTrades 'COMPLIANCE', '09/03/2011', [[TESTSOURCECSDR]]
+			// Which means that conversion must take place before passing to processor.
+			// So, we have "[[TOUK::'03/09/2011']]" from "[[TOUK::TESTDATE]]".  Test date is demacroed, then here we are.
+			
+			searchFor = "\\[\\[([a-zA-Z]+)::([^\\]]+)\\]\\]";
+			RegExp r2(searchFor);
+			
+			// Scan our input for the search pattern
+			if (r2.Match(inputText)) {
+				// Found it; break out the command and argument parts
+				command = r2[0]; 
+				
+				String arg1 = r2[1];
+				
+				// Set our search string for the ReplaceInWhatWith simple search and replace func
+				macro << "[[" << command << "::" << arg1 << "]]";
+				ToUpper(Trim(command));
+				
+				// Search for commands we support
+				if (command == "TOUK") {
+					// We expect and require that the date arg string (arg1) is 'mm/dd/yyyy', including the apostrophes
+					int month, day, year;
+					// Flip month and day
+					sscanf(arg1, "'%02d/%02d/%04d'", &month, &day, &year);
+					expansion = Format("'%02d/%02d/%04d'", day, month, year);
+				} else {
+					expansion << "{Unsupported command " << command << "}";
+					expansionerror = true;
+				}
+			// Command/arg format not found; Just isolate the macro if there and push error message out
+			} else {
+				searchFor = "\\[\\[(^\\]+)\\]\\]";
+				RegExp r1(searchFor);
+				if (r1.Match(inputText)) {
+					String command = r1[0];
+					macro << "[[" << command << "]]";
+					expansion << "{Unrecognized macro format: " << command << ", must be [[AAAA::...]]}";
+					expansionerror = true;
+				}
+			}
 		}
-		}
-	
+		
+		
 		if (expansion.GetCount() > 0) {
 			inputText = UrpString::ReplaceInWhatWith(inputText, macro, expansion);
 			if (expansionerror) {
@@ -130,6 +186,16 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 		} else {
 			break;
 		}
+		
+		loopcnt++;
+		
+		if (loopcnt > 20) {
+			Exclamation(CAT << "Max loop count reached: " << inputText << ", " << expansion);
+			break;
+		}
+		
+		// Truncate or it will prevent closure
+		expansion = "";
 	}
 	
 	return inputText;
