@@ -126,11 +126,12 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec, ContextMacros *contextMac
 		}
 		
 		LogLine(CAT << "Beginning load into " << outputTable << " using Postgres COPY command");
-		rowcount = LoadIntoTableFromConnectionCOPY(outputTable, adaptedRowLimit, jobSpec);
+		String copyerr;
+		rowcount = LoadIntoTableFromConnectionCOPY(outputTable, adaptedRowLimit, jobSpec, copyerr);
 		
 		String msg; 
 		if (rowcount < 0) { 
-			msg << "Target may be corrupted due to copy error";
+			msg << "Target may be corrupted due to copy error: " << copyerr;
 			failed = true;
 		} else {
 			msg << "Inserted " << rowcount << " rows into " << outputTable << ", took " << t.ToString();
@@ -175,7 +176,7 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec, ContextMacros *contextMac
 }
 
 //==============================================================================================
-int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLimit, JobSpec &jobSpec) {
+int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLimit, JobSpec &jobSpec, String &copyerr) {
 	int rowcount = 0;
 	
 	// Generate table name or input from user
@@ -233,9 +234,11 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 	String estr = lp.Get();
 	bool errorincopy = false;
 	bool isrunning = lp.IsRunning();
-		
+	
 	if (!isrunning) {
-		LogLine(CAT << "Never even started! e=" << e << ", stdout=" << estr);
+		copyerr = (CAT << "Never even started! e=" << e << ", stdout=" << estr);
+		LogLine(copyerr);
+		errorincopy = true;
 	}
 	
 	while (isrunning) {
@@ -245,7 +248,9 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 		if (estr.Find("ERROR:") >= 0) {
 			errorincopy = true;
 			lp.Kill();
-			LogLine(CAT <<"Copy error: " << estr);
+			
+			copyerr = (CAT <<"Copy error: " << estr);
+			LogLine(copyerr);
 			break;
 		}
 		
@@ -254,8 +259,9 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 	}
 
 	if (errorincopy) {
-		LOG(CAT << "Error in copy proc:" << estr);
-		LogLine(CAT << "Error in copy proc:" << estr);
+		copyerr = (CAT << "Error in copy proc:" << estr);
+		LOG(copyerr);
+		LogLine(copyerr); // To screen if running log window
 		Speak(EVS_INSERT_FAILED);
 		return -1;
 	} else {
