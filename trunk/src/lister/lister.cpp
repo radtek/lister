@@ -593,13 +593,14 @@ Connection *Lister::ConnectUsingGrid(int row, bool log) {
 	ProcessEvents(); // Necessary to display color change immediately
 	WaitCursor wc;
 	Connection *c = connectionFactory.Connect(this
-		, connGrid.GetConnName(row)
-		, connGrid.GetInstanceTypeName(row)
-		, connGrid.GetLoginStr(row)
-		, connGrid.GetLoginPwd(row)
-		, connGrid.GetInstanceAddress(row)
-		, connGrid.GetDatabaseName(row)
-		, connGrid.GetPortNo(row)
+		, connGrid.GetConnName         (row)
+		, connGrid.GetInstanceTypeName (row)
+		, connGrid.GetLoginStr         (row)
+		, connGrid.GetLoginPwd         (row)
+		, connGrid.GetInstanceAddress  (row)
+		, connGrid.GetDatabaseName     (row)
+		, connGrid.GetPortNo           (row)
+		, connGrid.GetOSAuth           (row)
 		, log
 		);
 		
