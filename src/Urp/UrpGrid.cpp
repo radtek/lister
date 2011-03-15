@@ -32,7 +32,34 @@ UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
 	ColorRows(true);
 	FixedPaste();
 	CopyColumnNames(true);
+	WhenMenuBar = THISBACK(StdMenuBar);
+	
 	//SetDisplay(Single<TightFontDisplayForGridCtrl>());
+}
+
+//==============================================================================================
+void UrpGrid::StdMenuBar(Bar &bar) {
+	GridCtrl::StdMenuBar(bar);
+	bar.Add(true, "Shrink any columns over 100 width", THISBACK(NormalizeColumnWidth));
+}
+
+//==============================================================================================
+void UrpGrid::NormalizeColumnWidth() {
+	for (int i = 0; i < GetFloatingColumnCount(); i++) {
+		int colWidth = 0;
+		colWidth = GetFloatingColumnWidth(i);
+
+		bool isFixed = GetColumn(i).IsFixed();
+		int min = GetColumn(i).min;
+		int max = GetColumn(i).max;
+		
+		// Ignore hidden columns and fixed width columns
+		
+		if (colWidth != HIDDEN_COLUMN && !isFixed) {
+			if (colWidth > 1000) // Outrageous
+			SetFloatingColumnWidth(i, 100);
+		}
+	}
 }
 
 //==============================================================================================
