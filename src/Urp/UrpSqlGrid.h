@@ -41,6 +41,9 @@ public:
 	int            GetFirstSelection();
 	Value          GetMaxValue(Id column);
 	int            CalcCorrectRow(int row);
+	int            GetProcessOrder(int row = -1);
+	int            GetMaxProcessOrder();
+	int            GetNextProcessOrder();
 	
 	//	GridCtrl::ItemRect& GetFloatingColumn(int n);
 	//  GridCtrl is supposed to Xmlize, but I don't see it doing anything, so I've written my own.
