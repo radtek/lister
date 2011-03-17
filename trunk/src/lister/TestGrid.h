@@ -26,6 +26,7 @@ class Connection;
 #define TESTTYP_SCRIPT_TEXT_LINE_COUNT               15
 #define TESTTYP_SCRIPT_TEXT_LINE_WORD_COUNT          16
 #define TESTTYP_SCRIPT_TEXT_LINE_CHARACTER_COUNT     17
+#define TESTTYP_NOTEST                               18
 
 // Comparison types when testing (see tests table)
 #define COMPTYP_UNKNOWN                   -1
@@ -49,59 +50,54 @@ class Connection;
 //==============================================================================================
 class TestGrid : public UrpGrid, ConnectedCtrl {
 public:
-	EditInt fldTestId;
-	EditStringNotNull fldTestName;               // 0) A meaningful name; too many tests to track without a name
-	EditString fldTestNote;
-	EditString fldCompareUsingX;
-	EditString fldCompareUsingY;
-	
-	DropGrid connList;
-	DropGrid scriptList;
-	DropGrid invertCompList;
-	DropGrid desiredOutcomeList;
-	DropGrid envList;
-	DropGrid testTypList;
-	DropGrid compTypList;
-
 	typedef TestGrid CLASSNAME;
 	
-	bool built;
-	bool loaded;
-	
-	TestGrid();
-	// Added manually from appending a row.
-	void NewTest();
-	// GridCtrl will remove the row if we do not cancel the remove.
-	void RemoveTest();
-	
-	// Added from the Script Editor, which only provides these three pieces of info.
-	// Create a bare-bones frame for a new test based on a script with a valid scriptid.
-	void AddTest(String script, int scriptId, int connId);
-	
-	void Build();
-	
-	int GetTestId(int row);             void SetTestId(int row, int ptestId);
-	String GetTestName(int row);
-	String GetTestNote(int row);
-	int GetTestScriptId(int row);
-	int GetTestConnId(int row);
-	int GetTestTypId(int row) ;
-	bool GetInvertComparison(int row);
-	int GetCompTypId(int row);
-	String GetCompareUsingX(int row);
-	String GetCompareUsingY(int row);
-	String GetDesiredOutcome(int row);
-	String GetActualOutcome(int row);  
-	void SetActualOutcome(int row, String pactualOutcome);
-	String GetOutputValue(int row);
-	
-	void SaveTest();
-	
-	virtual void Load(Connection *pconnection);
+	EditInt           fldTestId;
+	EditStringNotNull fldTestName;  // 0) A meaningful name; too many tests to track without a name
+	EditString        fldTestNote;
+	EditString        fldCompareUsingX;
+	EditString        fldCompareUsingY;
 
-	bool MeaningfulDataChange();
-	bool WasTestRequested();
+	DropGrid          connList
+	,                 scriptList
+	,                 invertCompList
+	,                 desiredOutcomeList
+	,                 envList
+	,                 testTypList
+	,                 compTypList
+	;
 
+	int               taskId; // Filter all tests by task id, for manageability
+	
+                      TestGrid();
+	                  // Added manually from appending a row.
+	void              Build();
+	virtual void      Load(Connection *pconnection);
+	void              NewTest();
+	                  // GridCtrl will remove the row if we do not cancel the remove.
+	void              RemoveTest();
+	                  // Added from the Script Editor, which only provides these three pieces of info.
+	                  // Create a bare-bones frame for a new test based on a script with a valid scriptid.
+	void              AddTest(String script, int scriptId, int connId);
+	void              SaveTest();
+
+	int               GetTestId           (int row); void SetTestId(int row, int ptestId);
+	String            GetTestName         (int row);
+	String            GetTestNote         (int row);
+	int               GetTestRelId        (int row);
+	int               GetTestConnId       (int row);
+	int               GetTestTypId        (int row);
+	bool              GetInvertComparison (int row);
+	int               GetCompTypId        (int row);
+	String            GetCompareUsingX    (int row);
+	String            GetCompareUsingY    (int row);
+	String            GetDesiredOutcome   (int row);
+	String            GetActualOutcome    (int row);  
+	void              SetActualOutcome    (int row, String pactualOutcome);
+	String            GetOutputValue      (int row);
+	int               GetTaskId           (int row);
+	bool              MeaningfulDataChange();
+	bool              WasTestRequested();
 };
 
 #endif
