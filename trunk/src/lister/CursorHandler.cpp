@@ -377,6 +377,8 @@ void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobS
 			datadef = "date";
 		} else if(ci.valuetype == INT_V) {
 			datadef = "integer";
+		} else if(ci.valuetype == BOOL_V) {
+			datadef = "boolean";
 		} else {
 			datadef = Format("character varying(%d)", actualwidth);
 		}
