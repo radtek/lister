@@ -87,3 +87,4 @@ void TaskMacroGrid::Load() {
 	dropGrid.SetKeyColumn(0);
 	dropGrid.Add(Null, Null); // Make sure we support a null value or we won't be able to edit other attributes without assigning a connection, which isn't what we want.
 }
+
