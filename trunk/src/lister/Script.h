@@ -52,6 +52,7 @@ public:
 
 	static String          GetScriptListQuery();
 	static String          GetScriptDetailByIdQuery(int scriptId);
+    static String          GetRelScriptDetailByIdQuery(int relId);
 	static String          FindScriptByPlainTextQuery(String pscriptPlainText);
 };
 
