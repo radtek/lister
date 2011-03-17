@@ -45,7 +45,7 @@ Script::Script(OutputGrid *poutputGrid) {
 }
 
 //==============================================================================================
-String Script::GetScriptListQuery() {
+/*static*/String Script::GetScriptListQuery() {
 	// Use U++ formation techniques so as to get compile-time checking on column names	
 	SqlSelect s = SqlSelect(SCRIPTID, SCRIPTPLAINTEXT, SCRIPTRICHTEXT).From(SCRIPTS);
 	SqlStatement st(s);
@@ -53,15 +53,21 @@ String Script::GetScriptListQuery() {
 }
 
 //==============================================================================================
-String Script::FindScriptByPlainTextQuery(String pscriptPlainText) {
+/*static*/String Script::FindScriptByPlainTextQuery(String pscriptPlainText) {
 	SqlSelect s = SqlSelect(SCRIPTID, SCRIPTPLAINTEXT, SCRIPTRICHTEXT).From(SCRIPTS).Where(SCRIPTPLAINTEXT == pscriptPlainText);
 	SqlStatement st(s);
 	return st.Get(PGSQL);
 }
 //==============================================================================================
-String Script::GetScriptDetailByIdQuery(int scriptId) {
+/*static*/String Script::GetScriptDetailByIdQuery(int scriptId) {
 	SqlSelect s = SqlSelect(SCRIPTPLAINTEXT, SCRIPTRICHTEXT).From(SCRIPTS).Where(SCRIPTID == scriptId);
 	SqlStatement st(s);
 	return st.GetText();
 }
 
+//==============================================================================================
+/*static*/String Script::GetRelScriptDetailByIdQuery(int relId) {
+	SqlSelect s = SqlSelect(SCRIPTID, SCRIPTPLAINTEXT, SCRIPTRICHTEXT, RELCONNID).From(TASKS_R).Where(RELID == relId);
+	SqlStatement st(s);
+	return st.GetText();
+}
