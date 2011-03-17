@@ -33,6 +33,8 @@ UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
 	FixedPaste();
 	CopyColumnNames(true);
 	WhenMenuBar = THISBACK(StdMenuBar);
+	built = false;
+	loaded = false;
 	
 	//SetDisplay(Single<TightFontDisplayForGridCtrl>());
 }
@@ -41,6 +43,50 @@ UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
 void UrpGrid::StdMenuBar(Bar &bar) {
 	GridCtrl::StdMenuBar(bar);
 	bar.Add(true, "Shrink any columns over 100 width", THISBACK(NormalizeColumnWidth));
+}
+
+//==============================================================================================
+int UrpGrid::CalcCorrectRow(int row) {
+	if (row == -1) {
+		if (IsCursor()) {
+			return GetCursor();
+		} else if (IsSelection()) {
+			for (int i=0; i < GetCount(); i++) {
+				if (IsSelected(i)) {
+					return i; // Can't force visible since this may be part of an informational lookup
+				}
+			}
+			// Error if here
+		} else {
+			return -1;
+		}
+	} else {
+		return row;
+	}
+}
+
+//==============================================================================================
+int UrpGrid::GetProcessOrder(int row) {
+	return Upp::max((int)Get(CalcCorrectRow(row), "PROCESSORDER"), (int)-1);
+}
+
+//==============================================================================================
+int UrpGrid::GetMaxProcessOrder() {
+	int max = 0;
+	
+	for (int i = 0; i < GetCount(); i++) {
+		int v = GetProcessOrder(i);
+		if (v > max) {
+			max = v;
+		}
+	}
+	
+	return max;
+}
+
+//==============================================================================================
+int UrpGrid::GetNextProcessOrder() {
+	return GetMaxProcessOrder() + 1;
 }
 
 //==============================================================================================
