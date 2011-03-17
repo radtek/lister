@@ -45,6 +45,14 @@
 }
 
 //==============================================================================================
+/*static*/int UrpString::CountOccurInOf(const String &in, const char of/*=','*/) {
+	const char *s = in; // operator char*()                { return Begin(); }
+	int cnt = 0;
+	while (*s++) cnt+= (*s == of); // Taking advantage of side affect :)
+	return cnt;
+}
+
+//==============================================================================================
 /*static*/ String UrpString::Apostrophize(String in) {
 	return "'" + in + "'";
 }
@@ -282,7 +290,7 @@ String ToString(int in) {
 
 //==============================================================================================
 String ToSQL(String in) {
-	if (in == "" || in == "NULL") {
+	if (in.IsVoid() || in == "" || in == "NULL") {
 		return "NULL";
 	}
 	
