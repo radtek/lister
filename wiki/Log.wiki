@@ -18,4 +18,8 @@
     * Added Environment macros that follow the connection environment
     * Added dropdown list of active macros
     * Recalculate macros at script level
-    * Restarted on TestGrid
+    * Restarted on TestGrid, cleaned up
+    * Linking the TestGrid to the active Task
+    * Scripts listed in the TestGrid are now members of the Task's Scripts.
+    * Supporting more order persistence in UrpGrid and UrpSqlGrid
+    * Creating RecordView for OutputGrid
