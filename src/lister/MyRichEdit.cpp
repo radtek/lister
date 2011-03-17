@@ -360,6 +360,15 @@ void MyRichEdit::DeFormatScript() {
 }
 
 //==============================================================================================	
+// Useful to count the highlighted selection's comma-separated values, especially when trying
+// to determine how many of the in clause values matched up.
+void MyRichEdit::CountCommaSepValues() {
+	String sel = GetSelectionAsPlainText();
+	int itemcount = UrpString::CountOccurInOf(sel, ',');
+	Exclamation(ToString(itemcount));
+}
+
+//==============================================================================================	
 // Stolen from the RichEdit since I needed to manipulated non-exposed components.
 /*virtual*/ void MyRichEdit::RightDown(Point p, dword flags) {
 	useraction = true;
@@ -381,6 +390,7 @@ void MyRichEdit::DeFormatScript() {
 			CutTool(menu);
 			menu.Add("Search SharePoint", THISBACK(SearchSharePoint));
 			menu.Add("De-Format", THISBACK(DeFormatSelection));
+			menu.Add("Count Comma-sep", THISBACK(CountCommaSepValues));
 		}
 		PasteTool(menu);
 	}

@@ -98,6 +98,7 @@ struct MyRichEdit : public RichEdit, public Script {
 	void            SearchSharePoint(); // Doesn't work.
 	void            DeFormatSelection(); // Strip Qtf codes off of text.
 	void            DeFormatScript(); // Clean entire thing of Qtf.
+	void            CountCommaSepValues(); // In selection
 	// Stolen from the RichEdit since I needed to manipulated non-exposed components.
 	virtual void    RightDown(Point p, dword flags);
 	bool            IsLegalWordChar(char cc);
