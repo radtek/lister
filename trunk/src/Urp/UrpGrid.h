@@ -13,6 +13,9 @@
 class UrpGrid: public GridCtrl, public UrpGridCommon {
 public:
 	typedef UrpGrid CLASSNAME;
+	bool                built;
+	bool                loaded;
+
 	                    UrpGrid();
 	virtual bool        Key(dword key, int count) { return GridCtrl::Key(key, count); };
 	                    // Old windows have coked-up XML with bizarre widths.  This should help (menu item)
@@ -29,6 +32,10 @@ public:
 	Id                  GetFloatingColumnId(int n) const;
 	GridCtrl::ItemRect& GetFloatingColumn(int n);
 	int                 GetFirstSelection();
+	int                 CalcCorrectRow(int row);
+	int                 GetProcessOrder(int row = -1);
+	int                 GetMaxProcessOrder();
+	int                 GetNextProcessOrder();
 	void                StdMenuBar(Bar &bar);
 	                    // GridCtrl is supposed to Xmlize, but I don't see it doing anything, so I've written my own.
 	                    // Have to save by name so that code changes that add/subtract columns will not cause confusion.
