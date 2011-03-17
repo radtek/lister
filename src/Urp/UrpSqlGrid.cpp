@@ -284,11 +284,15 @@ int UrpSqlGrid::CalcCorrectRow(int row) {
 }
 
 //==============================================================================================
+// This depends on the user creating an AddColumn for processorder, and the column
+// processorder existing in the table, but then, you wouldn't be trying to persist an order
+// if you didn't have a column, would you?
 int UrpSqlGrid::GetProcessOrder(int row) {
 	return Upp::max((int)Get(CalcCorrectRow(row), "PROCESSORDER"), (int)-1);
 }
 
 //==============================================================================================
+// To add columns, you need to find a free key.
 int UrpSqlGrid::GetMaxProcessOrder() {
 	int max = 0;
 	
@@ -303,6 +307,7 @@ int UrpSqlGrid::GetMaxProcessOrder() {
 }
 
 //==============================================================================================
+// Allows us to change the increment, or us cached values.
 int UrpSqlGrid::GetNextProcessOrder() {
 	return GetMaxProcessOrder() + 1;
 }
