@@ -8,7 +8,8 @@ using namespace Upp;
 // This must be on this side of using namespace
 //typedef PostgreSQLSession ControlSession;
 
-#define UNKNOWN -1
+#define UNKNOWN  -1
+#define DEFERRED -2
 
 #define KEY_DECLAREDUNKNOWN  -1       // User must physically select this, attesting that we do not know
 #define KEY_MULTIMATCH       -2       // There are multiple values matching the input provided in our lookups, so we can't populate
