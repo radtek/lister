@@ -272,6 +272,13 @@ class GridCtrl : public Ctrl
 			SORT_DOWN = 2
 		};
 
+		// Added to support HTML Fragment output from SetClipboard loop
+		enum GridClipboardStyle
+		{
+			GCS_TAB,
+			GCS_HTMLFRAGMENT
+		};
+		
 	private:
 
 		enum GridCursor
@@ -1697,11 +1704,12 @@ class GridCtrl : public Ctrl
 		bool IsCtrl(Point &p, bool check_visibility = true);
 
 		GridClipboard GetClipboard();
-		public: void SetClipboard(bool all = false, bool silent = false);
+		public: void SetClipboard(bool all = false, bool silent = false, GridClipboardStyle gridClipboardStyle = GCS_TAB);
 		bool IsClipboardAvailable();
 		void PasteCallbacks(bool new_row);
 		void Paste(int mode = 0);
 		void DoCopy();
+		void DoCopyAsHTML(); // As a fragment for pasting directly into outlook as a table
 		void DoPaste();
 		void DoPasteInsertedRows();
 		void DoPasteAppendedRows();
