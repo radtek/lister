@@ -396,7 +396,7 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 	bool gridStyle = false;
 	bool tabStyle = !gridStyle;
 	outputGrid->outputSpec.Clear();
-	
+	outputGrid->Build();
 	outputGrid->Ready(false);
 	//outputGrid->Reset(); // Crashing when first column is sorted!  U++ bug.
 	outputGrid->Clear(true /* Clear all columns.  Required or internal error hitems counts show all columns still, will crash. */);

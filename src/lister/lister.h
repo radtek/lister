@@ -56,7 +56,6 @@ public:
 	Connection       *controlConnection; // Connection to lister data
 	Connection       *activeConnection;
 	ConnectionFactory connectionFactory;
-	UrpWindowFactory  windowFactory;
 	MyDropGrid        scriptDropDownList; // Detects ctrl-key held down during a selection
 	WithDropChoice<EditString>            // Allows free text entry
 	                  targetNameList;
@@ -66,7 +65,6 @@ public:
 	EditInt           fldRowLimit;
 	TaskDefWin        taskDefWin;
 	MenuBar           mainMenu;
-	bool              maingridselectrow;
 	Option            chkAddSepToOutput; // Add bogus separator lines after groups of screen row output
 	EditString        outFldSepWhenValChange; // Key in name of column header
 	EditInt           fldSepRowCount; // How many blank rows would you like?  When copying to Excel, this saves a lot of time.
@@ -81,14 +79,6 @@ public:
 	                 ~Lister();
 	void              ViewMappings();
 	void              MainMenu(Bar& bar);
-	                  // Either select whole row or cells.  For long rows it is helpful to select the entire row for visual comparison.
-	void              ToggleMainGridSelectRow(); 
-	                  // Copy all the column names to a list so we can paste them back into the query, 
-	                  // replacing "*" markers so we can subtract specific columns or insert calc cols at certain points
-	void              CopyColListCommaDelimWthPrefix(); 
-	void              CopyColListCommaDelim(); 
-	void              CopyColListCommaDelimByType(); // List grouped by data type so we can filter
-	void              MainGridContextMenu(Bar &bar); // Right-click over main output data.
 	void              FileMenu(Bar& bar);
 	void              ExpandScript(); // Expand embedded macros in script as popup for review.
 	void              ToggleHiddenTasks();
@@ -120,6 +110,7 @@ public:
 	bool              SelectConnectionById(int pconnId);
 	void              SelectedConnection();
 	void              SetActiveConnection(Connection *newConnection); // User clicked the connect button or clicked on a row in the conngrid.	
+	void              RebuildMacros(int connId);
 	void              ActiveConnectionChanged(); // Update all enabled/disabled buttons based on a change in the users selected active connection.
 	void              ActiveTaskChanged();
 	void              ActiveTaskScriptChanged();

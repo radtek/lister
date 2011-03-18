@@ -182,37 +182,3 @@ bool ScriptGrid::GetFastFlushTarget(int row) {
 void ScriptGrid::UpdateTaskScriptGrid(int pscriptId, String pscript) {
 	ReQuery();
 }
-
-
-
-//
-//BTW, speaking about it, you should be aware of Sql refactoring plan....
-//
-//The problem there now is with dialects AND using multiple engines at once (like Oracle and MySql in single app).
-//
-//There are two problems - SQL dialects differ AND of course, "implicit session" are now two...
-//
-//Well, several month ago plan was to bind the dialect with "execution" Sql - that would involve storing SqlExp into some intermediate language form and then "compiling" it for target engine. Also, implicit session and default SQL cursor (which in fact are related) would be gone in multisession apps.
-//
-//However, further thinking revealed that it would still be difficult to use - you would have to quote session when makeing any Sql cursor. So the current plan, somewhat less elegant but I believe more productive, is simply to have per-thread "current session" variable and change it using RAII push/pops, something like
-//
-//void MyFn() {
-//UseSqlSession __(MySqlSession);
-//// now until __ destructor, MySqlSession and MySQL dialect are used for everything, SQL reffers to MySqlSession
-//}
-//
-//maybe, using macro hackery, we could also introduce form
-//
-//void MyFn() {
-//SQLCONTEXT(MySqlSession) {
-//.....
-//}
-//}
-//
-//That also means that those "dialect" members of SqlS are likely to be gone in favor of single per-thread global variable.
-
-//sql * Select(SqlCountRows()).From(SqlId(sqlTable)).Where(PRODUKT=="prohibis");
-//SqlBool sqlWhere = (PRODUKT=='prohibis');
-//if(something_true){
-//    sqlWhere = sqlWhere && Like(SOME_FIELD, "a%");
-//}

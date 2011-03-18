@@ -2,8 +2,13 @@
 #define _shared_h_
 
 #include <lister/Urp/Urp.h>
+#include <lister/Urp/UrpWindowFactory.h>
 
 using namespace Upp;
+
+// Physically the factory constructor is in lister.cpp
+// This allows any of the classes to create windows dynamically with configured persistent positioning.
+extern UrpWindowFactory  *windowFactory;
 
 // This must be on this side of using namespace
 //typedef PostgreSQLSession ControlSession;
