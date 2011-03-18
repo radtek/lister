@@ -622,6 +622,8 @@ void GridCtrl::ClipboardMenu(Bar &bar)
 	bool c = IsCursor();
 	bool s = c || IsSelection();
 	bar.Add(t_("Copy"), THISBACK(DoCopy)).Image(CtrlImg::copy()).Key(K_CTRL_C).Enable(s);
+	// I added so I could use the HTML Clipboard format http://msdn.microsoft.com/en-us/library/aa767917(v=vs.85).aspx
+	bar.Add(t_("Copy As HTML"), THISBACK(DoCopyAsHTML)).Image(CtrlImg::copy()).Key(K_SHIFT_CTRL|K_C).Enable(s);
 	bar.Add(t_("Cut"), THISBACK(Nothing)).Image(CtrlImg::cut()).Key(K_CTRL_X).Enable(s);
 	bar.Add(t_("Paste"), THISBACK(DoPaste)).Image(CtrlImg::paste()).Key(K_CTRL_V).Enable(c && IsClipboardAvailable());
 	if(extra_paste)
@@ -648,7 +650,7 @@ GridClipboard GridCtrl::GetClipboard()
 	return gc;
 }
 
-void GridCtrl::SetClipboard(bool all, bool silent)
+void GridCtrl::SetClipboard(bool all/*=false*/, bool silent/*=false*/, GridClipboardStyle gridClipboardStyle/*=GCS_TAB*/)
 {
 	if(!clipboard)
 		return;
@@ -661,26 +663,34 @@ void GridCtrl::SetClipboard(bool all, bool silent)
 	String tc;
 	int prev_row = -1;
 
+	if (gridClipboardStyle == GCS_HTMLFRAGMENT) tc += "<BODY><TABLE BORDER><TR>";
+	
 	for(int i = fixed_rows; i < total_rows; i++)
 	{
 		bool row_selected = select_row && IsSelected(i, false);
 		
+		// Generate column header row
 		if(i == fixed_rows && copy_column_names)
 		{
 			bool haveoutedfirstcol = false;
 			for(int j = fixed_cols; j < total_cols; j++) {
 				if(all || IsSelected(i, j, false)) {
-					if (haveoutedfirstcol) tc += '\t';
-					haveoutedfirstcol = true;
+					if (gridClipboardStyle == GCS_HTMLFRAGMENT) tc += "<TD>";
+					if (haveoutedfirstcol && gridClipboardStyle == GCS_TAB) tc += '\t';
+						
 					tc += hitems[j].GetName(); // Removed from original code since it places an annoying trailing tab on everything, which causes problems in search pattern lists on unix grep. // + '\t';
+					if (gridClipboardStyle == GCS_HTMLFRAGMENT) tc += "</TD>";
+					haveoutedfirstcol = true;
 				}
 			}
-				
-			tc += "\r\n";			
+			
+			if (gridClipboardStyle == GCS_HTMLFRAGMENT) tc += "</TR><TR>";	
+			if (gridClipboardStyle == GCS_TAB) tc += "\r\n";			
 		}
 
 		bool haveoutedfirstcol = false;
 		
+		// Generate data row
 		for(int j = fixed_cols; j < total_cols; j++)
 			if(all || row_selected || IsSelected(i, j, false))
 			{
@@ -699,15 +709,38 @@ void GridCtrl::SetClipboard(bool all, bool silent)
 
 				if(i != prev_row)
 				{
-					tc += "\r\n";
+					if (gridClipboardStyle == GCS_HTMLFRAGMENT) tc += "</TR><TR>";
+					if (gridClipboardStyle == GCS_TAB) tc += "\r\n";
 					prev_row = i;
 				}
 				
-				if (haveoutedfirstcol) tc += '\t';
+				if (gridClipboardStyle == GCS_HTMLFRAGMENT) tc += "<TD>";
+				if (haveoutedfirstcol && gridClipboardStyle == GCS_TAB) tc += '\t';
+				switch (gridClipboardStyle) {
+					case GCS_TAB:
+						tc += d.v.ToString(); // Removed. + '\t';
+						break;
+						
+					// Prevent loss of leading zeros when pasting numeric strings to Excel like "0000191".
+					// These leading zeros are often meaningful as identifiers.
+					case GCS_HTMLFRAGMENT:
+						if (d.v.GetType() == STRING_V) {
+							tc += '\"' + d.v.ToString() + '\"';
+						} else {
+							tc += d.v.ToString();
+						}
+						break;
+					default:
+						tc += d.v.ToString();
+				}
+				
+				if (gridClipboardStyle == GCS_HTMLFRAGMENT) tc += "</TD>";
 				haveoutedfirstcol = true;
-				tc += d.v.ToString(); // Removed. + '\t';
 			}
+
 	}
+
+	if (gridClipboardStyle == GCS_HTMLFRAGMENT) tc += "</TR></TABLE></BODY>";
 
 	gc.minpos = minpos;
 	gc.maxpos = maxpos;
@@ -922,6 +955,12 @@ void GridCtrl::Paste(int mode)
 void GridCtrl::DoCopy()
 {
 	SetClipboard();
+}
+
+// As a fragment for pasting directly into outlook as a table
+void GridCtrl::DoCopyAsHTML()
+{
+	SetClipboard(false/*all=false*/, false/*silent=false*/, GCS_HTMLFRAGMENT);
 }
 
 void GridCtrl::DoPaste()
@@ -5677,7 +5716,7 @@ void GridCtrl::Clear(bool columns)
 
 	if(columns)
 	{
-		ClearMultisort();
+		ClearMultisort(); // Moved up here
 		hitems.Remove(1, hitems.GetCount() - 1);
 		items[0].Remove(1, items[0].GetCount() - 1);
 		rowbkp.Remove(1, rowbkp.GetCount() - 1);
@@ -5695,7 +5734,7 @@ void GridCtrl::Clear(bool columns)
 		coluid = 0;
 		hcol = -1;
 		sortCol = -1;
-//		ClearMultisort();
+//		ClearMultisort();  // Moved up top since this won't work after items flushed.
 	}
 	else
 	{
