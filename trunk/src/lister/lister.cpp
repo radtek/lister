@@ -23,11 +23,15 @@
 #define SCHEMADIALECT <PostgreSQL/PostgreSQLSchema.h>
 #include "Sql/sch_source.h"
 
+// see shared.h for the extern ref
+UrpWindowFactory  *windowFactory = NULL;
+
 //==============================================================================================
 // Construct all objects that have to be concretely referenced (for now)
 // Load all grids.  TODO: Move loading to lazy style.
 Lister::Lister() {
 	Init(__FILE__);
+	windowFactory = new UrpWindowFactory();
 	CtrlLayout(*this, "Lister - A SQL Connection and Execution Tool");
 	showHiddenTasks = false;
 	activeConnection = NULL;
@@ -94,12 +98,9 @@ Lister::Lister() {
 	
 	// Construct Main Output Grid
 
-	//mainGrid.SizePos().HSizePosZ(1, 3).VSizePosZ(1, 2); // 2 bits from bottom
-	mainGrid.Description("mainGrid");
+	
 	bottomMidPane.Add(mainGrid);
 	mainGrid.SizePos();
-	mainGrid.WhenMenuBar = THISBACK(MainGridContextMenu);
-	maingridselectrow = false;
 	
 	// Connect to our metadata control database using raw params
 
@@ -206,7 +207,6 @@ Lister::Lister() {
 	
 	testWin.testGrid.Build();
 	testWin.testGrid.WhenCtrlsAction = THISBACK(ClickedTest);
-	testWin.testGrid.Load(controlConnection);
 	
 	macrosAvailableList.AddColumn("Search For");
 	macrosAvailableList.AddColumn("Replace With");
@@ -216,6 +216,9 @@ Lister::Lister() {
 	macrosAvailableList.GetList().WhenLeftClick = THISBACK(SelectedAvailableMacro);  // Not sure which "When" this is.
 	
 	macrosAvailableList.Width(450);
+
+	// Force the first selection of a task to rebuild the macros.
+	rebuildTaskMacros = true;
 	
 	// By spinning this off as a callback, we get the screen displayed while autoconnecting, and plus the cursor on conn grid is properly set to center
 	//SetTimeCallback(100, THISBACK(AutoConnect));		
@@ -223,6 +226,7 @@ Lister::Lister() {
 
 //==============================================================================================	
 Lister::~Lister() {
+	delete windowFactory;
 }
 
 //==============================================================================================	
@@ -236,92 +240,6 @@ void Lister::ViewMappings() {
 //	}
 //	
 //	w->OpenWithConfig();
-}
-
-//==============================================================================================	
-void Lister::ToggleMainGridSelectRow() {
-	maingridselectrow = !maingridselectrow;
-	mainGrid.SelectRow(maingridselectrow);
-}
-
-//==============================================================================================	
-void Lister::CopyColListCommaDelimWthPrefix() {
-	String co;
-	String prefix("");
-	String aliasprefix("");
-	UrpInputBox(prefix, "Prefix per Column Name", "Enter the string you want prepended to each column name");
-	UrpInputBox(aliasprefix, "Alias Prefix per Column Alias", "Enter the string you want prepended to each column alias");
-	
-	for (int i = 0; i < mainGrid.GetFloatingColumnCount(); i++) {
-		if (i) co << ", ";
-		if (!prefix.IsEmpty()) co << prefix << ".";
-		String colname = TrimRight(mainGrid.GetFloatingColumn(i).GetName());
-		co << colname;
-		if (!aliasprefix.IsEmpty()) co << " as " << aliasprefix << colname;
-	}
-	
-	WriteClipboardText(co);
-}
-
-//==============================================================================================	
-void Lister::CopyColListCommaDelim() {
-	String co;
-	
-	for (int i = 0; i < mainGrid.GetFloatingColumnCount(); i++) {
-		if (i) co << ", ";
-		co << TrimRight(mainGrid.GetFloatingColumn(i).GetName());
-	}
-	
-	WriteClipboardText(co);
-}
-
-//==============================================================================================	
-void Lister::CopyColListCommaDelimByType() {
-	String co;
-	
-	Index<int> types;
-	
-	// Find all the data types present; we don't care what they are we will just group column
-	// output by them.
-	for (int i = 0; i < mainGrid.GetFloatingColumnCount(); i++) {
-		int coltype = mainGrid.outputSpec.outputColumnDefList[i].sqlType;
-		if (types.Find(coltype) == -1) {
-			types.Add(coltype);
-		}
-	}
-
-	bool hit = false;
-	
-	for (int j = 0; j < types.GetCount(); j++) {
-		bool nextype = true;
-		for (int i = 0; i < mainGrid.GetFloatingColumnCount(); i++) {
-			if (mainGrid.outputSpec.outputColumnDefList[i].sqlType == types[j]) {
-				if (hit) {
-					co << ", ";
-				} 
-				if (nextype) {
-					co << "/* " << mainGrid.outputSpec.outputColumnDefList[i].sqlTypeName << " */ ";
-					nextype = false;
-				}
-				hit = true;
-				co << TrimRight(mainGrid.GetFloatingColumn(i).GetName());
-			}
-		}
-	}
-	
-	WriteClipboardText(co);
-}
-
-//==============================================================================================	
-void Lister::MainGridContextMenu(Bar &bar) {
-	mainGrid.StdMenuBar(bar);
-	bar.Add("Select entire row", THISBACK(ToggleMainGridSelectRow))
-		.Check(maingridselectrow)
-		.Help("Select the whole row or select individual cells");
-	bar.Add("Copy columns to comma-delim list", THISBACK(CopyColListCommaDelim));
-	bar.Add("Copy columns to comma-delim list w/pref", THISBACK(CopyColListCommaDelimWthPrefix));
-
-	bar.Add("Copy columns order by data type", THISBACK(CopyColListCommaDelimByType));
 }
 
 //==============================================================================================	
@@ -352,7 +270,7 @@ void Lister::MainMenu(Bar& bar) {
 // User clicked Test! on the TestGrid. Execute the test script against the connection.
 void Lister::ClickedTest() { 
 	TestGrid &testGrid = testWin.testGrid; // Create a convenience handle
-	int testRow = testGrid.GetCursor();
+	int row = testGrid.GetCursor();
 	
 	WaitCursor wc;
 	if (!testGrid.WasTestRequested()) {
@@ -361,33 +279,37 @@ void Lister::ClickedTest() {
 	
 	// Get test connection
 	
-	int testConnId          = testGrid.GetTestConnId(testRow);
-	int testTypId           = testGrid.GetTestTypId(testRow);
-	int testScriptId        = testGrid.GetTestScriptId(testRow);
-	int testCompTypId       = testGrid.GetCompTypId(testRow);
-	String testX            = testGrid.GetCompareUsingX(testRow);
-	String testY            = testGrid.GetCompareUsingY(testRow); // Note that PostgreSQL can store Arrays in a single value
-	String desiredOutcome   = testGrid.GetDesiredOutcome(testRow);
-	bool invertComparison   = testGrid.GetInvertComparison(testRow);
+	int    testConnId       = testGrid.GetTestConnId      (row);
+	int    testTypId        = testGrid.GetTestTypId       (row);
+	int    testRelId        = testGrid.GetTestRelId       (row);
+	int    testCompTypId    = testGrid.GetCompTypId       (row);
+	String testX            = testGrid.GetCompareUsingX   (row);
+	String testY            = testGrid.GetCompareUsingY   (row); // Note that PostgreSQL can store Arrays in a single value
+	String desiredOutcome   = testGrid.GetDesiredOutcome  (row);
+	bool   invertComparison = testGrid.GetInvertComparison(row);
 	
-	if (testConnId == UNKNOWN) {
-		Exclamation("No connection set for test");
+	if (testTypId == UNKNOWN) {
+		Exclamation("Must assign a test type");
 		return;
 	}
 	
-	// Connect or get a similar connection
-	Connection * testConn = connectionFactory.Connect(this, testConnId);
-	
-	if (!testConn) {
-		Exclamation("Can't get a test connection");
+	if (testRelId == UNKNOWN) {
+		Exclamation("No relation assigned to this test");
+		return;
+	}
+
+	String getRelScriptText = Script::GetRelScriptDetailByIdQuery(testRelId);
+
+	if (!controlConnection->SendQueryDataScript(getRelScriptText)) {
 		return;
 	}
 	
-	if (testScriptId == UNKNOWN) {
-		Exclamation("No script assigned to this test");
-		return;
-	}
+	controlConnection->Fetch();
 	
+	int testScriptId = controlConnection->Get(SCRIPTID);
+	int testRelConnId = controlConnection->Get(RELCONNID);
+	
+	// Get the script SQL to fetch the script attributes
 	String getScriptText = Script::GetScriptDetailByIdQuery(testScriptId);
 	
 	if (!controlConnection->SendQueryDataScript(getScriptText)) {
@@ -411,49 +333,106 @@ void Lister::ClickedTest() {
 		return;
 	}
 
+	// Either a specific connection was assigned to this test, or we'll use the one
+	// assigned in the relation (preferred).
+
+	if (testConnId == UNKNOWN) {
+		if (testRelConnId == UNKNOWN) {
+			Exclamation("No connection set for test or in the relation either");
+			return;
+		} else {
+			testConnId = testRelConnId;
+		}
+	}
+	
+	// Build macros based on current task and environment of selected connection
+	
+	RebuildMacros(testConnId);
+	
+	// Connect or get a similar connection
+	Connection * testConn = connectionFactory.Connect(this, testConnId);
+	
+	if (!testConn) {
+		Exclamation("Can't get a test connection");
+		return;
+	}
+	
 	// Execute script
 	
-	if (!testConn->SendQueryDataScript(testScript)) {
+	if (!testConn->SendQueryDataScript(testScript, &activeContextMacros, false /* not silent */, true /* expandmacros */)) {
 		// TODO: IS TESTTYPE
 		return;
 	}
 
-	if (testTypId == TESTTYP_RETURNED_ROW_COUNT) {
-		int targetRowCount = atoi(testX);
-		int actualRowCount = controlConnection->GetRowsProcessed();
-		// Comparison rule to use
-		if (testCompTypId == COMPTYP_GREATER_THAN_X) {
-			testCompCorrect = (actualRowCount > targetRowCount);
-			testCompApplied = true;
+	if (testTypId == TESTTYP_NOTEST) { // Not a test, just run and move on
+		Speak(EVS_TEST_SUCCEEDED);
+		testGrid.SetActualOutcome(row, "-"); // Just done, not pass or fail
+		
+	} else {
+		if (testTypId == TESTTYP_RETURNED_ROW_COUNT) {
+			int targetRowCount = atoi(testX);
+			int actualRowCount = controlConnection->GetRowsProcessed();
+			// Comparison rule to use
+			if (testCompTypId == COMPTYP_GREATER_THAN_X) {
+				testCompCorrect = (actualRowCount > targetRowCount);
+				testCompApplied = true;
+			} else 
+			if (testCompTypId == COMPTYP_EQUAL_TO) {
+				testCompCorrect = (actualRowCount == targetRowCount);
+				testCompApplied = true;
+			} 
+		} else 
+		if (testTypId == TESTTYP_FIRST_COLUMN_VALUE) {
+			int actualRowCount = controlConnection->GetRowsProcessed();
+			if (actualRowCount == 0) {
+				testCompApplied = false;
+				
+			} else {
+				testConn->Fetch();
+				Value testValue = testConn->Get(0);
+				if (testValue.GetType() == INT64_V) {
+					int64 testResultNum = testConn->Get(0);
+					if (!IsNumber(testX)) {
+						testCompApplied = false; // Cannot test if n
+					} else {
+						int64 testAgainstNum = _atoi64(testX);
+						testCompApplied = true;
+						testCompCorrect = (testResultNum == testAgainstNum);
+					}
+				} else if (testValue.GetType() == STRING_V) {
+					testCompApplied = true;
+					testCompCorrect = (testValue.ToString() == testX);
+				}
+				
+			}
 		}
-	}
+		
+		if (testCompApplied) {
+			if (invertComparison) {
+				testCompApplied = !testCompCorrect;
+			}
 	
-	if (testCompApplied) {
-		if (invertComparison) {
-			testCompApplied = !testCompCorrect;
+			if (
+				(desiredOutcome == "P" && testCompCorrect)
+				||
+				(desiredOutcome == "F" && !testCompCorrect)
+				)
+			{
+				// Make sound tada or yep or "uh-huh"
+				Speak(EVS_TEST_SUCCEEDED);
+				testGrid.SetActualOutcome(row, "P");
+			} else {
+				// Grr, doh! woopsee
+				Speak(EVS_TEST_FAILED);
+				testGrid.SetActualOutcome(row, "F");
+			}
+			
+			testGrid.Accept();
+			
+			// Write to database
+			// TODO: Set time, log
 		}
-
-		if (
-			(desiredOutcome == "P" && testCompCorrect)
-			||
-			(desiredOutcome == "F" && !testCompCorrect)
-			)
-		{
-			// Make sound tada or yep or "uh-huh"
-			Speak(EVS_TEST_SUCCEEDED);
-			testGrid.SetActualOutcome(testRow, "P");
-		} else {
-			// Grr, doh! woopsee
-			Speak(EVS_TEST_FAILED);
-			testGrid.SetActualOutcome(testRow, "F");
-		}
-		
-		testGrid.Accept();
-		
-		// Write to database
-		// TODO: Set time, log
 	}
-					
 	
 	// Update Actual outcome, set timestamp, log a testrun
 	
@@ -924,6 +903,8 @@ void Lister::CreateTestFromScript() {
 //==============================================================================================
 // Open the test grid as a floating window for selection, editing and addition
 void Lister::BrowseTests() {
+	testWin.testGrid.taskId = taskGrid.GetTaskId();
+	testWin.testGrid.Load(controlConnection); // It will filter by taskId if its set
 	testWin.Open();
 }
 
@@ -950,7 +931,7 @@ void Lister::ListUsers() {
 // First attempt at dynamic dialog popup of UrpGrid container. May thread it.
 void Lister::ListContacts() {
 	// Constructs a window that manages its own configuration
-	UrpConfigWindow *w = windowFactory.Open(this, "contacts");
+	UrpConfigWindow *w = windowFactory->Open(this, "contacts");
 	if (w->wasCreatedNew) {
 		ContactGrid *g = new ContactGrid();
 		g->Load(controlConnection);
@@ -1006,47 +987,17 @@ void Lister::SetActiveConnection(Connection *newConnection) {
 }
 
 //==============================================================================================	
-// When user selects a task, the script becomes eligible to be attached to it.
-void Lister::ActiveTaskChanged() {
-	// For some reason, using the Join() function means the right-hand joined grid doesn't
-	// trigger a change event, so we must force.
-	
-	rebuildTaskMacros = true; // Set flag so that when they eventually select a script, they need to load up task macros
-}
-
-//==============================================================================================	
-// When user selects (WhenLeftClick) a task script, that script is stuffed in editor.
-void Lister::ActiveTaskScriptChanged() {
-	int row = -1;
-	bool hasFocus = scriptGrid.HasFocus(); // Capture early
-	bool hasCapture = scriptGrid.HasCapture();
-
-	if (!scriptGrid.IsCursor()) {
-		if (scriptGrid.IsSelection()) {
-			row = scriptGrid.GetFirstSelection();
-		} else {
-			return;
-		}
-	} else {
-		row = scriptGrid.GetCursor();
-	}
-	
-	// When you select tasks, this WhenCursor is triggered, but we don't want to copy a script
-	// over unless it was actually selected.
-
-	// Set connection-based macros first
-	// Nice ENV macro to allow code reuse across environments where there are stereotypical differences between them
-	// Use task scripts assigned connection whether its active or not
-
+void Lister::RebuildMacros(int connId) {
 	String loadedEnvLetter;
-		
-	if (!IsNull(scriptGrid.GetConnId(row)) && scriptGrid.GetConnId(row) != UNKNOWN) {
-		int connId = scriptGrid.GetConnId(row);
+
+	if (connId == UNKNOWN) {		
 		Connection *connInfo = connectionFactory.FetchConnInfo(connId);
 		loadedEnvLetter = connInfo->envLetter;
 		delete connInfo;  // We created an object that is not on a stack anywhere, so we must destroy
 	} else if (activeConnection) {
 		loadedEnvLetter = activeConnection->envLetter;
+	} else {
+		loadedEnvLetter = "XX"; // Default to a "Not an environment" value
 	}
 
 	// Only reload environment macros if there was a change in environment
@@ -1057,6 +1008,7 @@ void Lister::ActiveTaskScriptChanged() {
 		rebuildTaskMacros = true; // Force rebuild of task macros since they probably reference the ENV macro
 	}
 	
+	// If we've stayed within the same task set of scripts, we don't need to rebuild tasks.
 	if (rebuildTaskMacros) {
 		rebuildTaskMacros = false; // Desensitize flag
 		
@@ -1084,7 +1036,61 @@ void Lister::ActiveTaskScriptChanged() {
 		
 		activeContextMacros.UpdateAvailableMacros(macrosAvailableList, &activeContextMacros);
 	}
+}
+
+//==============================================================================================	
+// When user selects a task, the script becomes eligible to be attached to it.
+void Lister::ActiveTaskChanged() {
+	rebuildTaskMacros = true; // Set flag so that when they eventually select a script, they need to load up task macros
 	
+	// We'll rebuild the macros based on the first script to the left, if there
+
+	int connId = UNKNOWN;
+	
+	if (scriptGrid.GetCount()) {
+		if (!IsNull(scriptGrid.GetConnId(0)) && scriptGrid.GetConnId(0) != UNKNOWN) {
+			connId = scriptGrid.GetConnId(0);
+		} else {
+			connId = UNKNOWN; // Let RebuildMacros use the active connection
+		}
+		
+		RebuildMacros(connId);
+	}
+}
+
+//==============================================================================================	
+// When user selects (WhenLeftClick) a task script, that script is stuffed in editor.
+void Lister::ActiveTaskScriptChanged() {
+	int row = -1;
+	bool hasFocus = scriptGrid.HasFocus(); // Capture early
+	bool hasCapture = scriptGrid.HasCapture();
+
+	if (!scriptGrid.IsCursor()) {
+		if (scriptGrid.IsSelection()) {
+			row = scriptGrid.GetFirstSelection();
+		} else {
+			return;
+		}
+	} else {
+		row = scriptGrid.GetCursor();
+	}
+	
+	// When you select tasks, this WhenCursor is triggered, but we don't want to copy a script
+	// over unless it was actually selected.
+
+	// Set connection-based macros first
+	// Nice ENV macro to allow code reuse across environments where there are stereotypical differences between them
+	// Use task scripts assigned connection whether its active or not
+
+	int connId = UNKNOWN;
+	
+	if (!IsNull(scriptGrid.GetConnId(row)) && scriptGrid.GetConnId(row) != UNKNOWN) {
+		connId = scriptGrid.GetConnId(row);
+	} else {
+		connId = UNKNOWN; // Let RebuildMacros use the active connection
+	}
+	
+	RebuildMacros(connId);
 	
 	ToolBarRefresh();
 	

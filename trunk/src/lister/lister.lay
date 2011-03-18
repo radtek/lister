@@ -47,7 +47,7 @@ LAYOUT(TaskDefWinLayout, 1476, 796)
 	ITEM(SqlArray, questionGrid, LeftPosZ(52, 448).TopPosZ(268, 100))
 	ITEM(ElementGrid, elementGrid, LeftPosZ(4, 628).TopPosZ(152, 116))
 	ITEM(Label, lblLinks, SetLabel(t_("Links")).SetInk(Color(85, 42, 200)).LeftPosZ(568, 60).VCenterPosZ(19, 268))
-	ITEM(LinkGrid, linkGrid, HSizePosZ(568, 636).VSizePosZ(672, 4))
+	ITEM(LinkGrid, linkGrid, HSizePosZ(568, 452).VSizePosZ(672, 4))
 	ITEM(SqlArray, testGrid, LeftPosZ(500, 624).TopPosZ(280, 100))
 	ITEM(Label, lblTests, SetLabel(t_("Tests")).SetInk(Color(85, 42, 200)).LeftPosZ(636, 36).TopPosZ(264, 19))
 	ITEM(Label, lblTaskScripts, SetLabel(t_("Scripts")).SetInk(Color(85, 42, 200)).LeftPosZ(504, 40).TopPosZ(384, 19))
@@ -89,9 +89,13 @@ LAYOUT(TaskDefWinLayout, 1476, 796)
 	ITEM(Label, lblDepFeedback, SetLabel(t_("Feedback")).LeftPosZ(0, 48).VCenterPosZ(20, 344))
 	ITEM(DocEdit, fldDepFeedback, Tip(t_("Describe what was assigned")).LeftPosZ(48, 512).VCenterPosZ(60, 364))
 	ITEM(Label, lblTaskMacros, SetLabel(t_("Macros")).SetInk(Color(85, 42, 200)).LeftPosZ(1128, 108).VCenterPosZ(19, -364))
-	ITEM(TaskMacroGrid, taskMacroGrid, LeftPosZ(1128, 344).TopPosZ(40, 216))
+	ITEM(TaskMacroGrid, taskMacroGrid, LeftPosZ(1128, 344).TopPosZ(40, 316))
 END_LAYOUT
 
 LAYOUT(AssignmentDefWinLayout, 860, 532)
+END_LAYOUT
+
+LAYOUT(RecordViewLayout, 440, 368)
+	ITEM(RecordViewGrid, recordViewGrid, HSizePosZ(4, 4).VSizePosZ(4, 4))
 END_LAYOUT
 

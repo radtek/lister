@@ -21,14 +21,19 @@ OutputGrid::OutputGrid() : UrpGrid() {
 	Navigating();
 	LiveCursor(true);
 	
+	Description("mainGrid");
+	maingridselectrow = false;
+	WhenMenuBar = THISBACK(MainGridContextMenu);
 }
 
 //==============================================================================================
 void OutputGrid::Build() {
+	recordViewWin.recordViewGrid.Build();
 }
 
 //==============================================================================================
 void OutputGrid::Load(Connection *pconnection) {
+	connection = pconnection;
 }
 
 //==============================================================================================
@@ -62,6 +67,119 @@ bool OutputGrid::Key(dword key, int count) {
 
 	return UrpGrid::Key(key, count);
 }
+
+//==============================================================================================	
+void OutputGrid::MainGridContextMenu(Bar &bar) {
+	StdMenuBar(bar);
+	bar.Add("Select entire row", THISBACK(ToggleMainGridSelectRow))
+		.Check(maingridselectrow)
+		.Help("Select the whole row or select individual cells");
+	bar.Add("Copy columns to comma-delim list", THISBACK(CopyColListCommaDelim));
+	bar.Add("Copy columns to comma-delim list w/pref", THISBACK(CopyColListCommaDelimWthPrefix));
+	bar.Add("Copy columns order by data type", THISBACK(CopyColListCommaDelimByType));
+	bar.Add("View row as a vertical record", THISBACK(PopUpRecordView));
+}
+
+//==============================================================================================	
+// Using an UrpConfigWindow so position gets remembered.
+void OutputGrid::PopUpRecordView() {
+	UrpConfigWindow *w = windowFactory->Open((UrpTopWindow *)this->GetTopWindow(), "recordview");
+	RecordViewGrid *g = NULL;
+	
+	if (w->wasCreatedNew) {
+		// one-time ops
+		g = new RecordViewGrid();
+		g->Build(); // Create the columns
+		w->AddCtrl(g);
+	} else {
+		g = (RecordViewGrid *)w->ctrls.At(0);
+	}
+
+	g->Load(connection);
+	for (int i = 0; i < GetFloatingColumnCount(); i++) {
+		String colname = TrimRight(GetFloatingColumn(i).GetName());
+		String colvalue = Get(i).ToString();
+		g-> Add(colname, colvalue);
+	}
+	
+	w->OpenWithConfig();
+
+}
+
+//==============================================================================================	
+void OutputGrid::ToggleMainGridSelectRow() {
+	maingridselectrow = !maingridselectrow;
+	SelectRow(maingridselectrow);
+}
+
+//==============================================================================================	
+void OutputGrid::CopyColListCommaDelimWthPrefix() {
+	String co;
+	String prefix("");
+	String aliasprefix("");
+	UrpInputBox(prefix, "Prefix per Column Name", "Enter the string you want prepended to each column name");
+	UrpInputBox(aliasprefix, "Alias Prefix per Column Alias", "Enter the string you want prepended to each column alias");
+	
+	for (int i = 0; i < GetFloatingColumnCount(); i++) {
+		if (i) co << ", ";
+		if (!prefix.IsEmpty()) co << prefix << ".";
+		String colname = TrimRight(GetFloatingColumn(i).GetName());
+		co << colname;
+		if (!aliasprefix.IsEmpty()) co << " as " << aliasprefix << colname;
+	}
+	
+	WriteClipboardText(co);
+}
+
+//==============================================================================================	
+void OutputGrid::CopyColListCommaDelim() {
+	String co;
+	
+	for (int i = 0; i < GetFloatingColumnCount(); i++) {
+		if (i) co << ", ";
+		co << TrimRight(GetFloatingColumn(i).GetName());
+	}
+	
+	WriteClipboardText(co);
+}
+
+//==============================================================================================	
+void OutputGrid::CopyColListCommaDelimByType() {
+	String co;
+	
+	Index<int> types;
+	
+	// Find all the data types present; we don't care what they are we will just group column
+	// output by them.
+	for (int i = 0; i < GetFloatingColumnCount(); i++) {
+		int coltype = outputSpec.outputColumnDefList[i].sqlType;
+		if (types.Find(coltype) == -1) {
+			types.Add(coltype);
+		}
+	}
+
+	bool hit = false;
+	
+	for (int j = 0; j < types.GetCount(); j++) {
+		bool nextype = true;
+		for (int i = 0; i < GetFloatingColumnCount(); i++) {
+			if (outputSpec.outputColumnDefList[i].sqlType == types[j]) {
+				if (hit) {
+					co << ", ";
+				} 
+				if (nextype) {
+					co << "/* " << outputSpec.outputColumnDefList[i].sqlTypeName << " */ ";
+					nextype = false;
+				}
+				hit = true;
+				co << TrimRight(GetFloatingColumn(i).GetName());
+			}
+		}
+	}
+	
+	WriteClipboardText(co);
+}
+
 
 /*
 

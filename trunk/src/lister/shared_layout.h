@@ -9,6 +9,7 @@ using namespace Upp;
 #include "ElementGrid.h"
 #include "TaskGrid.h"
 #include "LinkGrid.h"
+#include "RecordViewGrid.h" // On the RecordViewWin
 
 #include <lister/Urp/UrpEdit.h> // My fix of U++ RichEdit
 
