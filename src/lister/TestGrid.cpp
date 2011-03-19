@@ -6,24 +6,9 @@
 #include "shared_db.h"
 
 //==============================================================================================
-Id IDTestState("State");
-Id IDTestId("TestId");
-Id IDTestName("TestName");
-Id IDTestRelId("TestRelId");
-Id IDTestNote("TestNote");
-Id IDTestConnId("TestConnId");
-Id IDTestTypId("TestTypId");
-Id IDCompTypId("CompTypId");
-Id IDDesiredOutcome("DesiredOutcome");  // P)ass or F)ail
-Id IDActualOutcome("ActualOutcome");   // P)ass, F)ail, I)ndeterminate
-Id IDOutputValue("OutputValue");
-Id IDCompareUsingX("X");
-Id IDCompareUsingY("Y");
-Id IDInvertComparison("InvertComparison"); // A "NOT" test
-Id IDTestTaskId("TestTaskId");
-Id IDTestProcessOrder("processorder");
-Id IDTEST("TEST!");
-Id IDTESTDUMMY("Dummy");
+Id IDTestState                ("state");
+Id IDTEST                     ("TEST!");
+Id IDTESTDUMMY               ("Dummy");
 
 using namespace Upp;
 
@@ -48,7 +33,7 @@ TestGrid::TestGrid() {
 // Added manually from appending a row.
 void TestGrid::NewTest() {
 	if (taskId != UNKNOWN) {
-		Set(IDTestTaskId, taskId);
+		Set(TASKID, taskId);
 	}
 }
 
@@ -95,7 +80,7 @@ void TestGrid::AddTest(String script, int scriptId, int connId) {
 void TestGrid::Build() {
 	WhenNewRow      = THISBACK(NewTest);    // At the creation of a new row; pre-populate fields
 	WhenRemoveRow   = THISBACK(RemoveTest);
-	WhenAcceptedRow = THISBACK(SaveTest);   // Build/Run SQL to save data
+	WhenAcceptedRow = THISBACK(SaveTestPrompt);   // Build/Run SQL to save data
 
 	// SizePos(); GRIDCTRL BUG: // Cannot SizePos in TestGrid.Build() or Graphics will cycle onto all cells (see SetImage(CtrlImg::go_forward())
 	// Make the dropgrids of values extend past the width of the column they are for, to improve readability without wasting grid space.
@@ -106,21 +91,21 @@ void TestGrid::Build() {
 	compTypList.SearchHideRows().Resizeable().Width(200);
 		
 	AddColumn(IDTestState       , ""               ).Ctrls(MakeTestState)    .Default(TestState::ConvertStateToColor(NOTEST_NEVER)).Fixed(16);
-	AddColumn(IDTestId          , "Id"  , 100      ).Edit(fldTestId)         .Default(Null);
-	AddColumn(IDTestName        , "Name", 100      ).Edit(fldTestName);
-	AddColumn(IDTestRelId       , "Script"         ).Edit(scriptList)        .SetConvert(scriptList)        .Default(-1);
-	AddColumn(IDTestNote        , "Note"           ).Edit(fldTestNote);
-	AddColumn(IDTestConnId      , "Conn"           ).Edit(connList)          .SetConvert(connList)          .Default(-1);
-	AddColumn(IDTestTypId       , "TestType"       ).Edit(testTypList)       .SetConvert(testTypList)       .Default(-1);
-	AddColumn(IDInvertComparison, "NOT?"           ).Edit(invertCompList)    .SetConvert(invertCompList)    .Default(false);
-	AddColumn(IDCompTypId       , "ComparisonType" ).Edit(compTypList)       .SetConvert(compTypList)       .Default(-1);
-	AddColumn(IDCompareUsingX   , "X"              ).Edit(fldCompareUsingX);
-	AddColumn(IDCompareUsingY   , "Y"              ).Edit(fldCompareUsingY);
-	AddColumn(IDDesiredOutcome  , "Desired Outcome").Edit(desiredOutcomeList).SetConvert(desiredOutcomeList).Default("P");  // P)ass or F)ail
-	AddColumn(IDActualOutcome   , "Actual Outcome" );   // P)ass, F)ail, I)ndeterminate
-	AddColumn(IDOutputValue     , "Output"         );
-	AddColumn(IDTestTaskId      , "Task", 50       ); // The task that owns this test
-	AddColumn(IDTestProcessOrder, "processorder"   ).Hidden();  // Required for ordering
+	AddColumn(TESTID            , "Id"  , 100      ).Edit(fldTestId)         .Default(Null);
+	AddColumn(TESTNAME          , "Name", 100      ).Edit(fldTestName);
+	AddColumn(RELID       , "Script"         ).Edit(scriptList)        .SetConvert(scriptList)        .Default(-1);
+	AddColumn(NOTE        , "Note"           ).Edit(fldTestNote);
+	AddColumn(CONNID      , "Conn"           ).Edit(connList)          .SetConvert(connList)          .Default(-1);
+	AddColumn(TESTTYPID       , "TestType"       ).Edit(testTypList)       .SetConvert(testTypList)       .Default(-1);
+	AddColumn(INVERTCOMPARISON, "NOT?"           ).Edit(invertCompList)    .SetConvert(invertCompList)    .Default(false);
+	AddColumn(COMPTYPID       , "ComparisonType" ).Edit(compTypList)       .SetConvert(compTypList)       .Default(-1);
+	AddColumn(X   , "X"              ).Edit(fldCompareUsingX);
+	AddColumn(Y   , "Y"              ).Edit(fldCompareUsingY);
+	AddColumn(DESIREDOUTCOME  , "Desired Outcome").Edit(desiredOutcomeList).SetConvert(desiredOutcomeList).Default("P");  // P)ass or F)ail
+	AddColumn(ACTUALOUTCOME   , "Actual Outcome" );   // P)ass, F)ail, I)ndeterminate
+	AddColumn(OUTPUTVALUE     , "Output"         );
+	AddColumn(TASKID      , "Task", 50       ); // The task that owns this test
+	AddColumn(PROCESSORDER, "processorder"   ).Hidden();  // Required for ordering
 	
 	AddColumn(IDTEST            , ""               ).Ctrls(MakeTestButton).Fixed(20).SetImage(CtrlImg::go_forward());
 	AddColumn(IDTESTDUMMY       , ""               ).Fixed(1);
@@ -129,104 +114,111 @@ void TestGrid::Build() {
 }
 
 //==============================================================================================
-int    TestGrid::GetTestId            (int row)							  { return Get(row, IDTestId); }
-void   TestGrid::SetTestId            (int row, int ptestId)			  {        Set(row, IDTestId, ptestId); }
-String TestGrid::GetTestName          (int row)							  { return TrimBoth(Get(row, IDTestName)); }
-String TestGrid::GetTestNote          (int row)             			  { return TrimBoth(Get(row, IDTestNote)); }
-int    TestGrid::GetTestRelId         (int row)              			  { return Get(row, IDTestRelId); }
-int    TestGrid::GetTestConnId        (int row)              			  { return Get(row, IDTestConnId); }
-int    TestGrid::GetTestTypId         (int row)               			  { return Get(row, IDTestTypId); }
-bool   TestGrid::GetInvertComparison  (int row)       			  		  { return Get(row, IDInvertComparison); }
-int    TestGrid::GetCompTypId         (int row)              			  { return Get(row, IDCompTypId); }
-String TestGrid::GetCompareUsingX     (int row)        				  	  { return Get(row, IDCompareUsingX); }
-String TestGrid::GetCompareUsingY     (int row)   					      { return Get(row, IDCompareUsingY); }
-String TestGrid::GetDesiredOutcome    (int row)       					  { return Get(row, IDDesiredOutcome); }
-String TestGrid::GetActualOutcome     (int row)        					  { return Get(row, IDActualOutcome); } // Null returns INT_MIN, I think
-void   TestGrid::SetActualOutcome     (int row, String pactualOutcome)	  {        Set(row, IDActualOutcome, pactualOutcome); }
-String TestGrid::GetOutputValue       (int row)          				  { return Get(row, IDOutputValue); }
-int    TestGrid::GetTaskId            (int row)                           { return Get(row, IDTestTaskId); }
+// Purely for external use
+int     TestGrid::GetTestId            (int row)							  { return Get(row, TESTID); }
+void    TestGrid::SetTestId            (int row, int ptestId)			  {        Set(row, TESTID, ptestId); }
+String  TestGrid::GetTestName          (int row)							  { return TrimBoth(Get(row, TESTNAME)); }
+String  TestGrid::GetTestNote          (int row)             			  { return TrimBoth(Get(row, NOTE)); }
+int     TestGrid::GetTestRelId         (int row)              			  { return Get(row, RELID); }
+int     TestGrid::GetTestConnId        (int row)              			  { return Get(row, CONNID); }
+int     TestGrid::GetTestTypId         (int row)               			  { return Get(row, TESTTYPID); }
+// Special SqlBool type required in order to properly apostrophize '0' and '1'
+SqlBool TestGrid::GetInvertComparison  (int row)       			  		  { return (SqlBool)Get(row, INVERTCOMPARISON); }
+int     TestGrid::GetCompTypId         (int row)              			  { return Get(row, COMPTYPID); }
+String  TestGrid::GetCompareUsingX     (int row)        				  	  { return Get(row, X); }
+String  TestGrid::GetCompareUsingY     (int row)   					      { return Get(row, Y); }
+String  TestGrid::GetDesiredOutcome    (int row)       					  { return Get(row, DESIREDOUTCOME); }
+String  TestGrid::GetActualOutcome     (int row)        					  { return Get(row, ACTUALOUTCOME); } // Null returns INT_MIN, I think
+void    TestGrid::SetActualOutcome     (int row, String pactualOutcome)	  {        Set(row, ACTUALOUTCOME, pactualOutcome); }
+String  TestGrid::GetOutputValue       (int row)          				  { return Get(row, OUTPUTVALUE); }
+void    TestGrid::SetOutputValue       (int row, String poutputValue)      {        Set(row, OUTPUTVALUE, poutputValue); }
+int     TestGrid::GetTaskId            (int row)                           { return Get(row, TASKID); }
+int     TestGrid::GetProcessOrder      (int row)                           { return Get(row, PROCESSORDER); }
+
 //==============================================================================================
-void TestGrid::SaveTest() {
+void TestGrid::SaveTestPrompt() {
+	SaveTest(true);
+}
+
+//==============================================================================================
+void TestGrid::SaveTestNoPrompt() {
+	SaveTest(false);
+}
+
+void FieldLayoutRaw(FieldOperator& f, const String& prefix = String());
+
+//==============================================================================================
+void TestGrid::FieldLayout(FieldOperator& fo) {
+	fo
+		(TESTNAME        , Get(TESTNAME))
+		(NOTE            , Get(NOTE))
+		(RELID           , Get(RELID))
+		(CONNID          , Get(CONNID))
+		(DESIREDOUTCOME  , Get(DESIREDOUTCOME))
+		(ACTUALOUTCOME   , Get(ACTUALOUTCOME))
+		(X               , Get(X))
+		(Y               , Get(Y))
+		(INVERTCOMPARISON, Get(INVERTCOMPARISON))
+		(COMPTYPID       , Get(COMPTYPID))
+		(TESTTYPID       , Get(TESTTYPID))
+		(TASKID          , Get(TASKID))
+		(OUTPUTVALUE     , Get(OUTPUTVALUE))
+		(PROCESSORDER    , Get(PROCESSORDER))
+	;
+}
+
+//==============================================================================================
+void TestGrid::SaveTest(bool prompt) {
 	ASSERT(connection);
 	ASSERT(connection->session->IsOpen());
 	ASSERT(IsCursor());
 	int row = GetCursor();
-
-	String tokenizedActualOutcome    = GetActualOutcome   (row) == "" ? "NULL" : UrpString::Apostrophize(GetActualOutcome(row));
-	String tokenizedDesiredOutcome   = GetDesiredOutcome  (row) == "" ? "NULL" : UrpString::Apostrophize(GetDesiredOutcome(row));
-	String tokenizedInvertComparison = GetInvertComparison(row) ? "T" : "F";
-	String tokenizedCompareUsingY    = GetCompareUsingY   (row);
-	String testName                  = GetTestName        (row);
-	String testNote                  = GetTestNote        (row);
-	int    testRelId                 = GetTestRelId       (row);
-	int    testConnId                = GetTestConnId      (row);
 	
 	if (IsNewRow()) {
-		int newProcessOrder = GetNextProcessOrder();
-	
-		// Determine if test already exists
-		String controlScript = Format(
-			"insert into tests(testname, note, relid,    connid, desiredoutcome, actualoutcome, outputvalue, x,    y,    invertcomparison, comptypid, testtypid, taskid, processorder) "
-			"values(           %s,       %s,   %s,       %s,     %s,             %s,            %s,          %s,   %s,   '%s',             %s,        %s,        %s    , %s)"
-				,              connection->PrepTextDataForSend(testName)
-				,                        connection->PrepTextDataForSend(testNote)
-				,                              ToSQL(testRelId)
-				,                                        ToSQL(testConnId)
-				,                                                tokenizedDesiredOutcome // apostrophize at token level in case a NULL is required
-				,                                                                tokenizedActualOutcome // apostrophize at token level in case a NULL is required
-				,                                                                               connection->PrepTextDataForSend(GetOutputValue(row))
-				,                                                                                            connection->PrepTextDataForSend(GetCompareUsingX(row))
-				,                                                                                                  connection->PrepTextDataForSend(GetCompareUsingY(row))
-				,                                                                                                        tokenizedInvertComparison // Not apposted:)
-				,                                                                                                                          ToSQL(GetCompTypId(row))
-				,                                                                                                                                     ToSQL(GetTestTypId(row))
-				,                                                                                                                                                ToSQL(GetTaskId(row))
-				,                                                                                                                                                        ToSQL(newProcessOrder)
-				);
+		Set(PROCESSORDER, GetNextProcessOrder());
+		SqlInsert s = SqlInsert(TESTS)(THISBACK(FieldLayout));
+		SqlStatement st(s);
+		String controlScript = st.Get(connection->GetDialect()); // Transform to proper Sql
 
 		LOG(controlScript);
-		if (!connection->SendAddDataScript(controlScript)) {
-			// Beep
-			return;
-		}
-
-		// Add to the list if not a dup
-		if (connection->GetRowsProcessed() > 0) {		
-			int testid = connection->GetInsertedId("tests", "testid");
-			if (testid >= 0) {
-				SetTestId(row, testid);
+		int rsp = 1;
+		
+		if (prompt) {		
+			rsp = PromptOKCancel(CAT << "Inserting Test: " << controlScript);
+		}		
+		
+		if (rsp == 1) {
+			if (!connection->SendAddDataScript(controlScript)) {
+				// Beep
+				return;
+			}
+			if (connection->GetRowsProcessed() > 0) {		
+				int testid = connection->GetInsertedId("tests", "testid");
+				if (testid >= 0) {
+					SetTestId(row, testid);
+				}
 			}
 		}
+
+	// Updating an existing test
+			
 	} else {
-		// Update existing test
-		int testId = GetTestId(row);
-		String controlScript = Format(
-			"UPDATE tests set"
-		 		"  testname = %s"
-		 		", note = %s, relid = %s, connid = %s, desiredoutcome = %s, actualoutcome = %s, outputvalue = %s"
-		 		", x = %s, y = %s, invertcomparison = '%s', comptypid = %s, testtypid = %s, taskid = %s"
-		     	" WHERE testid = %d"
-				,            connection->PrepTextDataForSend(testName)
-				,                       connection->PrepTextDataForSend(testNote)
-				,                              ToSQL(testRelId)
-				,                                        ToSQL(testConnId)
-				,                                                tokenizedDesiredOutcome // apostrophize at token level in case a NULL is required
-				,                                                                tokenizedActualOutcome // apostrophize at token level in case a NULL is required
-				,                                                                               connection->PrepTextDataForSend(GetOutputValue(row))
-				,                                                                                            connection->PrepTextDataForSend(GetCompareUsingX(row))
-				,                                                                                                  connection->PrepTextDataForSend(GetCompareUsingY(row))
-				,                                                                                                        tokenizedInvertComparison
-				,                                                                                                                          ToSQL(GetCompTypId(row))
-				,                                                                                                                                     ToSQL(GetTestTypId(row))
-				,                                                                                                                                                ToSQL(GetTaskId(row))
-				,                testId
-				);
-		     
+		SqlUpdate s = SqlUpdate(TESTS)(THISBACK(FieldLayout)).Where(TESTID == Get(TESTID));
+		SqlStatement st(s);
+		String controlScript = st.Get(connection->GetDialect());
+
 		LOG(controlScript);
+		int rsp = 1;
 		
-		int rsp = PromptOKCancel(CAT << "Updating Test: " << controlScript);
+		if (true || prompt) {		
+			rsp = PromptOKCancel(CAT << "Updating Test: " << controlScript);
+		}		
+		
 		if (rsp == 1) {
-			connection->SendChangeDataScript(controlScript);
+			if (!connection->SendChangeDataScript(controlScript)) {
+				// Beep
+				return;
+			}
 		}
 	}
 }
@@ -296,6 +288,7 @@ void TestGrid::SaveTest() {
 				", comptypid"        // 11
 				", testtypid"        // 12
 				", taskid"           // 13
+				", processorder"     // 14
 				" from tests where testid >= 0 ";
 				
 	if (taskId != UNKNOWN) {
@@ -306,20 +299,21 @@ void TestGrid::SaveTest() {
 	if (connection->SendQueryDataScript(script)) {
 		while(connection->Fetch()) {
 			Add();
-			Set(IDTestId           , connection->Get(0));
-			Set(IDTestName         , connection->Get(1));
-			Set(IDTestNote         , connection->Get(2));
-			Set(IDTestRelId        , connection->Get(3));
-			Set(IDTestConnId       , connection->Get(4));
-			Set(IDDesiredOutcome   , connection->Get(5));       // P)ass or F)ail
-			Set(IDActualOutcome    , connection->Get(6));       // P)ass, F)ail, I)ndeterminate
-			Set(IDOutputValue      , connection->Get(7));
-			Set(IDCompareUsingX    , connection->Get(8));
-			Set(IDCompareUsingY    , connection->Get(9));
-			Set(IDInvertComparison , connection->GetBool(10));  // A "NOT" test.  We know its Boolean, but PostgreSQL driver does not.  I returns a string of 1 or 0
-			Set(IDTestTypId        , connection->Get(11));
-			Set(IDCompTypId        , connection->Get(12));
-			Set(IDTestTaskId       , connection->Get(13));
+			Set(TESTID             , connection->Get(0));
+			Set(TESTNAME           , connection->Get(1));
+			Set(NOTE               , connection->Get(2));
+			Set(RELID        , connection->Get(3));
+			Set(CONNID       , connection->Get(4));
+			Set(DESIREDOUTCOME   , connection->Get(5));       // P)ass or F)ail
+			Set(ACTUALOUTCOME    , connection->Get(6));       // P)ass, F)ail, I)ndeterminate
+			Set(OUTPUTVALUE      , connection->Get(7));
+			Set(X    , connection->Get(8));
+			Set(Y    , connection->Get(9));
+			Set(INVERTCOMPARISON , connection->GetBool(10));  // A "NOT" test.  We know its Boolean, but PostgreSQL driver does not.  I returns a string of 1 or 0
+			Set(COMPTYPID        , connection->Get(11));
+			Set(TESTTYPID        , connection->Get(12));
+			Set(TASKID       , connection->Get(13));
+			Set(PROCESSORDER, connection->Get(14));
 		}
 	}
 	
@@ -331,17 +325,17 @@ bool TestGrid::MeaningfulDataChange() {
 	if (!IsModifiedRow()) return false; // No change
 	
 	if (
-		!IsModified(IDTestName)         &&
-		!IsModified(IDTestNote)         &&
-		!IsModified(IDTestRelId)        &&
-		!IsModified(IDTestConnId)       &&
-		!IsModified(IDDesiredOutcome)   &&
-		!IsModified(IDActualOutcome)    &&
-		!IsModified(IDCompareUsingX)    &&
-		!IsModified(IDCompareUsingY)    &&
-		!IsModified(IDInvertComparison) &&
-		!IsModified(IDTestTypId)        &&
-		!IsModified(IDCompTypId)
+		!IsModified(TESTNAME)         &&
+		!IsModified(NOTE)         &&
+		!IsModified(RELID)        &&
+		!IsModified(CONNID)       &&
+		!IsModified(DESIREDOUTCOME)   &&
+		!IsModified(ACTUALOUTCOME)    &&
+		!IsModified(X)    &&
+		!IsModified(Y)    &&
+		!IsModified(INVERTCOMPARISON) &&
+		!IsModified(TESTTYPID)        &&
+		!IsModified(COMPTYPID)
 		) return false;
 
 	return true;
