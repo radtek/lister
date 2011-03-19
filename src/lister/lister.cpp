@@ -97,7 +97,6 @@ Lister::Lister() {
 	horizBottomMidAndRightSplitter.Zoom(-1);
 	
 	// Construct Main Output Grid
-
 	
 	bottomMidPane.Add(mainGrid);
 	mainGrid.SizePos();
@@ -114,6 +113,10 @@ Lister::Lister() {
 		exit(-1);
 	}
 
+	// Set the dialect manually so that GetText functions work and do not corrupt return SQL 
+	// from SqlSelect, SqlInsert, SqlUpdate.
+	//controlConnection->session->Dialect(PGSQL);
+	
 	// Construct Script List Drop Down Grid
 
 	scriptDropDownList.AddColumn("ID", 0);	// Hidden Column                 #0
@@ -255,10 +258,21 @@ void Lister::ToggleHiddenTasks() {
 }
 
 //==============================================================================================	
+// Hack to view Excel's output HTML raw so I can snag the special codes that tell that a number is Text, etc
+void Lister::ViewClipboardHTML() {
+	// CF_HTML not part of U++ as a numeric, so we'll register it.
+	RegisterClipboardFormat("HTML Format");
+	String s = ReadClipboard("HTML Format");
+	
+	Exclamation(Format("[* \1%s\1].", s));
+}
+
+//==============================================================================================	
 void Lister::FileMenu(Bar& bar) {
 	bar.Add("Mappings", THISBACK(ViewMappings));
 	bar.Add("Expand Script", THISBACK(ExpandScript));
 	bar.Add("Show Hidden Tasks", THISBACK(ToggleHiddenTasks)).Check(showHiddenTasks);
+	bar.Add("View Clipboard CF_HTML", THISBACK(ViewClipboardHTML));
 }
 
 //==============================================================================================	
@@ -286,7 +300,7 @@ void Lister::ClickedTest() {
 	String testX            = testGrid.GetCompareUsingX   (row);
 	String testY            = testGrid.GetCompareUsingY   (row); // Note that PostgreSQL can store Arrays in a single value
 	String desiredOutcome   = testGrid.GetDesiredOutcome  (row);
-	bool   invertComparison = testGrid.GetInvertComparison(row);
+	bool   invertComparison = testGrid.GetInvertComparison(row).AsBool();
 	
 	if (testTypId == UNKNOWN) {
 		Exclamation("Must assign a test type");
@@ -364,6 +378,8 @@ void Lister::ClickedTest() {
 		return;
 	}
 
+	Value testResult;
+	
 	if (testTypId == TESTTYP_NOTEST) { // Not a test, just run and move on
 		Speak(EVS_TEST_SUCCEEDED);
 		testGrid.SetActualOutcome(row, "-"); // Just done, not pass or fail
@@ -389,29 +405,31 @@ void Lister::ClickedTest() {
 				
 			} else {
 				testConn->Fetch();
-				Value testValue = testConn->Get(0);
-				if (testValue.GetType() == INT64_V) {
+				testResult = testConn->Get(0);
+				if (testResult.GetType() == INT64_V) {
 					int64 testResultNum = testConn->Get(0);
-					if (!IsNumber(testX)) {
+					if (!UrpString::IsIntegerString(testX)) {
 						testCompApplied = false; // Cannot test if n
 					} else {
 						int64 testAgainstNum = _atoi64(testX);
 						testCompApplied = true;
 						testCompCorrect = (testResultNum == testAgainstNum);
 					}
-				} else if (testValue.GetType() == STRING_V) {
+				} else if (testResult.GetType() == STRING_V) {
 					testCompApplied = true;
-					testCompCorrect = (testValue.ToString() == testX);
+					testCompCorrect = (testResult.ToString() == testX); // No way to test a null
 				}
 				
 			}
+		} else {
+			Exclamation("Test type not supported");
 		}
 		
 		if (testCompApplied) {
 			if (invertComparison) {
 				testCompApplied = !testCompCorrect;
 			}
-	
+			
 			if (
 				(desiredOutcome == "P" && testCompCorrect)
 				||
@@ -425,11 +443,14 @@ void Lister::ClickedTest() {
 				// Grr, doh! woopsee
 				Speak(EVS_TEST_FAILED);
 				testGrid.SetActualOutcome(row, "F");
+				
 			}
 			
-			testGrid.Accept();
-			
+			testGrid.SetOutputValue(row, testResult.ToString());
+		
 			// Write to database
+			testGrid.SaveTestNoPrompt();
+			
 			// TODO: Set time, log
 		}
 	}
