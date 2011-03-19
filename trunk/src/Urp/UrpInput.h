@@ -3,6 +3,7 @@
 
 #include "UrpShared.h"
 
+//==============================================================================================
 // Input Box for a transformation control string to be applied to a multiline input string
 bool UrpInputBox(
 		String& wrapperText
@@ -18,6 +19,7 @@ bool UrpDateInputBox(String &inputText, const char *title, const char *label, Ve
 
 // It's annoying to deal with empty fields and get MIN_INT or some crap back.
 int GetFieldInt(EditInt &fld, int valIfEmpty = -1);
+
 // Tired of trying to remember what PromptYesNo returns
 bool Ok(String question);
 #endif
