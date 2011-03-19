@@ -1,6 +1,6 @@
 #include "UrpInput.h"
 
-//==========================================================================================	
+//==============================================================================================
 // Input Box for a transformation control string to be applied to a multiline input string
 bool UrpInputBox(
 		String& wrapperText
@@ -26,7 +26,7 @@ bool UrpInputBox(
 	return false;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Simpler input box
 bool UrpInputBox(String &inputText, const char *title, const char *label) {
 	WithMyEditStringLayout<TopWindow> dlg;
@@ -50,7 +50,7 @@ bool UrpInputBox(String &inputText, const char *title, const char *label) {
 	return false;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // Date input box; will eventually support more options, like business date calendars, holiday
 // marking and skipping, BDay counting back/forward.
 bool UrpDateInputBox(String &inputText, const char *title, const char *label, VectorMap<String, Date> &returnDates) {
@@ -79,7 +79,7 @@ bool UrpDateInputBox(String &inputText, const char *title, const char *label, Ve
 	return false;
 }
 
-//==========================================================================================	
+//==============================================================================================
 // It's annoying to deal with empty fields and get MIN_INT or some crap back.
 int GetFieldInt(EditInt &fld, int valIfEmpty /*= -1*/) {
 	Value f = fld.GetData();
@@ -91,7 +91,7 @@ int GetFieldInt(EditInt &fld, int valIfEmpty /*= -1*/) {
 	}
 }
 
-//==========================================================================================	
+//==============================================================================================
 bool Ok(String question) {
 	int response = PromptYesNo(question); // Returns 1 for yes
 	
