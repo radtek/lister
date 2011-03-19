@@ -300,11 +300,24 @@ String SqlFormat(Time x)
 	return MakeSqlValue(SQLC_TIME, x);
 }
 
+String SqlFormat(SqlBool x)
+{
+	String s;
+	if (x.IsTrue()) 
+		s = "1";
+	else 
+		s = "0";
+	
+	return SqlFormat(s, s.GetLength());
+}
+
+
 String SqlFormat(const Value& x)
 {
 	if(x.IsNull()) return "NULL";
 	switch(x.GetType()) {
 	case BOOL_V:
+		return SqlFormat((SqlBool) x);
 	case INT_V:
 		return SqlFormat((int) x);
 	case INT64_V:
