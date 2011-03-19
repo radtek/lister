@@ -79,15 +79,18 @@ public:
 	                  // Added from the Script Editor, which only provides these three pieces of info.
 	                  // Create a bare-bones frame for a new test based on a script with a valid scriptid.
 	void              AddTest(String script, int scriptId, int connId);
-	void              SaveTest();
-
+	                  // For When callbacks its easier to call a no-arg function
+	void              SaveTestPrompt();
+	void              SaveTestNoPrompt();
+    void              FieldLayout(FieldOperator& fo);
+	void              SaveTest(bool prompt);
 	int               GetTestId           (int row); void SetTestId(int row, int ptestId);
 	String            GetTestName         (int row);
 	String            GetTestNote         (int row);
 	int               GetTestRelId        (int row);
 	int               GetTestConnId       (int row);
 	int               GetTestTypId        (int row);
-	bool              GetInvertComparison (int row);
+	SqlBool           GetInvertComparison (int row); // bool tangles with int, so we don't get proper SqlFormat construction
 	int               GetCompTypId        (int row);
 	String            GetCompareUsingX    (int row);
 	String            GetCompareUsingY    (int row);
@@ -95,7 +98,9 @@ public:
 	String            GetActualOutcome    (int row);  
 	void              SetActualOutcome    (int row, String pactualOutcome);
 	String            GetOutputValue      (int row);
+	void              SetOutputValue      (int row, String poutputValue);
 	int               GetTaskId           (int row);
+	int               GetProcessOrder     (int row);
 	bool              MeaningfulDataChange();
 	bool              WasTestRequested();
 };
