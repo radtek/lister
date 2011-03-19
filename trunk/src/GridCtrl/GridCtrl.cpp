@@ -1,5 +1,5 @@
 #include <lister/GridCtrl/GridCtrl.h>
-
+#include <lister/Urp/UrpHTML.h> // For CopyHTML, from http://support.microsoft.com/kb/274308
 NAMESPACE_UPP
 
 #pragma warning(disable: 4355)
@@ -660,10 +660,14 @@ void GridCtrl::SetClipboard(bool all/*=false*/, bool silent/*=false*/, GridClipb
 	Point minpos(total_cols, total_rows);
 	Point maxpos(fixed_cols, fixed_rows);
 
-	String tc;
+	String tc, tc2;
 	int prev_row = -1;
 
-	if (gridClipboardStyle == GCS_HTMLFRAGMENT) tc += "<BODY><TABLE BORDER><TR>";
+	// TODO: If pasting links, make sure they work in outlook.
+	if (gridClipboardStyle == GCS_HTMLFRAGMENT) {
+		// http://www.quirksmode.org/css/tables.html
+		tc += "<BODY link=blue vlink=purple><TABLE style='border-collapse: collapse' BORDER CELLSPACING=1><TR>";
+	}
 	
 	for(int i = fixed_rows; i < total_rows; i++)
 	{
@@ -725,7 +729,7 @@ void GridCtrl::SetClipboard(bool all/*=false*/, bool silent/*=false*/, GridClipb
 					// These leading zeros are often meaningful as identifiers.
 					case GCS_HTMLFRAGMENT:
 						if (d.v.GetType() == STRING_V) {
-							tc += '\"' + d.v.ToString() + '\"';
+							tc += d.v.ToString();
 						} else {
 							tc += d.v.ToString();
 						}
@@ -748,9 +752,17 @@ void GridCtrl::SetClipboard(bool all/*=false*/, bool silent/*=false*/, GridClipb
 	bool row_selected = select_row && IsSelected(curpos.y, false);
 	gc.shiftmode = row_selected ? true : shiftmode;
 
-	WriteClipboardFormat(gc);
-	AppendClipboardText(tc);
-
+	// Since U++ has ZERO internal comments, I have no idea how to write HTML to clipboard to
+	// Windows clipboard using U++ functions, so I've resorted to using an article snippet
+	// from Microsoft Support.  Annoying, I know.
+	if (gridClipboardStyle == GCS_HTMLFRAGMENT) {
+		tc = GetExcelHTMLHead() + tc;
+		CopyHTMLToClipboard(tc);
+	} else {
+		WriteClipboardFormat(gc);
+		AppendClipboardText(tc);
+	}
+	
 	if(!silent)
 	{
 		Color c0 = bg_select;
@@ -6508,7 +6520,7 @@ bool GridCtrl::StartEdit()
 	return true;
 }
 
-bool GridCtrl::EndEdit(bool accept, bool doall, bool remove_row)
+bool GridCtrl::EndEdit(bool accept, bool doall, bool remove_row /* remove if !accept and a new row */)
 {
 	if(!valid_cursor)
 		return true;
