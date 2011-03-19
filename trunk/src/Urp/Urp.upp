@@ -9,6 +9,8 @@ file
 	UrpEdit.h,
 	UrpEdit.cpp,
 	UrpGridCommon.h,
+	UrpHTML.h,
+	UrpHTML.cpp,
 	UrpInput.h,
 	UrpInput.cpp,
 	UrpMath.h,
