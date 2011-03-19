@@ -276,7 +276,8 @@ class GridCtrl : public Ctrl
 		enum GridClipboardStyle
 		{
 			GCS_TAB,
-			GCS_HTMLFRAGMENT
+			GCS_HTMLFRAGMENT,
+			GCS_EXCELXML // Not the perfect format from Excel 2003 when MS was being open
 		};
 		
 	private:
@@ -1706,6 +1707,8 @@ class GridCtrl : public Ctrl
 		GridClipboard GetClipboard();
 		public: void SetClipboard(bool all = false, bool silent = false, GridClipboardStyle gridClipboardStyle = GCS_TAB);
 		bool IsClipboardAvailable();
+		// Support for GCS_EXCELXML SetClipboard option, based on viewing xml output.
+		String ConstructExcelXML(int rowcount, int colcount);
 		void PasteCallbacks(bool new_row);
 		void Paste(int mode = 0);
 		void DoCopy();
