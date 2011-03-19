@@ -152,11 +152,16 @@ SqlVal::SqlVal(SqlCol id) {
 SqlVal::SqlVal(const SqlSelect& x) {
 	SetHigh('(' + ((SqlStatement) x).GetText() + ')');
 }
-
-SqlVal::SqlVal(const SqlBool& x) {
-	SetHigh(~x);
-}
 */
+
+// Jeff restored this function and now Get(row, ID) as SqlBool so that this is called
+// from SqlUpdate ect. constructors.  The reason is that PGSQL 9.0 requires boolean to be sent
+// wrapped as string, either '1''0' or 'T''F' or 'Y''N'.  The bit type in MSSQL would tolerate 
+// 1 and 0 as inputs, but not PGSQL.
+SqlVal::SqlVal(const SqlBool& x) {
+	SetHigh(SqlCase(PGSQL, "'")() + (x.AsBool() ? "1" : "0") + SqlCase(PGSQL, "'")());
+}
+
 SqlVal::SqlVal(const Case& x) {
 	SetHigh(~x);
 }
