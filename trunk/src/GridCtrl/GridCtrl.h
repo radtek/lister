@@ -535,6 +535,9 @@ class GridCtrl : public Ctrl
 					sop = SOP_NONE;
 
 					operation = GridOperation::NONE;
+					
+					// Just assume this is data-managed!  Check 
+					linkedtodbcol = 1;
 				}
 
 			public:
@@ -576,6 +579,10 @@ class GridCtrl : public Ctrl
 				bool skip:1;
 				bool edit_insert:1;
 				bool edit_update:1;
+				// Jeff: Added flags to define if this should be applied to the database
+				// when reading in a row.  Id must be a SqlId in your sch file or error.
+				// Jeff: Should this column be written in update/insert op to the database, or read in select statements
+				bool linkedtodbcol:1;
 
 				Value defval;
 
@@ -616,6 +623,7 @@ class GridCtrl : public Ctrl
 				bool   IsHighlight()           { return style & GD::HIGHLIGHT; }
 
 				bool   IsFound()               { return found;                 }
+				
 
 				void   Select(bool s)          { BitSet(style, GD::SELECT, s);    }
 				void   Cursor(bool s)          { BitSet(style, GD::CURSOR, s);    }
@@ -682,7 +690,9 @@ class GridCtrl : public Ctrl
 				ItemRect& NoConvertion();
 				ItemRect& Default(Value v);
 				ItemRect& Index(bool b = true);
-
+				// Let users control db interface
+				ItemRect& LinkedToDb() {linkedtodbcol = 1; } // Db commands will generate this column
+				ItemRect& CalculatedColumn() {linkedtodbcol = 0; return *this; } // Must be supported in code; not a field in the database.
 				String GetName() const;
 				Id     GetAlias() const;
 
