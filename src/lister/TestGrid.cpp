@@ -4,6 +4,7 @@
 #include "TestButton.h"
 #include "Connection.h"
 #include "shared_db.h"
+#include "ContactGrid.h"
 
 //==============================================================================================
 Id IDTestState                ("state");
@@ -90,7 +91,7 @@ void TestGrid::Build() {
 	testTypList.SearchHideRows().Resizeable().Width(200);
 	compTypList.SearchHideRows().Resizeable().Width(200);
 		
-	AddColumn(IDTestState       , ""               ).Ctrls(MakeTestState)    .Default(TestState::ConvertStateToColor(NOTEST_NEVER)).Fixed(16);
+	AddColumn(IDTestState       , ""               ).Ctrls(MakeTestState)    .Default(TestState::ConvertStateToColor(NOTEST_NEVER)).Fixed(16).CalculatedColumn();
 	AddColumn(TESTID            , "Id"  , 100      ).Edit(fldTestId)         .Default(Null);
 	AddColumn(TESTNAME          , "Name", 100      ).Edit(fldTestName);
 	AddColumn(RELID       , "Script"         ).Edit(scriptList)        .SetConvert(scriptList)        .Default(-1);
@@ -102,13 +103,14 @@ void TestGrid::Build() {
 	AddColumn(X   , "X"              ).Edit(fldCompareUsingX);
 	AddColumn(Y   , "Y"              ).Edit(fldCompareUsingY);
 	AddColumn(DESIREDOUTCOME  , "Desired Outcome").Edit(desiredOutcomeList).SetConvert(desiredOutcomeList).Default("P");  // P)ass or F)ail
-	AddColumn(ACTUALOUTCOME   , "Actual Outcome" );   // P)ass, F)ail, I)ndeterminate
+	AddColumn(ACTUALOUTCOME   , "Actual Outcome" ).Edit(actualOutcomeList).SetConvert(actualOutcomeList);   // P)ass, F)ail, I)ndeterminate
 	AddColumn(OUTPUTVALUE     , "Output"         );
 	AddColumn(TASKID      , "Task", 50       ); // The task that owns this test
 	AddColumn(PROCESSORDER, "processorder"   ).Hidden();  // Required for ordering
-	
-	AddColumn(IDTEST            , ""               ).Ctrls(MakeTestButton).Fixed(20).SetImage(CtrlImg::go_forward());
-	AddColumn(IDTESTDUMMY       , ""               ).Fixed(1);
+	AddColumn(ASSIGNTOWHO, "assgnd to"   ).Edit(assignToWhoList).SetConvert(assignToWhoList).Default(-1);
+	AddColumn(LASTRUNWHEN, "runtime"     ).Edit(fldLastRunWhen).Locked(true);
+	AddColumn(IDTEST            , ""               ).Ctrls(MakeTestButton).Fixed(20).SetImage(CtrlImg::go_forward()).CalculatedColumn();
+	AddColumn(IDTESTDUMMY       , ""               ).Fixed(1).CalculatedColumn();
 	
 	built = true;
 }
@@ -122,8 +124,7 @@ String  TestGrid::GetTestNote          (int row)             			  { return TrimB
 int     TestGrid::GetTestRelId         (int row)              			  { return Get(row, RELID); }
 int     TestGrid::GetTestConnId        (int row)              			  { return Get(row, CONNID); }
 int     TestGrid::GetTestTypId         (int row)               			  { return Get(row, TESTTYPID); }
-// Special SqlBool type required in order to properly apostrophize '0' and '1'
-SqlBool TestGrid::GetInvertComparison  (int row)       			  		  { return (SqlBool)Get(row, INVERTCOMPARISON); }
+bool    TestGrid::GetInvertComparison  (int row)       			  		  { return Get(row, INVERTCOMPARISON); }
 int     TestGrid::GetCompTypId         (int row)              			  { return Get(row, COMPTYPID); }
 String  TestGrid::GetCompareUsingX     (int row)        				  	  { return Get(row, X); }
 String  TestGrid::GetCompareUsingY     (int row)   					      { return Get(row, Y); }
@@ -134,7 +135,9 @@ String  TestGrid::GetOutputValue       (int row)          				  { return Get(row
 void    TestGrid::SetOutputValue       (int row, String poutputValue)      {        Set(row, OUTPUTVALUE, poutputValue); }
 int     TestGrid::GetTaskId            (int row)                           { return Get(row, TASKID); }
 int     TestGrid::GetProcessOrder      (int row)                           { return Get(row, PROCESSORDER); }
+void    TestGrid::SetLastRunWhen       (int row, Time plastRunWhen) { Set(row, LASTRUNWHEN, plastRunWhen); }
 
+//
 //==============================================================================================
 void TestGrid::SaveTestPrompt() {
 	SaveTest(true);
@@ -145,26 +148,27 @@ void TestGrid::SaveTestNoPrompt() {
 	SaveTest(false);
 }
 
-void FieldLayoutRaw(FieldOperator& f, const String& prefix = String());
-
 //==============================================================================================
+// Easily transform all grid columns to SQL Db columns if flagged as linked to db.
+// This is a callback as defined "SqlInsert& operator()(Fields f, bool nokey = false);"
+// Where Fields is just a sneaky "typedef Callback1<FieldOperator&> Fields;" in sqlexp.h!
+// This is also used for 
 void TestGrid::FieldLayout(FieldOperator& fo) {
-	fo
-		(TESTNAME        , Get(TESTNAME))
-		(NOTE            , Get(NOTE))
-		(RELID           , Get(RELID))
-		(CONNID          , Get(CONNID))
-		(DESIREDOUTCOME  , Get(DESIREDOUTCOME))
-		(ACTUALOUTCOME   , Get(ACTUALOUTCOME))
-		(X               , Get(X))
-		(Y               , Get(Y))
-		(INVERTCOMPARISON, Get(INVERTCOMPARISON))
-		(COMPTYPID       , Get(COMPTYPID))
-		(TESTTYPID       , Get(TESTTYPID))
-		(TASKID          , Get(TASKID))
-		(OUTPUTVALUE     , Get(OUTPUTVALUE))
-		(PROCESSORDER    , Get(PROCESSORDER))
-	;
+	for (int i = 0; i < GetFloatingColumnCount(); i++) {
+		GridCtrl::ItemRect& ir = GetFloatingColumn(i);
+		if (ir.linkedtodbcol == 1) {
+			// Call to "FieldOperator& operator()(Id id, Ref f) " in Sqlexp.h
+			// Very complex to figger out.
+			if (IsCursor()) {
+				fo(GetFloatingColumnId(i), Get(GetFloatingColumnId(i)));
+			} else if(IsSelection()) {
+				fo(GetFloatingColumnId(i), Get(GetFirstSelection(), GetFloatingColumnId(i)));
+			} else {
+				// No row selected
+				fo(GetFloatingColumnId(i), Value(Null));
+			}
+		}
+	}
 }
 
 //==============================================================================================
@@ -173,51 +177,50 @@ void TestGrid::SaveTest(bool prompt) {
 	ASSERT(connection->session->IsOpen());
 	ASSERT(IsCursor());
 	int row = GetCursor();
+	SqlStatement sts; 
+	
+	// Inserting a new test
 	
 	if (IsNewRow()) {
 		Set(PROCESSORDER, GetNextProcessOrder());
-		SqlInsert s = SqlInsert(TESTS)(THISBACK(FieldLayout));
-		SqlStatement st(s);
-		String controlScript = st.Get(connection->GetDialect()); // Transform to proper Sql
+		sts = SqlStatement(SqlInsert(TESTS)(THISBACK(FieldLayout)));
 
-		LOG(controlScript);
-		int rsp = 1;
+	// Updating an existing test
+			
+	} else {
+		sts = SqlStatement(SqlUpdate(TESTS)(THISBACK(FieldLayout)).Where(TESTID == Get(TESTID)));
+	}
+	
+	// Wrap in a SqlStatement object, which will somehow either call the SqlUpdate or
+	// SqlInsert operator SqlStatement() const, which then constructs a string and forms
+	// the constructor "explicit SqlStatement(const String& s) : text(s) {}", and so
+	// sets the text member.  I don't know what the explicit command means.
+	
+	
+	// Transform to proper Sql; Sql will not be properly formed until the dialect of the 
+	// connection is determined, in this case PGSQL.  Do not use GetText().
+	// This calls SqlCompile(dialect, text) to finalize the "text" member contents.
+	String controlScript = sts.Get(connection->GetDialect());
+
+	LOG(controlScript);
+	int rsp = 1;
+	
+	if (prompt) {		
+		rsp = PromptOKCancel(CAT << "Script being applied: " << controlScript);
+	}		
+	
+	if (rsp == 1) {
+		if (!connection->SendAddDataScript(controlScript)) {
+			// Beep
+			return;
+		}
 		
-		if (prompt) {		
-			rsp = PromptOKCancel(CAT << "Inserting Test: " << controlScript);
-		}		
-		
-		if (rsp == 1) {
-			if (!connection->SendAddDataScript(controlScript)) {
-				// Beep
-				return;
-			}
+		if (IsNewRow()) {
 			if (connection->GetRowsProcessed() > 0) {		
 				int testid = connection->GetInsertedId("tests", "testid");
 				if (testid >= 0) {
 					SetTestId(row, testid);
 				}
-			}
-		}
-
-	// Updating an existing test
-			
-	} else {
-		SqlUpdate s = SqlUpdate(TESTS)(THISBACK(FieldLayout)).Where(TESTID == Get(TESTID));
-		SqlStatement st(s);
-		String controlScript = st.Get(connection->GetDialect());
-
-		LOG(controlScript);
-		int rsp = 1;
-		
-		if (true || prompt) {		
-			rsp = PromptOKCancel(CAT << "Updating Test: " << controlScript);
-		}		
-		
-		if (rsp == 1) {
-			if (!connection->SendChangeDataScript(controlScript)) {
-				// Beep
-				return;
 			}
 		}
 	}
@@ -233,10 +236,15 @@ void TestGrid::SaveTest(bool prompt) {
 	desiredOutcomeList.Clear();
 	desiredOutcomeList.Add("P", "Pass");
 	desiredOutcomeList.Add("F", "Fail");
+
+	actualOutcomeList.Clear();
+	actualOutcomeList.Add("P", "Pass");
+	actualOutcomeList.Add("F", "Fail");
+	actualOutcomeList.Add("I", "Indeterminate");
 	
 	invertCompList.Clear();
-	invertCompList.Add(false, "");
-	invertCompList.Add(true, "NOT");
+	invertCompList.Add(Value((bool)false), "");
+	invertCompList.Add(Value((bool)true), "NOT");
 
 	// Types of comparisons
 	compTypList.Clear();
@@ -271,49 +279,33 @@ void TestGrid::SaveTest(bool prompt) {
 		}
 	}
 
+	ContactGrid::LoadContact(connection, assignToWhoList);
+	ContactGrid::BuildContactList(assignToWhoList);
+	
+	// Load all the tests for current task
+	
 	Clear();
-	String script = 
-	 			"select "
-				"  testid"           // 0
-				", testname"         // 1
-				", note"             // 2
-				", relid"            // 3
-				", connid"           // 4
-				", desiredoutcome"   // 5
-				", actualoutcome"    // 6
-				", outputvalue"      // 7
-				", x"                // 8
-				", y"                // 9
-				", invertcomparison" // 10: Boolean
-				", comptypid"        // 11
-				", testtypid"        // 12
-				", taskid"           // 13
-				", processorder"     // 14
-				" from tests where testid >= 0 ";
-				
+	
+	SqlSelect s = SqlSelect(THISBACK(FieldLayout)).From(TESTS);
+	SqlBool filter(TESTID >= 0);
+	
 	if (taskId != UNKNOWN) {
-		script << " and taskId = " << taskId;
+		filter&= TASKID == taskId;
 	}
-	script << " order by testname";
+	
+	
+	String controlScript = SqlStatement(s.Where(filter).OrderBy(TESTNAME)).Get(connection->GetDialect());
+	LOG(controlScript);
 
-	if (connection->SendQueryDataScript(script)) {
+	if (connection->SendQueryDataScript(controlScript)) {
 		while(connection->Fetch()) {
 			Add();
-			Set(TESTID             , connection->Get(0));
-			Set(TESTNAME           , connection->Get(1));
-			Set(NOTE               , connection->Get(2));
-			Set(RELID        , connection->Get(3));
-			Set(CONNID       , connection->Get(4));
-			Set(DESIREDOUTCOME   , connection->Get(5));       // P)ass or F)ail
-			Set(ACTUALOUTCOME    , connection->Get(6));       // P)ass, F)ail, I)ndeterminate
-			Set(OUTPUTVALUE      , connection->Get(7));
-			Set(X    , connection->Get(8));
-			Set(Y    , connection->Get(9));
-			Set(INVERTCOMPARISON , connection->GetBool(10));  // A "NOT" test.  We know its Boolean, but PostgreSQL driver does not.  I returns a string of 1 or 0
-			Set(COMPTYPID        , connection->Get(11));
-			Set(TESTTYPID        , connection->Get(12));
-			Set(TASKID       , connection->Get(13));
-			Set(PROCESSORDER, connection->Get(14));
+			for (int i = 0; i < GetFloatingColumnCount(); i++) {
+				GridCtrl::ItemRect& ir = GetFloatingColumn(i);
+				if (ir.linkedtodbcol == 1) {
+					Set(GetFloatingColumnId(i), connection->Get((SqlId)GetFloatingColumnId(i)));
+				}
+			}
 		}
 	}
 	
@@ -324,19 +316,14 @@ void TestGrid::SaveTest(bool prompt) {
 bool TestGrid::MeaningfulDataChange() {
 	if (!IsModifiedRow()) return false; // No change
 	
-	if (
-		!IsModified(TESTNAME)         &&
-		!IsModified(NOTE)         &&
-		!IsModified(RELID)        &&
-		!IsModified(CONNID)       &&
-		!IsModified(DESIREDOUTCOME)   &&
-		!IsModified(ACTUALOUTCOME)    &&
-		!IsModified(X)    &&
-		!IsModified(Y)    &&
-		!IsModified(INVERTCOMPARISON) &&
-		!IsModified(TESTTYPID)        &&
-		!IsModified(COMPTYPID)
-		) return false;
+	for (int i = 0; i < GetFloatingColumnCount(); i++) {
+		GridCtrl::ItemRect& ir = GetFloatingColumn(i);
+		if (ir.linkedtodbcol == 1) {
+			if (!IsModified(GetFloatingColumnId(i))) {
+				return false;
+			}
+		}
+	}
 
 	return true;
 }

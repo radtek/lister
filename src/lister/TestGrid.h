@@ -57,14 +57,16 @@ public:
 	EditString        fldTestNote;
 	EditString        fldCompareUsingX;
 	EditString        fldCompareUsingY;
-
+	EditTime          fldLastRunWhen;
 	DropGrid          connList
 	,                 scriptList
 	,                 invertCompList
 	,                 desiredOutcomeList
+	,                 actualOutcomeList
 	,                 envList
 	,                 testTypList
 	,                 compTypList
+	,                 assignToWhoList
 	;
 
 	int               taskId; // Filter all tests by task id, for manageability
@@ -90,7 +92,7 @@ public:
 	int               GetTestRelId        (int row);
 	int               GetTestConnId       (int row);
 	int               GetTestTypId        (int row);
-	SqlBool           GetInvertComparison (int row); // bool tangles with int, so we don't get proper SqlFormat construction
+	bool              GetInvertComparison (int row);
 	int               GetCompTypId        (int row);
 	String            GetCompareUsingX    (int row);
 	String            GetCompareUsingY    (int row);
@@ -101,6 +103,7 @@ public:
 	void              SetOutputValue      (int row, String poutputValue);
 	int               GetTaskId           (int row);
 	int               GetProcessOrder     (int row);
+	void              SetLastRunWhen      (int row, Time plastRunWhen);
 	bool              MeaningfulDataChange();
 	bool              WasTestRequested();
 };
