@@ -300,6 +300,8 @@ String SqlFormat(Time x)
 	return MakeSqlValue(SQLC_TIME, x);
 }
 
+// Created new case for boolean.  bool type gets rolled into int format, but PGSQL 9 needs
+// values passed to boolean wrapped in apostrophes.
 String SqlFormat(SqlBool x)
 {
 	String s;
@@ -308,6 +310,8 @@ String SqlFormat(SqlBool x)
 	else 
 		s = "0";
 	
+	// This calls SqlFormat(const char *s, int l), which calls SqlFormat0(s, l, SQLC_STRING),
+	// which SqlCompile detects the stuffed in byte SQLC_STRING, and r->Cat('\'');
 	return SqlFormat(s, s.GetLength());
 }
 
@@ -316,7 +320,7 @@ String SqlFormat(const Value& x)
 {
 	if(x.IsNull()) return "NULL";
 	switch(x.GetType()) {
-	case BOOL_V:
+	case BOOL_V: // Added new trap.  BOOL_V previously fell into INT_V handler.
 		return SqlFormat((SqlBool) x);
 	case INT_V:
 		return SqlFormat((int) x);
