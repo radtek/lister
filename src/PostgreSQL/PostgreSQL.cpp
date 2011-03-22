@@ -632,9 +632,13 @@ void PostgreSQLConnection::GetColumn(int i, Ref f) const
 		case DOUBLE_V:
 			f.SetValue(atof(s));
 			break;
-		case BOOL_V:
-			f.SetValue(*s == 't' ? "1" : "0");
+		case BOOL_V: {
+			// This is stoopid.  Why are we setting a boolean as string?  Won't this cause problems?
+			// How the fuck will we know it was a boolean data object?
+			f.SetValue(Value((bool)(*s == 't')));
+			//f.SetValue(*s == 't' ? "1" : "0");
 			break;
+		}
 		case DATE_V:
 			f.SetValue(sDate(s));
 			break;
