@@ -53,8 +53,8 @@ void TaskDefWin::Build(Connection *pconnection) {
 	ContactGrid::LoadContact(connection, fldDepOnWho4);
 	ContactGrid::LoadContact(connection, fldDepOnWho5);
 	
-	ContactGrid::BuildContactList(fldAssignedByWho);
 	ContactGrid::BuildContactList(fldAssignedToWho);
+	ContactGrid::BuildContactList(fldAssignedByWho);
 	ContactGrid::BuildContactList(fldDepOnWho);
 	ContactGrid::BuildContactList(fldDepOnWho2);
 	ContactGrid::BuildContactList(fldDepOnWho3);
