@@ -18,4 +18,5 @@ What areas of this project are generally active?  Every project owner/developer 
   * Wiki Log page. I try to add high-level notes here dated to the month level.
   * Hopefully will get back into blogging about this project as I did a previous project (jammit).
   * I would add a Google Group, but I can't access it while working so its not much use to me.
-  * What else?  I know there needs to be sample code, database samples, script samples, and a tutorial with screen shots.  Someday.
+  * I know there needs to be sample code, database samples, script samples, and a tutorial with screen shots.  Someday.
+  * An installation guide is needed.
