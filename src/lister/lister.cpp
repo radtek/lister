@@ -300,7 +300,7 @@ void Lister::ClickedTest() {
 	String testX            = testGrid.GetCompareUsingX   (row);
 	String testY            = testGrid.GetCompareUsingY   (row); // Note that PostgreSQL can store Arrays in a single value
 	String desiredOutcome   = testGrid.GetDesiredOutcome  (row);
-	bool   invertComparison = testGrid.GetInvertComparison(row).AsBool();
+	bool   invertComparison = testGrid.GetInvertComparison(row);
 	
 	if (testTypId == UNKNOWN) {
 		Exclamation("Must assign a test type");
@@ -447,7 +447,8 @@ void Lister::ClickedTest() {
 			}
 			
 			testGrid.SetOutputValue(row, testResult.ToString());
-		
+			testGrid.SetLastRunWhen(row, GetUtcTime()); // I'm not sure it saves the timezone
+			
 			// Write to database
 			testGrid.SaveTestNoPrompt();
 			
