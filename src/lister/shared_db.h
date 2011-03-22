@@ -7,6 +7,5 @@
 #define MODEL <lister/lister/database.sch>
 
 #include "lister/Sql/sch_header.h"
-//#include <lister/Sql/sch_schema.h>
 
 #endif
