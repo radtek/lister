@@ -1,0 +1,17 @@
+#summary How change is introduced, the pattern of growth.
+
+= Introduction =
+
+What areas of this project are generally active?  Every project owner/developer works in their own way, and expects people to just "figure it out".  I'm trying to list here what areas I work in most and what I try to keep up periodically.
+
+
+= Details =
+  * First and foremost, the code changes.  It is the most critical, and I guess this follows the SCRUM mode of programming, somewhat.
+  * Comments within the code are first.  A few lines are added to each function and each class, but notes around single lines of code are often over-explained.  I find that the key misunderstandings reside at very specific points in code, and I try to account for that.  Plus if that line changes, I'm more likely to update the comment that is right above it.
+  * I don't yet have header comments on each cpp file, and I probably should.
+  * SVN Commit.  I usually comment a series of dashed lines per each cpp/h file pair.  If a comment is relevant and I happen to remember, I'll reused that comment at the other file's checkin, but that is rare.
+  * Frequent commits.  I try to commit daily, which means more relevant and traceable changes, but also more buggy code is released.
+  * Refactoring.  I often refactor just at the sight of unsightly code.  I refactor cpp files when I see they are getting too big, but only a few functions at a time.  I test as I go.
+  * I used to use tools to unittest, but I don't currently have anything set up.
+  * I may start to use the T++ facility in U++, but the comments would then only be available from within the U++ IDE.  They are nice, though, since they popup on hover, include richtext, and don't eat up code space.
+  * The main project page: 
