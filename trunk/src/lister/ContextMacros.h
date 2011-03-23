@@ -2,7 +2,6 @@
 #define _lister_lister_ContextMacros_h_
 
 #include "shared.h"
-
 struct MacPair : Moveable<MacPair> {
 	String replaceWith;
 	String expansion;
@@ -14,10 +13,17 @@ struct MacPair : Moveable<MacPair> {
 
 typedef VectorMap<String, MacPair> MacMap;
 
+class ContextMacros;
+class Connection;
+
 class ContextMacros {
 public:
 	MacMap envMacros;
 	MacMap taskMacros;
+	String envLetter;
+	bool rebuildTaskMacros;
+	int taskId;
+	
 	//User
 	//Machine
 	//Project
@@ -31,6 +37,7 @@ public:
 	
 	     ContextMacros(); 
 	void UpdateAvailableMacros(DropGrid &macrosAvailableList, ContextMacros *activeContextMacros);
+	void RebuildMacros(int connId, ContextMacros *activeContextMacros, Connection *controlConnection, Connection *lastActiveConnection, DropGrid *macrosAvailableList = NULL);
 };
 
 
