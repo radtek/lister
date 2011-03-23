@@ -1764,6 +1764,7 @@ class GridCtrl : public Ctrl
 		Callback WhenDuplicateRow;
 		
 		Callback2<int, int> WhenMoveRow;
+		Callback WhenMovedRows;
 
 		Callback WhenCancelNewRow;
 
