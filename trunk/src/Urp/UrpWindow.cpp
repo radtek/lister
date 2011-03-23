@@ -73,4 +73,45 @@ UrpWindow::UrpWindow() : TopWindow(), UrpGridCommon() {
 	}
 }
 
+//==============================================================================================
+// Little sheller; needs some work
+bool UrpWindow::Shell(String shellCommand) {
+	String copyerr;
+	String shellLine = shellCommand;
+	LocalProcess lp(shellLine);
+	GuiSleep(10);
+	int e = lp.GetExitCode();
+	String estr = lp.Get();
+	bool errorincopy = false;
+	bool isrunning = lp.IsRunning();
+	
+	if (!isrunning) {
+		copyerr = (CAT << "Never even started! e=" << e << ", stdout=" << estr);
+		errorincopy = true;
+	}
+	
+	while (isrunning) {
+		GuiSleep(10);
+		ProcessEvents();		
+		estr = lp.Get();
+		if (estr.Find("ERROR:") >= 0) {
+			errorincopy = true;
+			lp.Kill();
+			
+			copyerr = (CAT <<"Export error: " << estr);
+			break;
+		}
+		
+		e = lp.GetExitCode(); // Appears to be useless
+		isrunning = lp.IsRunning();
+	}
 
+	if (errorincopy) {
+		copyerr = (CAT << "Error in export db proc:" << estr);
+		LOG(copyerr);
+		return 0;
+	} else {
+		return 1;
+	}	
+	
+}
