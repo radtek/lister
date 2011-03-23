@@ -89,16 +89,16 @@ void ConnGrid::Build() {
 	bool r = x.IsFixed(); // ismin ismax are not set in original GridCtrl, so I cloned it and fixed it, and made this function pubic.
 //	bool rmax = x.IsMax();
 //	bool rmin = x.IsMin();
-	AddColumn( IDConnId         , "Id"          ).Edit(fldConnId         )                         .Default(Null);
+	AddColumn( IDConnId         , "Id"          ).Edit(fldConnId         ).Hidden()                         .Default(Null);
 	AddColumn( IDConnName       , "Name"        ).Edit(fldConnName       );
-	AddColumn( IDLoginId        , "Login Id"    );
+	AddColumn( IDLoginId        , "Login Id"    ).Hidden();
 	AddColumn( IDLoginStr       , "Login"       ).Edit(fldLoginStr       );                                                             
 	AddColumn( IDLoginPwd       , "Pwd"         ).Edit(fldLoginPwd       );                                                               
 	AddColumn( IDIsOSAuth       , "OS Auth?"    ).Edit(osAuthList        ).SetConvert(osAuthList  ); // A Login property.
 	AddColumn( IDInstanceId     , "Instance"    ).Edit(instanceList      ).SetConvert(instanceList).Default(-1);
-	AddColumn( IDInstanceName   , "InstNm"      );
+	AddColumn( IDInstanceName   , "InstNm"      ).Hidden();
 	AddColumn( IDInstTypId      , "InstTyp"     ).Edit(instTypList       ).SetConvert(instTypList ).Default(-1);
-	AddColumn( IDInstTypName    , "InstTypeNm"  ); // Not really editable yet    
+	AddColumn( IDInstTypName    , "InstTypeNm"  ).Hidden(); // Not really editable yet    
 	AddColumn( IDDatabaseName   , "DbNm"        ).Edit(fldDbName         );
 	AddColumn( IDPortNo         , "PrtNo"       ).Edit(fldPortNo         );
 	AddColumn( IDInstanceAddress, "Address"     ).Edit(fldInstanceAddress).Editable(false);
