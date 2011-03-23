@@ -19,6 +19,8 @@ public:
 	virtual void      Close();
 	virtual bool      CloseIfNotClosed();
 	virtual void      Xmlize(XmlIO xml);
+	                  // Shell to OS and execute a command, wait till errors or completes
+	bool              Shell(String shellCommand);
 };
 
 
