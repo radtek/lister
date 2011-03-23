@@ -3,6 +3,7 @@
 
 #include "ConnectedCtrl.h"
 #include <lister/Urp/UrpGrid.h>
+#include <lister/Urp/UrpInput.h> // Need BoolOption
 
 class Connection;
 
@@ -54,9 +55,10 @@ public:
 	
 	EditInt           fldTestId;
 	EditStringNotNull fldTestName;  // 0) A meaningful name; too many tests to track without a name
-	EditString        fldTestNote;
-	EditString        fldCompareUsingX;
-	EditString        fldCompareUsingY;
+	EditString        fldOutputToMacro
+	,                 fldTestNote
+	,                 fldCompareUsingX
+	,                 fldCompareUsingY;
 	EditTime          fldLastRunWhen;
 	DropGrid          connList
 	,                 scriptList
@@ -68,7 +70,7 @@ public:
 	,                 compTypList
 	,                 assignToWhoList
 	;
-
+	BoolOption        optStopBatchRunOnFail; // returns a bool instead of a damn number
 	int               taskId; // Filter all tests by task id, for manageability
 	
                       TestGrid();
@@ -86,6 +88,7 @@ public:
 	void              SaveTestNoPrompt();
     void              FieldLayout(FieldOperator& fo);
 	void              SaveTest(bool prompt);
+	void              SaveRow(int row, int newProcessOrder);
 	int               GetTestId           (int row); void SetTestId(int row, int ptestId);
 	String            GetTestName         (int row);
 	String            GetTestNote         (int row);
