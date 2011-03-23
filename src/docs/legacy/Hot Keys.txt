@@ -1,0 +1,113 @@
+text = data input into current field, search in grid
+esc = cancel current input operation, close current dialog box
+enter = execute default operation
+page up/down
+end = end of visual line
+double-end = end of paragraph of end of visual page in grid, end of function in script
+triple-end = scroll to bottom of current grid
+home =	 t
+scroll-lock = lock position in current grid and scroll
+shift+Alt+Enter = Full Screen (Microsoft), does not enter an esc higher state
+
+F1 = Help
+F2 = edit mode	   or, rename in list
+F3 = Repeat search
+F4 = open up editor window for current field (from Access)
+F5 = Refresh
+F7 = spell check
+F9 = synch with other open editors, or set breakpoint in Visual Studio
+F10 = Menu Focus
+F11 = Full screen
+Alt = (Vista) Show/hide menu
+
+ctl-space = expand current hierarchy
+ctl-a = Select all (Doesn't work in a lot of apps!)
+ctl-b = bold	 or Organize Favorites (IE)
+ctl-c = copy
+ctl-d = add bookmark to location
+ctl-e = align center
+ctl-f = find and replace window (from PL/SQL developer)
+ctl-g = (context) group selected objects, or goto dialog (line number?)
+ctl-h = history (IE)
+ctl-i = italics
+ctl-k = insert hyperlink
+ctl-l = align left
+ctl-n = open new file
+ctl-o = open doc
+ctl-p = print
+ctl-r = align right
+ctl-s = pause a scrolling screen (DOS), save file (Windows)
+ctl-u = (context) ungroup, in text box, underline
+ctl-v = paste
+ctl-x = cut selected item
+ctl-y = delete current line (TurboBasic)	  or Redo (Office)
+ctl-z = undo
+ctl-home = beginning of doc
+ctl-end = end of doc
+ctl-F4 = close active document in MDI
+ctl-F6 = previous screen of similar type; let go of ctl then direction reverses
+ctl-ins = copy selected item
+ctl-tab = next tabbed group
+ctl-page up = top of current list, top of current
+ctl-left = word left
+ctl-down = field below? word below, next paragraph
+ctl-click	(escaplable op?)  select distinct item
+ctl-shift-c = copy special (context-menu)
+ctl-shift-v = paste special (transform, etc)
+ctl-' = copy function from above
+ctl=" = copy value from above
+ctl-; = date (Excel)
+ctl-: = time (Excel)
+ctl-( = unhide hidden rows in selection
+ctl-) = unhide hidden cols in selection
+Ctrl-Click Wheel (Scroll) Zoom in out doc
+ctl-mouse-hover over url style text: shift cursor to hand; click jumps to URL loc
+ctl-drag
+shift-ctl-drag
+tab-(selected) indent
+shift-tab (selected) unindent
+backspace = go up a level in a tree view
+space = in a web browser scrolls down
+shift-space = scrolls up
+shift-del = cut selected item, or permanently delete
+shift-ins = paste
+shift-enter = new line in current field
+shift-click (escapable op?) - select to this point
+shift-down = select down
+
+double-click = highlight a word around boundaries of current script language, in grid, word
+triple-click = logical word (cross hyphens)
+quadruple-click = logical sentence
+left-drag = default operation; non-destructive move
+right-drag = copy operation with context menu of options
+alt-left = back logical operation (any position change in a grid is backable)
+alt-down = open up current field drop down
+alt-enter = current objects properties
+alt-f = File Menu
+
+Win-M = Minimize all (cool)
+Win-Shift-M = Undo min
+Win-L = lock desktop (cool)
+
+?? = email to...
+
+
+
+Possible
+========
+ctl-shift-F = format script
+ctl-shift-S = spell check word under cursor
+ctl-G = google word
+ctl-shift-G = google word with context words
+  
+  
+The pager control was introduced with the common controls library that came with Internet Explorer 4.0 in order to assist in implementing scrolling menus on the Start menu and Favorites menu. (The Start menu and Favorites menu aren't really menus in the Win32 sense. They are custom controls written to act like menus; the fakemenu sample provides the basic idea.) The menu part is wrapped inside a pager control, and it is the pager that provides the scrolling behavior. 
+It so happens that scrolling menus were a bad idea. User feedback after the release of Internet Explorer 4.0 rather decisively indicated that people much preferred multi-column menus on the Start menu, so the default was changed back to multi-column menus in subsequent versions. The pager control is still used on the Favorites menu, and it was publically documented, so the control cannot ever die (for compatibility reasons), but not much attention is paid to it any more.
+
+Windows Vista has search-as-you-type.
+
+vi commands:
+
+/
+:qq
+q!

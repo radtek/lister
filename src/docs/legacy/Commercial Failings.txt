@@ -1,0 +1,30 @@
+ID	Title	Assigned To	Status	Priority	Due Date	% Complete
+1	Resist using opensource or freeware		Not Started	(2) Normal		
+2	Resist features that reduce sales		Not Started	(2) Normal		
+3	They discontinue successful products that don't make money		Not Started	(2) Normal		
+4	They can't admit failure		Not Started	(2) Normal		
+5	They can't appreciate other products		Not Started	(2) Normal		
+6	They resist interfacing with competitors		Not Started	(2) Normal		
+7	They resist standards		Not Started	(2) Normal		
+8	"Can't have ""partially"" working code"		Not Started	(2) Normal		
+9	Expensive		Not Started	(2) Normal		
+10	Can't interface to competitors without risking lawsuits		Not Started	(2) Normal		
+11	Can't bundle too much or they risk you not needing to repurchase next year		Not Started	(2) Normal		
+12	Can't desupport support for Parter products even if better one comes along		Not Started	(2) Normal		
+13	Can't desupport functions that support Corporations other products even if they suck		Not Started	(2) Normal		
+14	Can't support technology that competes on any level with our Corporation or Affiliate technology		Not Started	(2) Normal		
+15	Encouraged to increase bloat that reduces performance since Intel is a partner		Not Started	(2) Normal		
+16	Disallow direct access to internals due to lawsuit risks of customers breaking production systems		Not Started	(2) Normal		
+17	Constantly repackage the same stuff (ActiveX->OLE2->OCX-Net) to keep your attention		Not Started	(2) Normal		
+18	Drop support for useful things if they fear competion from self (VBX)		Not Started	(2) Normal		
+19	"Pretend to include support for other technologies just to kill them (Visual FoxPro, Oracle for MSV)"		Not Started	(2) Normal		
+20	"Include crappy Partner products (Gator) in their install (Nero 7 Demo) or trial versions that corrupt your computer because the ""partner"" shells out a few bucks to Microsoft to include it in Vista or Best Buy."		Not Started	(2) Normal		
+21	Products are more complex and break easily due to security fears that people will (shock!) make illegal copies of their product and give it to their friends		Not Started	(2) Normal		
+22	"Sometimes add functionality (bloatware) just to increase sales to people who buy software based on number of features, whether they need them or not"		Not Started	(2) Normal		
+23	"Deploy untested functionality to beat a competitor (often) release, calculating loss of revenue due to bugs against the lost of customers to a competitor"		Not Started	(2) Normal		
+24	Can't interface with a partner's competitor		Not Started	(2) Normal		
+25	Have to obfuscate their code and block reverse engineer attempts		Not Started	(2) Normal		
+26	Don't flush out each function provided since there is no money in it.  You get more sales by a wide variety of limited functions than by a small set of deep functions		Not Started	(2) Normal		
+27	"DON'T ever write anything that will completely satisfy the customer, or they may not come back for years"		Not Started	(2) Normal		
+28	"Can't come clean and say ""we didn't support that standard because were too busy"""		Not Started	(2) Normal		
+29	"Can't support anything illegal (i.e., link to GigaNews, download/install apps) due to lawsuit risk"		Not Started	(2) Normal		
