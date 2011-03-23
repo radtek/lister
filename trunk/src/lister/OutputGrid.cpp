@@ -1,5 +1,12 @@
 #include "OutputGrid.h"
 
+#include "image_shared.h"
+#include <Draw/iml_header.h>
+
+// Only in lister.cpp
+//#include "image_shared.h"
+//#include <Draw/iml_source.h>
+
 //==============================================================================================
 OutputGrid::OutputGrid() : UrpGrid() {
 	Indicator(); // Critical.  Sizing of columns will be distorted without this.
@@ -68,7 +75,7 @@ bool OutputGrid::Key(dword key, int count) {
 	return UrpGrid::Key(key, count);
 }
 
-//==============================================================================================	
+//==============================================================================================
 void OutputGrid::MainGridContextMenu(Bar &bar) {
 	StdMenuBar(bar);
 	bar.Add("Select entire row", THISBACK(ToggleMainGridSelectRow))
@@ -77,10 +84,11 @@ void OutputGrid::MainGridContextMenu(Bar &bar) {
 	bar.Add("Copy columns to comma-delim list", THISBACK(CopyColListCommaDelim));
 	bar.Add("Copy columns to comma-delim list w/pref", THISBACK(CopyColListCommaDelimWthPrefix));
 	bar.Add("Copy columns order by data type", THISBACK(CopyColListCommaDelimByType));
-	bar.Add("View row as a vertical record", THISBACK(PopUpRecordView));
+	bar.Add("View row as a vertical record", THISBACK(PopUpRecordView))
+		.Image(MyImages::recview16());
 }
 
-//==============================================================================================	
+//==============================================================================================
 // Using an UrpConfigWindow so position gets remembered.
 void OutputGrid::PopUpRecordView() {
 	UrpConfigWindow *w = windowFactory->Open((UrpTopWindow *)this->GetTopWindow(), "recordview");
@@ -89,6 +97,7 @@ void OutputGrid::PopUpRecordView() {
 	if (w->wasCreatedNew) {
 		// one-time ops
 		g = new RecordViewGrid();
+		w->Icon(MyImages::recview16()); // Have to set here, not in constructor for dynamics.
 		g->Build(); // Create the columns
 		w->AddCtrl(g);
 	} else {
@@ -106,19 +115,22 @@ void OutputGrid::PopUpRecordView() {
 
 }
 
-//==============================================================================================	
+//==============================================================================================
+// From context menu, switch between cell selection and row highlighting.  Row view helps matching
+// column values that are far apart.
 void OutputGrid::ToggleMainGridSelectRow() {
 	maingridselectrow = !maingridselectrow;
 	SelectRow(maingridselectrow);
 }
 
-//==============================================================================================	
+//==============================================================================================
+// Helper to stuff the clipboard with something like "a.x as f_x, a.y as f_y".  You would enter "a" and "f_".
 void OutputGrid::CopyColListCommaDelimWthPrefix() {
 	String co;
-	String prefix("");
-	String aliasprefix("");
-	UrpInputBox(prefix, "Prefix per Column Name", "Enter the string you want prepended to each column name");
-	UrpInputBox(aliasprefix, "Alias Prefix per Column Alias", "Enter the string you want prepended to each column alias");
+	String prefix("colprefix");
+	String aliasprefix("alias_");
+	UrpInputBox(prefix, "Table Alias as Prefix to each Column Name", "Enter the string you want prepended to each column name, usually the table in the from clause or its alias.  Do not include the '.'");
+	UrpInputBox(aliasprefix, "Column Alias Prefix per Column Alias", "Enter the string you want prepended to each column alias");
 	
 	for (int i = 0; i < GetFloatingColumnCount(); i++) {
 		if (i) co << ", ";
@@ -131,7 +143,8 @@ void OutputGrid::CopyColListCommaDelimWthPrefix() {
 	WriteClipboardText(co);
 }
 
-//==============================================================================================	
+//==============================================================================================
+// Copy onto the clipboard all the columns of the grid to a comma-delimited list, such as: "cusip, price, quantity"
 void OutputGrid::CopyColListCommaDelim() {
 	String co;
 	
@@ -143,7 +156,10 @@ void OutputGrid::CopyColListCommaDelim() {
 	WriteClipboardText(co);
 }
 
-//==============================================================================================	
+//==============================================================================================
+// Useful function that groups the columns by data type and labels each group with a comment.
+// For very wide grids this help isolate problems where you are getting baffling error messages
+// related to data type ("non-numeric") but no column name.
 void OutputGrid::CopyColListCommaDelimByType() {
 	String co;
 	
