@@ -1,0 +1,22 @@
+ID	Title	Comment
+1	Avoid modal dialogs	Dialogs prevent cut and paste from various parts of the app.  In actimize this prevents an expression browser test from cut and pasting from a function.
+2	Resize anything	"For some reason, many products, like DTS, don't bother to allow resizing on their dialogs, making use very difficult for large scripts."
+3	Remember last size of each window	
+4	"Locking dialogs, but R/O other objects"	"Interesting idea: a pop-up dialog would be pinned, and you could R/O anything else, but can't start any processes that could change. Hmmm."
+5	Pinnable windows	Can pin/unpin any window
+6	Right-click any label/field pair and see the argument that controls it	Might work; then you could pass in that argument on a run to control the value.
+7	Full screen anything	"except with an easy key like F12, instead of MS's version Shift-Ctl Enter."
+8	Shift-Enter is new line inside a dialog	
+9	Drag and drop always does something	
+10	Shift-F2 expands any text of drop down field or zooms any QTextEdit box	
+11	Macros work anywhere	
+12	Cut and paste any GUI message to clipboard	Should always be an option on any dialog.
+13	View log from any point with search	Had this in an Access tool.  Could popup a view of the log file that was generating for the current run and went to the tail end.  Should default to -100 tail.
+14	Multi-key search in any list	"When you are in a combo list, set, grid, tree, the current column is searched according to multiple quickly typed letters.  Forgets after definable time."
+15	Sort any column; multi-sort off any number of columns	
+16	"Filter any grid, list, text file"	
+17	"Reorder columns in any set, grid, list"	
+18	Paste formatted/unformatted	
+19	Google it on context menu	
+20	"Copy any text from any screen/widget/label, including about box, etc."	Adobe hoses up when you try to cut and paste a single line or word.  Makes life hard
+21		
