@@ -30,6 +30,7 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 		while (true) {
 			int totalReplacementCount = 0;
 			
+			int macrosetcount = contextMacros->allMacros.GetCount();
 			for (int j = 0; j < contextMacros->allMacros.GetCount(); j++) {
 				MacMap &macros = *(contextMacros->allMacros[j]);
 	
