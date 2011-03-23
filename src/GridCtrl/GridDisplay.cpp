@@ -141,8 +141,9 @@ void GridDisplay::PaintFixed(Draw &w, bool firstx, bool firsty, int x, int y, in
 		{
 			int sx = cx > 1 ? cx : 1;
 			int sy = cy - 1;
-			if(sx > 0 && sy > 0)
+			if(sx > 0 && sy > 0) {
 				w.DrawImage(x, y, sx, sy, highlight ? Contrast(vhdr[theme](), 230) : vhdr[theme]());
+			}
 		}
 
 		//Color dark(76, 83, 92);
