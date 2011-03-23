@@ -25,6 +25,7 @@
 
 // see shared.h for the extern ref
 UrpWindowFactory  *windowFactory = NULL;
+ConnectionFactory *connectionFactory = NULL;
 
 //==============================================================================================
 // Construct all objects that have to be concretely referenced (for now)
@@ -32,6 +33,8 @@ UrpWindowFactory  *windowFactory = NULL;
 Lister::Lister() {
 	Init(__FILE__);
 	windowFactory = new UrpWindowFactory();
+	connectionFactory = new ConnectionFactory();
+	
 	CtrlLayout(*this, "Lister - A SQL Connection and Execution Tool");
 	showHiddenTasks = false;
 	activeConnection = NULL;
@@ -104,7 +107,7 @@ Lister::Lister() {
 	// Connect to our metadata control database using raw params
 
 	if ((controlConnection 
-		= connectionFactory.Connect(
+		= connectionFactory->Connect(
 				this, CONTROL_CONN_NAME, ConnectionFactory::ControlInstanceType(), "postgres"
 				, "postgres", "localhost", "postgres"))->enumConnState 
 				!= CON_SUCCEED) 
@@ -186,6 +189,7 @@ Lister::Lister() {
 	taskGrid.WhenLeftDouble = THISBACK(OpenTaskDefWin);
 	
 	taskDefWin.WhenSaveTask = THISBACK(SaveTaskViaTaskGrid);
+	
 	// Construct Script Grid
 	
 	scriptGrid.Description("scriptGrid");
@@ -208,8 +212,11 @@ Lister::Lister() {
 
 	// Offscreen build of test grid
 	
-	testWin.testGrid.Build();
-	testWin.testGrid.WhenCtrlsAction = THISBACK(ClickedTest);
+	// Since the activeConnection is part of this thread (window), the testWin shouldn't just
+	// take a copy of what "was" the  active connection, since it could change, so we pass
+	// the address of the activeConnection.
+	testWin.Build(controlConnection, &activeConnection, &activeContextMacros);
+	testWin.WhenToolBarNeedsUpdating = THISBACK(ToolBarRefresh);
 	
 	macrosAvailableList.AddColumn("Search For");
 	macrosAvailableList.AddColumn("Replace With");
@@ -220,9 +227,6 @@ Lister::Lister() {
 	
 	macrosAvailableList.Width(450);
 
-	// Force the first selection of a task to rebuild the macros.
-	rebuildTaskMacros = true;
-	
 	// By spinning this off as a callback, we get the screen displayed while autoconnecting, and plus the cursor on conn grid is properly set to center
 	//SetTimeCallback(100, THISBACK(AutoConnect));		
 }
@@ -230,6 +234,7 @@ Lister::Lister() {
 //==============================================================================================	
 Lister::~Lister() {
 	delete windowFactory;
+	delete connectionFactory;
 }
 
 //==============================================================================================	
@@ -273,194 +278,13 @@ void Lister::FileMenu(Bar& bar) {
 	bar.Add("Expand Script", THISBACK(ExpandScript));
 	bar.Add("Show Hidden Tasks", THISBACK(ToggleHiddenTasks)).Check(showHiddenTasks);
 	bar.Add("View Clipboard CF_HTML", THISBACK(ViewClipboardHTML));
+	bar.Add("Export Database Structure", THISBACK(ExtractDatabase));
 }
 
 //==============================================================================================	
+// All the options I can't fit anywhere else
 void Lister::MainMenu(Bar& bar) {
 	bar.Add("File", THISBACK(FileMenu));
-}
-
-//==============================================================================================	
-// User clicked Test! on the TestGrid. Execute the test script against the connection.
-void Lister::ClickedTest() { 
-	TestGrid &testGrid = testWin.testGrid; // Create a convenience handle
-	int row = testGrid.GetCursor();
-	
-	WaitCursor wc;
-	if (!testGrid.WasTestRequested()) {
-		return;
-	}
-	
-	// Get test connection
-	
-	int    testConnId       = testGrid.GetTestConnId      (row);
-	int    testTypId        = testGrid.GetTestTypId       (row);
-	int    testRelId        = testGrid.GetTestRelId       (row);
-	int    testCompTypId    = testGrid.GetCompTypId       (row);
-	String testX            = testGrid.GetCompareUsingX   (row);
-	String testY            = testGrid.GetCompareUsingY   (row); // Note that PostgreSQL can store Arrays in a single value
-	String desiredOutcome   = testGrid.GetDesiredOutcome  (row);
-	bool   invertComparison = testGrid.GetInvertComparison(row);
-	
-	if (testTypId == UNKNOWN) {
-		Exclamation("Must assign a test type");
-		return;
-	}
-	
-	if (testRelId == UNKNOWN) {
-		Exclamation("No relation assigned to this test");
-		return;
-	}
-
-	String getRelScriptText = Script::GetRelScriptDetailByIdQuery(testRelId);
-
-	if (!controlConnection->SendQueryDataScript(getRelScriptText)) {
-		return;
-	}
-	
-	controlConnection->Fetch();
-	
-	int testScriptId = controlConnection->Get(SCRIPTID);
-	int testRelConnId = controlConnection->Get(RELCONNID);
-	
-	// Get the script SQL to fetch the script attributes
-	String getScriptText = Script::GetScriptDetailByIdQuery(testScriptId);
-	
-	if (!controlConnection->SendQueryDataScript(getScriptText)) {
-		return;
-	}
-	
-	if (controlConnection->GetRowsProcessed() == 0) {
-		Exclamation("Can't find script # " + testScriptId);
-		return;
-	}
-	
-	bool testCompCorrect = false; // Not same as Passed!
-	bool testCompApplied = false;
-	
-	controlConnection->Fetch();
-	String testScript = controlConnection->Get(0); // == SCRIPTPLAINTEXT
-
-	if (testScript.IsEmpty()) {
-		// TODO: IS TESTTYPE = "query text length"?  Length empty is a test value
-		Exclamation("Empty script");
-		return;
-	}
-
-	// Either a specific connection was assigned to this test, or we'll use the one
-	// assigned in the relation (preferred).
-
-	if (testConnId == UNKNOWN) {
-		if (testRelConnId == UNKNOWN) {
-			Exclamation("No connection set for test or in the relation either");
-			return;
-		} else {
-			testConnId = testRelConnId;
-		}
-	}
-	
-	// Build macros based on current task and environment of selected connection
-	
-	RebuildMacros(testConnId);
-	
-	// Connect or get a similar connection
-	Connection * testConn = connectionFactory.Connect(this, testConnId);
-	
-	if (!testConn) {
-		Exclamation("Can't get a test connection");
-		return;
-	}
-	
-	// Execute script
-	
-	if (!testConn->SendQueryDataScript(testScript, &activeContextMacros, false /* not silent */, true /* expandmacros */)) {
-		// TODO: IS TESTTYPE
-		return;
-	}
-
-	Value testResult;
-	
-	if (testTypId == TESTTYP_NOTEST) { // Not a test, just run and move on
-		Speak(EVS_TEST_SUCCEEDED);
-		testGrid.SetActualOutcome(row, "-"); // Just done, not pass or fail
-		
-	} else {
-		if (testTypId == TESTTYP_RETURNED_ROW_COUNT) {
-			int targetRowCount = atoi(testX);
-			int actualRowCount = controlConnection->GetRowsProcessed();
-			// Comparison rule to use
-			if (testCompTypId == COMPTYP_GREATER_THAN_X) {
-				testCompCorrect = (actualRowCount > targetRowCount);
-				testCompApplied = true;
-			} else 
-			if (testCompTypId == COMPTYP_EQUAL_TO) {
-				testCompCorrect = (actualRowCount == targetRowCount);
-				testCompApplied = true;
-			} 
-		} else 
-		if (testTypId == TESTTYP_FIRST_COLUMN_VALUE) {
-			int actualRowCount = controlConnection->GetRowsProcessed();
-			if (actualRowCount == 0) {
-				testCompApplied = false;
-				
-			} else {
-				testConn->Fetch();
-				testResult = testConn->Get(0);
-				if (testResult.GetType() == INT64_V) {
-					int64 testResultNum = testConn->Get(0);
-					if (!UrpString::IsIntegerString(testX)) {
-						testCompApplied = false; // Cannot test if n
-					} else {
-						int64 testAgainstNum = _atoi64(testX);
-						testCompApplied = true;
-						testCompCorrect = (testResultNum == testAgainstNum);
-					}
-				} else if (testResult.GetType() == STRING_V) {
-					testCompApplied = true;
-					testCompCorrect = (testResult.ToString() == testX); // No way to test a null
-				}
-				
-			}
-		} else {
-			Exclamation("Test type not supported");
-		}
-		
-		if (testCompApplied) {
-			if (invertComparison) {
-				testCompApplied = !testCompCorrect;
-			}
-			
-			if (
-				(desiredOutcome == "P" && testCompCorrect)
-				||
-				(desiredOutcome == "F" && !testCompCorrect)
-				)
-			{
-				// Make sound tada or yep or "uh-huh"
-				Speak(EVS_TEST_SUCCEEDED);
-				testGrid.SetActualOutcome(row, "P");
-			} else {
-				// Grr, doh! woopsee
-				Speak(EVS_TEST_FAILED);
-				testGrid.SetActualOutcome(row, "F");
-				
-			}
-			
-			testGrid.SetOutputValue(row, testResult.ToString());
-			testGrid.SetLastRunWhen(row, GetUtcTime()); // I'm not sure it saves the timezone
-			
-			// Write to database
-			testGrid.SaveTestNoPrompt();
-			
-			// TODO: Set time, log
-		}
-	}
-	
-	// Update Actual outcome, set timestamp, log a testrun
-	
-	// Update color state
-	
-	// TODO: IS TESTTYPE: Execution duration
 }
 
 //==============================================================================================	
@@ -593,7 +417,7 @@ Connection *Lister::ConnectUsingGrid(int row, bool log) {
 	if (log) LogLine("Starting connection...");
 	ProcessEvents(); // Necessary to display color change immediately
 	WaitCursor wc;
-	Connection *c = connectionFactory.Connect(this
+	Connection *c = connectionFactory->Connect(this
 		, connGrid.GetConnName         (row)
 		, connGrid.GetInstanceTypeName (row)
 		, connGrid.GetLoginStr         (row)
@@ -927,7 +751,10 @@ void Lister::CreateTestFromScript() {
 void Lister::BrowseTests() {
 	testWin.testGrid.taskId = taskGrid.GetTaskId();
 	testWin.testGrid.Load(controlConnection); // It will filter by taskId if its set
-	testWin.Open();
+	testWin.Open(); 
+	// async
+	ToolBarRefresh();
+	
 }
 
 //==============================================================================================
@@ -992,7 +819,7 @@ void Lister::SelectedConnection() {
 	int row = connGrid.GetCursor();
 	String connName = connGrid.GetConnName(row);  // Stored in connection list by name
 	// BUG: Name can change by user edit.  Will lose connection access.
-	Connection *selectedConnection = connectionFactory.GetConnection(connName);
+	Connection *selectedConnection = connectionFactory->GetConnection(connName);
 	
 	if (selectedConnection != NULL) {
 		SetActiveConnection(selectedConnection);
@@ -1009,61 +836,10 @@ void Lister::SetActiveConnection(Connection *newConnection) {
 }
 
 //==============================================================================================	
-void Lister::RebuildMacros(int connId) {
-	String loadedEnvLetter;
-
-	if (connId == UNKNOWN) {		
-		Connection *connInfo = connectionFactory.FetchConnInfo(connId);
-		loadedEnvLetter = connInfo->envLetter;
-		delete connInfo;  // We created an object that is not on a stack anywhere, so we must destroy
-	} else if (activeConnection) {
-		loadedEnvLetter = activeConnection->envLetter;
-	} else {
-		loadedEnvLetter = "XX"; // Default to a "Not an environment" value
-	}
-
-	// Only reload environment macros if there was a change in environment
-	if (!loadedEnvLetter.IsEmpty() && loadedEnvLetter != envLetter) {
-		envLetter = loadedEnvLetter;
-		activeContextMacros.envMacros.Clear();
-		activeContextMacros.envMacros.Add("ENV", MacPair(envLetter, envLetter));
-		rebuildTaskMacros = true; // Force rebuild of task macros since they probably reference the ENV macro
-	}
-	
-	// If we've stayed within the same task set of scripts, we don't need to rebuild tasks.
-	if (rebuildTaskMacros) {
-		rebuildTaskMacros = false; // Desensitize flag
-		
-		// Flush CurrentTaskMacroList; fetch from taskmacros.  Apply logic from CursorHandler macro function as each is loaded.
-		// Move macro code out of CursorHandler and into MacroHandler.cpp
-		// Alter macro function to rerun macros in CurrentTaskMacroList, then macros in current script.
-		activeContextMacros.taskMacros.Clear();
-		
-		int taskId = taskGrid.GetTaskId();
-		if (controlConnection->SendQueryDataScript(SqlStatement(SqlSelect(SEARCHFOR, REPLACEWITH).From(TASKMACROS).Where(TASKID==taskId).OrderBy(PROCESSORDER)).GetText())) {
-			while(controlConnection->Fetch()) {
-				String searchFor = controlConnection->Get(0);
-				String replaceWith = controlConnection->Get(1);
-				
-				// Expand the output with any previous macros in task list, as well as the standard hardcoded ones
-				String expansion = ExpandMacros(replaceWith, &activeContextMacros);
-				
-				// Add it to the list and continue fetching and expanding
-				
-				activeContextMacros.taskMacros.Add(searchFor, MacPair(replaceWith, expansion));
-			}
-		}
-		
-		// Update the drop down so script-writer can see what macros are available
-		
-		activeContextMacros.UpdateAvailableMacros(macrosAvailableList, &activeContextMacros);
-	}
-}
-
-//==============================================================================================	
 // When user selects a task, the script becomes eligible to be attached to it.
 void Lister::ActiveTaskChanged() {
-	rebuildTaskMacros = true; // Set flag so that when they eventually select a script, they need to load up task macros
+	activeContextMacros.rebuildTaskMacros = true; // Set flag so that when they eventually select a script, they need to load up task macros
+	activeContextMacros.taskId = taskGrid.GetTaskId();
 	
 	// We'll rebuild the macros based on the first script to the left, if there
 
@@ -1076,7 +852,7 @@ void Lister::ActiveTaskChanged() {
 			connId = UNKNOWN; // Let RebuildMacros use the active connection
 		}
 		
-		RebuildMacros(connId);
+		activeContextMacros.RebuildMacros(connId, &activeContextMacros, controlConnection, activeConnection, &macrosAvailableList);
 	}
 }
 
@@ -1111,8 +887,9 @@ void Lister::ActiveTaskScriptChanged() {
 	} else {
 		connId = UNKNOWN; // Let RebuildMacros use the active connection
 	}
-	
-	RebuildMacros(connId);
+
+	// We pass activeMacros to itself for future case when we need alternate macro control sets (It's gonna get hairy)	
+	activeContextMacros.RebuildMacros(connId, &activeContextMacros, controlConnection, activeConnection, &macrosAvailableList);
 	
 	ToolBarRefresh();
 	
@@ -1336,7 +1113,36 @@ void Lister::AttachScriptToTask() {
 	}
 }
 
-//==============================================================================================	
+//==============================================================================================
+// Extract SQL for building the database, with some sample values.
+void Lister::ExtractDatabase() {
+	// I push these out to a svn preserved folder
+	String outputPath = "C:/MyApps/lister/database/";
+	String pg_dump = "C:/Program Files/PostgreSQL/9.0/bin/pg_dump.exe";
+	
+	String baseScript = pg_dump;
+	baseScript << " --host localhost --port 5432 --username postgres %s postgres";
+	
+	String extractionScript1 = Format(baseScript,
+		CAT << "--format custom --verbose --file "
+		<< outputPath << "lister.schema.compressed.bkp "
+		<< " --schema public"
+		<< " --schema-only"  //  We only want data structures first
+		);
+	Shell(extractionScript1);
+
+	String extractionScript2 = Format(baseScript,
+		CAT << "--format plain --verbose --file "
+		<< outputPath << "lister.schema.sql"
+		<< " --schema public"
+		<< " --schema-only"  //  We only want data structures first
+		);
+	Shell(extractionScript2);
+		
+}
+
+//==============================================================================================
+// Helper to copy executable out to "production" directory.
 void Lister::DeployLister() {
 	String targetProdPath = "C:/Program Files/lister/lister.exe";
 	String targetConfigDir = GetHomeDirectory();
@@ -1405,7 +1211,7 @@ void Lister::MyToolBar(Bar& bar) {
 
 	//__________________________________________________________________________________________
 	// Browse existing Tests
-	bar.Add( true, "", MyImages::browsetests16(), 
+	bar.Add(!testWin.IsOpen(), "", MyImages::browsetests16(), 
 		THISBACK(BrowseTests))
 		
 		.Tip("Browse and edit tests");
@@ -1594,7 +1400,7 @@ void Lister::ConnRunScriptOutputToScreen() {
 		NotifyUser("No connection attached to this script");
 		return;
 	}
-	Connection * runConn = connectionFactory.Connect(this, connId);
+	Connection * runConn = connectionFactory->Connect(this, connId);
 	if (!runConn) {
 		NotifyUser("Error trying to connect.");
 		return;

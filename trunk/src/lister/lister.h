@@ -55,7 +55,6 @@ public:
 	MyRichEdit        scriptEditor;
 	Connection       *controlConnection; // Connection to lister data
 	Connection       *activeConnection;
-	ConnectionFactory connectionFactory;
 	MyDropGrid        scriptDropDownList; // Detects ctrl-key held down during a selection
 	WithDropChoice<EditString>            // Allows free text entry
 	                  targetNameList;
@@ -72,8 +71,8 @@ public:
 	ContextMacros     activeContextMacros; // input/output from taskmacro table; loaded per task selection.
 	DropGrid          macrosAvailableList; // Coalesce of all macros in context for script
 	bool              showHiddenTasks;
-	String            envLetter;           // Track at session level to reduce rebuilding macros if no env change from script to script within the same task.
-	bool              rebuildTaskMacros;    // When the task changes, task macros must be loaded.
+	//String            envLetter;           // Track at session level to reduce rebuilding macros if no env change from script to script within the same task.
+	//bool              rebuildTaskMacros;    // When the task changes, task macros must be loaded.
 	//------------------------------------------------------------------------------------------
 	                  Lister();
 	                 ~Lister();
@@ -93,6 +92,7 @@ public:
 	Connection       *ConnectUsingGrid(String connName, bool log = false); // Connect to the connection user selected in the ConnGrid.	
 	Connection       *ConnectUsingGrid(int row, bool log = false); // Connect based on the connection listed on the ConnGrid based on passed row
 	void              SaveScript();
+	void              ExtractDatabase();
 	void              AddScriptToHistory();
 	void              SelectedScriptFromDropDown(); // For multi-line scripts, this is the only way to see the full script.
 	void              ProcessSelectedTaskScripts(dword key);
@@ -111,7 +111,6 @@ public:
 	bool              SelectConnectionById(int pconnId);
 	void              SelectedConnection();
 	void              SetActiveConnection(Connection *newConnection); // User clicked the connect button or clicked on a row in the conngrid.	
-	void              RebuildMacros(int connId);
 	void              ActiveConnectionChanged(); // Update all enabled/disabled buttons based on a change in the users selected active connection.
 	void              ActiveTaskChanged();
 	void              ActiveTaskScriptChanged();
