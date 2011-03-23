@@ -26,3 +26,6 @@
     * Added HTML Excel fragment copy support to UrpGrid so that grids can be copied and directly pasted to outlook.
     * Added toolbar to test window to start adding complex user controls to tests.
     * Added colorization to test rows to show current outcome of a test run: Red/Yellow/Green or white.
+    * Added database folder and uploaded all DDL SQL for tables, views, view rules, and functions. no timestamps.
+    * Added doc folder with some legacy documentation.
+    * Create database export function to periodically update the SQL.  SQL is per object so as to easily detect change.
