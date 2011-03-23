@@ -1,4 +1,5 @@
 #include "UrpInput.h"
+#include <CtrlLib/CtrlLib.h>
 
 bool In(int i, int in1, int in2) { if (i == in1 || i == in2) return true; return false; }
 
@@ -38,4 +39,6 @@ namespace More {
 	bool In(String i, const char *in1, const char *in2, const char *in3) { if (i.IsEqual(in1) || i.IsEqual(in2) || i.IsEqual(in3)) return true; return false; }
 	bool In(String i, const char *in1, const char *in2, const char *in3, const char *in4) { if (i.IsEqual(in1) || i.IsEqual(in2) || i.IsEqual(in3) || i.IsEqual(in4)) return true; return false; }
 };
+
+using namespace Upp;
 
