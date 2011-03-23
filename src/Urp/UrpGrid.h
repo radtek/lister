@@ -13,8 +13,20 @@
 class UrpGrid: public GridCtrl, public UrpGridCommon {
 public:
 	typedef UrpGrid CLASSNAME;
-	bool                built;
-	bool                loaded;
+	
+	// action taken within grid and passed back to updator
+	enum GridAction { 
+		ADDEDROWSFROMDB, 
+		USERADDEDROW, 
+		ADDEDSTRUCTURE, 
+		USERCHANGEDDATA, 
+		DELETEDROWS 
+	};
+	
+
+	bool                  built; // Build function of subclass should set to true, but no biggy; Its more for the subclasses.  Urp doesn't use yet or expect any settings
+	bool                  loaded; // Load function of subclass should set to true; The idea is to reduce work of reloading unnecessarily, but hard to get it to work
+	Callback1<GridAction> WhenToolBarNeedsUpdating;  // Loose add so grids like TestGrid will call TestWin to update its toolbar when testrows are added, columns added, etc.
 
 	                    UrpGrid();
 	virtual bool        Key(dword key, int count) { return GridCtrl::Key(key, count); };
@@ -36,6 +48,9 @@ public:
 	int                 GetProcessOrder(int row = -1);
 	int                 GetMaxProcessOrder();
 	int                 GetNextProcessOrder();
+	void                MovedRows();
+	                    // Trick: Impementor must implement SaveRow or any reordering by drag/drop won't be persisted to the database.
+    virtual void        SaveRow(int row, int newProcessOrder);
 	void                StdMenuBar(Bar &bar);
 	                    // GridCtrl is supposed to Xmlize, but I don't see it doing anything, so I've written my own.
 	                    // Have to save by name so that code changes that add/subtract columns will not cause confusion.
