@@ -1,4 +1,4 @@
-LAYOUT(ListerLayout, 740, 340)
+LAYOUT(ListerLayout, 1100, 408)
 END_LAYOUT
 
 LAYOUT(NewInstanceLayout, 452, 268)
