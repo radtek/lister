@@ -31,6 +31,7 @@ ConnectionFactory *connectionFactory = NULL;
 // Construct all objects that have to be concretely referenced (for now)
 // Load all grids.  TODO: Move loading to lazy style.
 Lister::Lister() {
+	// Capture the dev folder path in mainFilePath
 	Init(__FILE__);
 	windowFactory = new UrpWindowFactory();
 	connectionFactory = new ConnectionFactory();
@@ -782,6 +783,7 @@ void Lister::ListContacts() {
 	// Constructs a window that manages its own configuration
 	UrpConfigWindow *w = windowFactory->Open(this, "contacts");
 	if (w->wasCreatedNew) {
+		w->Icon(MyImages::contacts16());
 		ContactGrid *g = new ContactGrid();
 		g->Load(controlConnection);
 		w->AddCtrl(g);
@@ -1117,28 +1119,91 @@ void Lister::AttachScriptToTask() {
 // Extract SQL for building the database, with some sample values.
 void Lister::ExtractDatabase() {
 	// I push these out to a svn preserved folder
-	String outputPath = "C:/MyApps/lister/database/";
+	
+	// Use Init(__FILE__) path to detect proper export folder
+	String outputPath = AppendFileName(GetFileFolder(mainFilePath),  + "../database/");
 	String pg_dump = "C:/Program Files/PostgreSQL/9.0/bin/pg_dump.exe";
 	
 	String baseScript = pg_dump;
 	baseScript << " --host localhost --port 5432 --username postgres %s postgres";
+
+	String extractionScript;
+
+
+	// Extract function DDL and its proper function name.  We need a signature name
+	// without the argument names in order to uniquely save the function, since the function
+	// name is not unique.
 	
-	String extractionScript1 = Format(baseScript,
-		CAT << "--format custom --verbose --file "
+	controlConnection->SendQueryDataScript(
+		" SELECT  pg_catalog.pg_get_functiondef(p.oid)"
+		", p.oid::regprocedure "
+		" FROM    pg_catalog.pg_namespace n"
+		" JOIN    pg_catalog.pg_proc p"
+		" ON      pronamespace = n.oid"
+		" WHERE   nspname = 'public'"
+    );
+    
+    // Write each DDL statement to a separate file to allow change tracking in SVN
+    while (controlConnection->Fetch()) {
+        String functionDDL = controlConnection->Get(0);
+        String functionFullSignature = controlConnection->Get(1);
+        String fnm = outputPath + "lister.function." + functionFullSignature + ".sql";
+        FileOut fo;
+        fo.Open(fnm);
+        fo.Put(functionDDL);
+        fo.Close();
+    }
+    
+	// Binary backup is not stored to svn since we can't track changes easily
+	extractionScript = Format(baseScript,
+		CAT << "--format custom --file "
 		<< outputPath << "lister.schema.compressed.bkp "
 		<< " --schema public"
 		<< " --schema-only"  //  We only want data structures first
 		);
-	Shell(extractionScript1);
+	Shell(extractionScript);
 
-	String extractionScript2 = Format(baseScript,
-		CAT << "--format plain --verbose --file "
+	// Svn'd.  Verbose option off since timestamp causes svn modify bit to be set regardless
+	// of meaningful change.
+	extractionScript = Format(baseScript,
+		CAT << "--format plain --file "
 		<< outputPath << "lister.schema.sql"
 		<< " --schema public"
 		<< " --schema-only"  //  We only want data structures first
 		);
-	Shell(extractionScript2);
+	Shell(extractionScript);
+
+	// Save schema definition for tables individually so that changes per table can more
+	// easily be tracked and commented on, rolled back.
+	Vector<String> tablelist = controlConnection->session->EnumTables("public");
+	for (int i = 0; i < tablelist.GetCount(); i++) {
+		String tablename = tablelist.At(i);
+		extractionScript = Format(baseScript,
+			CAT << "--format plain --file "
+			<< outputPath << "lister." << tablename << ".schema.sql"
+			<< " --schema public"
+			<< " --table " << tablename
+			<< " --schema-only"  //  We only want data structures first
+			);
+		Shell(extractionScript);
 		
+	}
+
+	Vector<String> viewlist = controlConnection->session->EnumViews("public");
+	for (int i = 0; i < viewlist.GetCount(); i++) {
+		String viewname = viewlist.At(i);
+		extractionScript = Format(baseScript,
+			CAT << "--format plain --file "
+			<< outputPath << "lister." << viewname << ".schema.sql"
+			<< " --schema public"
+			<< " --table " << viewname
+			<< " --schema-only"  //  We only want data structures first
+			);
+		Shell(extractionScript);
+		
+	}
+	
+	
 }
 
 //==============================================================================================
@@ -1183,7 +1248,9 @@ void Lister::ToolBarRefresh() {
 void Lister::MyToolBar(Bar& bar) {
 	
 	//__________________________________________________________________________________________
+	
 	// Save editor text to its Script Id, regardless of selection to left (if its modified)
+	
 	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty()
 			&& scriptEditor.IsModified(), "File", MyImages::save16(), 
 		THISBACK(SaveScript))
@@ -1192,7 +1259,9 @@ void Lister::MyToolBar(Bar& bar) {
 		.Key(K_CTRL_S);
 	
 	//__________________________________________________________________________________________
+	
 	// Add Script To History
+	
 	bar.Add(!scriptEditor.GetScriptPlainText().IsEmpty()
 			&& scriptEditor.IsModified(), "File", CtrlImg::smalldown(), 
 		THISBACK(AddScriptToHistory))
@@ -1200,7 +1269,9 @@ void Lister::MyToolBar(Bar& bar) {
 		.Tip("Save as new Script");
 	
 	//__________________________________________________________________________________________
+	
 	// Create Test From Script if we have an id
+	
 	bar.Add( // Only allow test creation if there is a script, a scriptid, and a connection
 		(!scriptEditor.GetScriptPlainText().IsEmpty()
 		 && scriptEditor.connection
@@ -1210,14 +1281,18 @@ void Lister::MyToolBar(Bar& bar) {
 		.Tip("Create a Test around this Script");
 
 	//__________________________________________________________________________________________
+	
 	// Browse existing Tests
+	
 	bar.Add(!testWin.IsOpen(), "", MyImages::browsetests16(), 
 		THISBACK(BrowseTests))
 		
 		.Tip("Browse and edit tests");
 		 
 	//__________________________________________________________________________________________
+	
 	// Connect & Execute Script against current connection
+	
 	bar.Add( // Only allow execution if there is a script and a connection
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && !scriptEditor.connection), "File", MyImages::connectruntoscreen16(), 
@@ -1227,8 +1302,10 @@ void Lister::MyToolBar(Bar& bar) {
 		.Key(K_CTRL_F5);
 
 	//__________________________________________________________________________________________
+	
 	// Execute Script against current connection
-	bar.Add( // Only allow execution if there is a script and a connection
+	
+	bar.Add( // Only allow execution if there is a script present and a connection attached to it
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && scriptEditor.connection), "File", MyImages::runtoscreen16(), 
 		THISBACK(RunScriptOutputToScreen))
@@ -1237,7 +1314,9 @@ void Lister::MyToolBar(Bar& bar) {
 		.Key(K_F5);
 
 	//__________________________________________________________________________________________
+	
 	// Execute Script and pass output to physical table in control db.
+	
 	bar.Add( // Only allow execution if there is a script and a connection
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && scriptEditor.connection), "File", MyImages::runtotable16(), 
@@ -1246,7 +1325,9 @@ void Lister::MyToolBar(Bar& bar) {
 		.Tip("Execute Script and create a table in the control database");
 	        
 	//__________________________________________________________________________________________
+	
 	// Cancel a running Script (Buggy)
+	
 	bar.Add(
 		(!scriptEditor.GetScriptPlainText().IsEmpty() 
 		 && scriptEditor.connection
@@ -1258,10 +1339,14 @@ void Lister::MyToolBar(Bar& bar) {
 		
 		.Tip("Cancel executing script on active connection");
 
+	//__________________________________________________________________________________________
+
 	scriptEditor.FindReplaceTool(bar);
 	
 	//__________________________________________________________________________________________
+	
 	// Popup list of Contacts
+	
 	bar.Add(
 		true, "ListContacts", MyImages::contacts16(), 
 		THISBACK(ListContacts))
@@ -1269,14 +1354,18 @@ void Lister::MyToolBar(Bar& bar) {
 		.Tip("Browse and edit contact details");
 
 	//__________________________________________________________________________________________
+	
 	// Deploy application to Program Files folder
+	
 	bar.Add(true, "Deploy", MyImages::deploylister16(), 
 		THISBACK(DeployLister))
 		
 		.Tip("Deploy lister to program files");
 
 	//__________________________________________________________________________________________
+	
 	// Attach this Script to the selected Task
+	
 	bar.Add(
 		!scriptEditor.GetScriptPlainText().IsEmpty() && scriptEditor.scriptId >= 0
 		&& taskGrid.IsCursor()
@@ -1288,7 +1377,9 @@ void Lister::MyToolBar(Bar& bar) {
 		 	GetShift()? "Update selected script currently assigned to selected task" : "Add script to selected task");
 
 	//__________________________________________________________________________________________
+	
 	// Set the target table name
+	
 	bar.Add(targetNameList, 150); targetNameList.Tip("Target Table Name in local postgres db if target type is database for script output");
 	bar.Add(scriptTargetList, 85); scriptTargetList.Tip("What type of target does the script output to?");
 	bar.Add(fastFlushTargetList, 75); fastFlushTargetList.Tip("Truncate the target or leave as is?"); // TODO: More types: Create if not there, else append, replace on key, truncate if older than T+1
