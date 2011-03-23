@@ -5442,6 +5442,10 @@ bool GridCtrl::MoveRow(int n, int m, bool repaint)
 {
 	LG(0, "%d->%d", n, m);
 
+	// Fix ANOTHER bug from U++:
+	// Sometimes dragging a row up past the first row fails to give the user a visible drop line,
+	// and so sets m to -1.  So I just change it to 0 to get it to drop.
+	if (m < 0) m = 0;
 	if(m == n || m == n - 1 ||
 	   n < 0 || n > total_rows - 1 ||
 	   m < -1 || m > total_rows - 1)
@@ -5519,6 +5523,12 @@ void GridCtrl::MoveRows(int n, bool onerow)
 	else
 	{
 		MoveRow(curpos.y, n - 1);
+	}
+	
+	// Let user know that we finished in case they want to generate some process orders to
+	// persist order.
+	if (WhenMovedRows) {
+		WhenMovedRows();
 	}
 }
 
