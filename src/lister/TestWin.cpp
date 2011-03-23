@@ -13,7 +13,7 @@
 TestWin::TestWin() {
 	CtrlLayout(*this, "Browse All Tests");
 	Sizeable().Zoomable();
-
+	Icon(MyImages::browsetests16());
 	controlConnection = NULL;	
 	toolbar.Set(THISBACK(MyToolBar));
 	toolbar.VSizePos(0, 10);
