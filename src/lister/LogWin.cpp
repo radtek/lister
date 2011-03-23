@@ -1,11 +1,19 @@
 #include "LogWin.h" 
 #include <lister/Urp/UrpEdit.h>
 
+#include "image_shared.h"
+#include <Draw/iml_header.h>
+
+// Only in lister.cpp
+//#include "image_shared.h"
+//#include <Draw/iml_source.h>
+
 //==============================================================================================
 LogWin::LogWin() {
 	// One exit button
 	CtrlLayoutExit(*this, "Log");
 	Sizeable().Zoomable();
+	Icon(MyImages::logwin16());
 	TopMost(); // Force stayontop setting
 	Transparent();
 	//logText.Transparent();
