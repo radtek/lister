@@ -29,7 +29,8 @@ CREATE TABLE logins (
     lastchangedwhen timestamp with time zone,
     isldap boolean,
     isosauth boolean,
-    ispassencrypted boolean
+    ispassencrypted boolean,
+    ldapmasterloginid integer
 );
 
 
@@ -58,6 +59,13 @@ COMMENT ON COLUMN logins.islegit IS 'gained officially and available for safe, o
 
 
 --
+-- Name: COLUMN logins.isldap; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN logins.isldap IS 'tied to LDAP Single Sign On (Production assumed) password, so password is ignored and we fetch from loginid = ldapmasterloginid';
+
+
+--
 -- Name: COLUMN logins.isosauth; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -69,6 +77,13 @@ COMMENT ON COLUMN logins.isosauth IS 'Is OS Authorization';
 --
 
 COMMENT ON COLUMN logins.ispassencrypted IS 'Encrypted strings can be passed for Oracle and Sybase.';
+
+
+--
+-- Name: COLUMN logins.ldapmasterloginid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN logins.ldapmasterloginid IS 'Set if isldap is true. self-join to login that is the "master" login. No reason it can''t be itself, its just a tool to reduce work if a lot of connections share logins that are ldap controlled.';
 
 
 --
@@ -105,6 +120,14 @@ ALTER TABLE logins ALTER COLUMN loginid SET DEFAULT nextval('logins_loginid_seq'
 
 ALTER TABLE ONLY logins
     ADD CONSTRAINT pklogin PRIMARY KEY (loginid);
+
+
+--
+-- Name: loginsmasterldap; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY logins
+    ADD CONSTRAINT loginsmasterldap FOREIGN KEY (ldapmasterloginid) REFERENCES logins(loginid) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
