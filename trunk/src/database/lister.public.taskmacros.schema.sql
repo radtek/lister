@@ -44,28 +44,29 @@ COMMENT ON TABLE taskmacros IS 'Macro strings (very simple) attached to tasks, i
 -- Name: COLUMN taskmacros.taskid; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN taskmacros.taskid IS 'When this task is selected, these macros are loaded into an array that scripts scan.';
+COMMENT ON COLUMN taskmacros.taskid IS 'When this task is selected, these macros are loaded into an array that scripts scan.  The macros are a heirarchy within the task''s set of macros and do not currently reference other tasks'' macros.';
 
 
 --
 -- Name: COLUMN taskmacros.searchfor; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN taskmacros.searchfor IS 'String to search for, always bracketed thusly: [[STRING]]';
+COMMENT ON COLUMN taskmacros.searchfor IS 'String to search for, always bracketed thusly: [[STRING]].  As the ExpandMacros function progresses through the taskmacros assigned to the current task (in processorder), it searches the previous macros for this string and transforms it recursively, as well as searching some hardcoded patterns like TPLUS{n}.';
 
 
 --
 -- Name: COLUMN taskmacros.replacewith; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN taskmacros.replacewith IS 'String that replaces the found input string in the script being searched.';
+COMMENT ON COLUMN taskmacros.replacewith IS 'String that replaces the found input string in the script being searched. This can be another bunch of macros.  I can''t remember if it matters where they are in the order. I think they are mostly referring to previously listed task macros or common macs like TPLUS1, etc.
+';
 
 
 --
 -- Name: COLUMN taskmacros.processorder; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN taskmacros.processorder IS 'Order that a script reads through the macros assigned to a task.  This way the output of one can feed the input of another.';
+COMMENT ON COLUMN taskmacros.processorder IS 'Order that a script reads through the macros assigned to a task.  This way the output of one can feed the input of another.  Generated automatically when a row is inserted from a grid.  Updated when drag/drop reorders a grid.  That op is buggy, though.';
 
 
 --
@@ -101,6 +102,14 @@ ALTER TABLE taskmacros ALTER COLUMN taskmacid SET DEFAULT nextval('taskmacros_ta
 --
 
 ALTER TABLE taskmacros ALTER COLUMN processorder SET DEFAULT currval('taskmacros_taskmacid_seq'::regclass);
+
+
+--
+-- Name: aktaskmac_taskidprocord; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY taskmacros
+    ADD CONSTRAINT aktaskmac_taskidprocord UNIQUE (taskid, processorder);
 
 
 --
