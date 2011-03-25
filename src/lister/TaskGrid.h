@@ -58,7 +58,7 @@ public:
 	typedef TaskGrid CLASSNAME; // THISBACK won't work without this
 	EditString      taskName, taskNote, srcCode, projectName;
 	Connection     *connection;
-	
+	SqlBool         showVisibleQuery, showHiddenQuery;
 	                TaskGrid();
 	               ~TaskGrid();
 	void            Build();
