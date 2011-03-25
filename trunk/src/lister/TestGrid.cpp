@@ -7,6 +7,8 @@
 #include "ContactGrid.h"
 
 //==============================================================================================
+// The new BoolOption widget must convert to a displayable value, otherwise we get a "1" or "0"
+// which is generally not associated with an option button.
 struct BoolOptionBackToInt : public Convert {
 	
     virtual Value Format(const Value& q) const {
@@ -64,7 +66,6 @@ void TestGraphicalStatusDisplay::Paint(Draw &w, int x, int y, int cx, int cy, co
 	    bg = Blend(nbg, bg, 190); 
 	}
 	
-	
     GridDisplay::Paint(w, x, y, cx, cy, val, style, fg, bg, fnt, found, fs, fe);
 } 
 // Usage example below in Build()
@@ -73,7 +74,7 @@ void TestGraphicalStatusDisplay::Paint(Draw &w, int x, int y, int cx, int cy, co
 //==============================================================================================
 Id IDTestState                ("state");
 Id IDTEST                     ("TEST!");
-Id IDTESTDUMMY               ("Dummy");
+Id IDTESTDUMMY                ("Dummy");
 
 using namespace Upp;
 
@@ -100,6 +101,8 @@ void TestGrid::NewTest() {
 	if (taskId != UNKNOWN) {
 		Set(TASKID, taskId);
 	}
+	GoTo(GetCurrentRow(), 2); // Move to 2nd coloumn, past the color status
+	StartEdit(); // Puts you into editmode so you can start typing the instance name right away.
 }
 
 //==============================================================================================
@@ -159,55 +162,56 @@ void TestGrid::Build() {
 	//SetDisplay(Single<TestGraphicalStatusDisplay>());
 	SetDisplay(Single<TestGraphicalStatusDisplay>());
 	
-	AddColumn(IDTestState       , ""               ).Ctrls(MakeTestState)    .Default(TestState::ConvertStateToColor(NOTEST_NEVER)).Fixed(16).CalculatedColumn();
-	AddColumn(TESTID            , "Id"  , 100      ).Edit(fldTestId)         .Default(Null).NoEditable();
+	AddColumn(IDTestState       , ""               ).Ctrls(MakeTestState)       .Default(TestState::ConvertStateToColor(NOTEST_NEVER)).Fixed(16).CalculatedColumn();
+	AddColumn(TESTID            , "Id"  , 100      ).Edit(fldTestId)            .Default(Null).NoEditable();
 	AddColumn(TESTNAME          , "Name", 100      ).Edit(fldTestName)                        ;
-	AddColumn(RELID             , "Script"         ).Edit(scriptList)        .SetConvert(scriptList)        .Default(-1);
+	AddColumn(RELID             , "Script"         ).Edit(scriptList)           .SetConvert(scriptList)        .Default(-1);
 	AddColumn(NOTE              , "Note"           ).Edit(fldTestNote);
-	AddColumn(CONNID            , "Conn"           ).Edit(connList)          .SetConvert(connList)          .Default(-1);
-	AddColumn(TESTTYPID         , "TestType"       ).Edit(testTypList)       .SetConvert(testTypList)       .Default(-1);
-	AddColumn(INVERTCOMPARISON  , "NOT?"           ).Edit(invertCompList)    .SetConvert(invertCompList)    .Default(false);
-	AddColumn(COMPTYPID         , "ComparisonType" ).Edit(compTypList)       .SetConvert(compTypList)       .Default(-1);
+	AddColumn(CONNID            , "Conn"           ).Edit(connList)             .SetConvert(connList)          .Default(-1);
+	AddColumn(TESTTYPID         , "TestType"       ).Edit(testTypList)          .SetConvert(testTypList)       .Default(-1);
+	AddColumn(INVERTCOMPARISON  , "NOT?"           ).Edit(invertCompList)       .SetConvert(invertCompList)    .Default(false);
+	AddColumn(COMPTYPID         , "ComparisonType" ).Edit(compTypList)          .SetConvert(compTypList)       .Default(-1);
 	AddColumn(X                 , "X"              ).Edit(fldCompareUsingX);
 	AddColumn(Y                 , "Y"              ).Edit(fldCompareUsingY);
-	AddColumn(DESIREDOUTCOME    , "Desired Outcome").Edit(desiredOutcomeList).SetConvert(desiredOutcomeList).Default("P");  // P)ass or F)ail
-	AddColumn(ACTUALOUTCOME     , "Actual Outcome" ).Edit(actualOutcomeList) .SetConvert(actualOutcomeList);   // P)ass, F)ail, I)ndeterminate
+	AddColumn(DESIREDOUTCOME    , "Desired Outcome").Edit(desiredOutcomeList)   .SetConvert(desiredOutcomeList).Default("P");  // P)ass or F)ail
+	AddColumn(ACTUALOUTCOME     , "Actual Outcome" ).Edit(actualOutcomeList)    .SetConvert(actualOutcomeList);   // P)ass, F)ail, I)ndeterminate
 	AddColumn(OUTPUTVALUE       , "Output"         );                                          // Result of script, if a single value
 	AddColumn(TASKID            , "Task", 50       );                                          // The task that owns this test
-	AddColumn(PROCESSORDER      , "processorder").Hidden();                                 // Required for ordering
-	AddColumn(ASSIGNTOWHO       , "assgnd to"      ).Edit(assignToWhoList)   .SetConvert(assignToWhoList)   .Default(-1);
-	AddColumn(LASTRUNWHEN       , "runtime"        ).Edit(fldLastRunWhen).NoEditable();
+	AddColumn(PROCESSORDER      , "processorder"   ).Hidden();                                 // Required for ordering
+	AddColumn(ASSIGNTOWHO       , "assgnd to"      ).Edit(assignToWhoList)      .SetConvert(assignToWhoList);
+	AddColumn(LASTRUNWHEN       , "runtime"        ).Edit(fldLastRunWhen)                                                   .NoEditable();
 	AddColumn(STOPBATCHRUNONFAIL, "must pass"      ).Edit(optStopBatchRunOnFail).SetConvert(Single<BoolOptionBackToInt>()).Default(false);
 	AddColumn(IDTEST            , ""               ).Ctrls(MakeTestButton).Fixed(20).SetImage(CtrlImg::go_forward()).CalculatedColumn();
 	// Following line works around bug with images in last column
-	AddColumn(IDTESTDUMMY       , ""               ).Fixed(1).CalculatedColumn();
+	AddColumn(IDTESTDUMMY       , ""               ).Fixed(1)                                                       .CalculatedColumn();
 	if (WhenToolBarNeedsUpdating) WhenToolBarNeedsUpdating(UrpGrid::ADDEDSTRUCTURE);
 	built = true;
 }
 
 //==============================================================================================
 // Purely for external use (outside of class) as getters
-int     TestGrid::GetTestId            (int row)						  { return Get(row, TESTID); }
-void    TestGrid::SetTestId            (int row, int ptestId)			  {        Set(row, TESTID, ptestId); }
-String  TestGrid::GetTestName          (int row)						  { return TrimBoth(Get(row, TESTNAME)); }
-String  TestGrid::GetTestNote          (int row)             			  { return TrimBoth(Get(row, NOTE)); }
-int     TestGrid::GetTestRelId         (int row)              			  { return Get(row, RELID); }
-int     TestGrid::GetTestConnId        (int row)              			  { return Get(row, CONNID); }
-int     TestGrid::GetTestTypId         (int row)               			  { return Get(row, TESTTYPID); }
-bool    TestGrid::GetInvertComparison  (int row)       			  		  { return Get(row, INVERTCOMPARISON); }
-int     TestGrid::GetCompTypId         (int row)              			  { return Get(row, COMPTYPID); }
-String  TestGrid::GetCompareUsingX     (int row)        				  { return Get(row, X); }
-String  TestGrid::GetCompareUsingY     (int row)   					      { return Get(row, Y); }
-String  TestGrid::GetDesiredOutcome    (int row)       					  { return Get(row, DESIREDOUTCOME); }
-String  TestGrid::GetActualOutcome     (int row)        				  { return Get(row, ACTUALOUTCOME); } // Null returns INT_MIN, I think
-void    TestGrid::SetActualOutcome     (int row, String pactualOutcome)	  {        Set(row, ACTUALOUTCOME, pactualOutcome); }
-String  TestGrid::GetOutputValue       (int row)          				  { return Get(row, OUTPUTVALUE); }
-void    TestGrid::SetOutputValue       (int row, String poutputValue)     {        Set(row, OUTPUTVALUE, poutputValue); }
-int     TestGrid::GetTaskId            (int row)                          { return Get(row, TASKID); }
-int     TestGrid::GetProcessOrder      (int row)                          { return Get(row, PROCESSORDER); }
-void    TestGrid::SetLastRunWhen       (int row, Time plastRunWhen)       {        Set(row, LASTRUNWHEN, plastRunWhen); }
+int     TestGrid::GetTestId            (int row)				 { return          Get(row, TESTID          ); }
+String  TestGrid::GetTestName          (int row)				 { return TrimBoth(Get(row, TESTNAME)       ); }
+String  TestGrid::GetTestNote          (int row)            	 { return TrimBoth(Get(row, NOTE)           ); }
+int     TestGrid::GetTestRelId         (int row)            	 { return          Get(row, RELID           ); }
+int     TestGrid::GetTestConnId        (int row)            	 { return          Get(row, CONNID          ); }
+int     TestGrid::GetTestTypId         (int row)            	 { return          Get(row, TESTTYPID       ); }
+bool    TestGrid::GetInvertComparison  (int row)       			 { return          Get(row, INVERTCOMPARISON); }
+int     TestGrid::GetCompTypId         (int row)            	 { return          Get(row, COMPTYPID       ); }
+String  TestGrid::GetCompareUsingX     (int row)        		 { return          Get(row, X               ); }
+String  TestGrid::GetCompareUsingY     (int row)   				 { return          Get(row, Y               ); }
+String  TestGrid::GetDesiredOutcome    (int row)       			 { return          Get(row, DESIREDOUTCOME  ); }
+String  TestGrid::GetActualOutcome     (int row)        		 { return          Get(row, ACTUALOUTCOME   ); } // Null returns INT_MIN, I think
+String  TestGrid::GetOutputValue       (int row)          		 { return          Get(row, OUTPUTVALUE     ); }
+int     TestGrid::GetTaskId            (int row)                 { return          Get(row, TASKID          ); }
+int     TestGrid::GetProcessOrder      (int row)                 { return          Get(row, PROCESSORDER    ); }
 
-//
+// Setters
+void    TestGrid::SetTestId            (int row, int    ptestId       )   {        Set(row, TESTID       , ptestId       ); }
+void    TestGrid::SetActualOutcome     (int row, String pactualOutcome)	  {        Set(row, ACTUALOUTCOME, pactualOutcome); }
+void    TestGrid::SetOutputValue       (int row, String poutputValue  )   {        Set(row, OUTPUTVALUE  , poutputValue  ); }
+void    TestGrid::SetLastRunWhen       (int row, Time   plastRunWhen  )   {        Set(row, LASTRUNWHEN  , plastRunWhen  ); }
+
 //==============================================================================================
 void TestGrid::SaveTestPrompt() {
 	SaveTest(true);
@@ -255,6 +259,7 @@ void TestGrid::FieldLayout(FieldOperator& fo) {
 }
 
 //==============================================================================================
+// Save the new test row data to the database.
 void TestGrid::SaveTest(bool prompt) {
 	ASSERT(connection);
 	ASSERT(connection->session->IsOpen());
@@ -314,6 +319,7 @@ void TestGrid::SaveTest(bool prompt) {
 //==============================================================================================
 // Hope someone set the taskId, or all tests will be fetched.
 /*virtual*/ void TestGrid::Load(Connection *pconnection) {
+	Ready(false);
 	if (!loaded) {
 		ConnectedCtrl::Load(pconnection);
 	}
@@ -378,7 +384,6 @@ void TestGrid::SaveTest(bool prompt) {
 		filter&= TASKID == taskId;
 	}
 	
-	
 	String controlScript = SqlStatement(s.Where(filter).OrderBy(PROCESSORDER)).Get(connection->GetDialect());
 	LOG(controlScript);
 
@@ -394,11 +399,13 @@ void TestGrid::SaveTest(bool prompt) {
 		}
 	}
 	
+	Ready(true);
 	loaded = true;
 	if (WhenToolBarNeedsUpdating) WhenToolBarNeedsUpdating(UrpGrid::ADDEDROWSFROMDB);
 }
 
 //==============================================================================================
+// We don't trigger a write to the database if a meaningful change did not take place.
 bool TestGrid::MeaningfulDataChange() {
 	if (!IsModifiedRow()) return false; // No change
 	
@@ -415,6 +422,7 @@ bool TestGrid::MeaningfulDataChange() {
 }
 
 //==============================================================================================
+// Called from WhenCtrlAction, so we verify what action triggered this.
 bool TestGrid::WasTestRequested() {
 	int rowno = GetCursor();
 	if (rowno == -1) return false;
