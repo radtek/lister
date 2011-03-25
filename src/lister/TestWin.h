@@ -22,6 +22,7 @@ public:
 	               TestWin();
 	void           Build(Connection *pconnection, Connection **plastActiveConnection, ContextMacros *pactiveContextMacros);
 	void           MyToolBar(Bar& bar);
+	void           RunSelectedTask();
 	void           RunAllTestsAsBatch();
 	void           UpdateToolBar(UrpGrid::GridAction gridAction);
 	void           ClickedTest(); // GUI wrapper for RunTest function
