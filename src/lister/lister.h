@@ -39,40 +39,56 @@ public:
 			,	ZOOM_ALLSCREENS 
 			};
 	EnumScreenZoom    enumScreenZoom;
-	UrpSplitter       vertSplitter;
-	UrpSplitter       horizTopSplitter, horizTopMidAndRightSplitter, horizTopMidSplitter;
-	UrpSplitter       horizBottomSplitter, horizBottomMidAndRightSplitter, horizBottomMidSplitter;
-	StaticRect        topLeftPane, topMidLeftPane, topMidRightPane, topRightPane;
-	StaticRect        bottomLeftPane, bottomMidPane;
+	UrpSplitter       vertSplitter
+	        ,         horizTopSplitter, horizTopMidAndRightSplitter, horizTopMidSplitter
+	        ,         horizBottomSplitter, horizBottomMidAndRightSplitter, horizBottomMidSplitter
+	;
+	StaticRect        topLeftPane, topMidLeftPane, topMidRightPane, topRightPane
+	        ,         bottomLeftPane, bottomMidPane;
 	UrpPane           bottomRightPane;
-	ToolBar           toolbar;
-	OutputGrid        mainGrid; // Not currently using UrpGrid since the outputGrid's column specs are not saved (they change constantly)
-	OutputStat        outputStat;
-	ConnGrid          connGrid;
+	OutputStat        outputStat; // Information about the output: rowcount, duration, etc.
+	
+	// Our preconstructed windows
+	
 	TestWin           testWin;
+	TaskDefWin        taskDefWin;
+	
+	// Our preconstructed grids
+	
+	OutputGrid        mainGrid; // Not currently using UrpGrid since the outputGrid's column specs are not saved (they change constantly)
+	ConnGrid          connGrid;
 	TaskGrid          taskGrid;
-	ScriptGrid        scriptGrid;
+	ScriptGrid        scriptGrid; // List of scripts assigned to active task
+	
 	MyRichEdit        scriptEditor;
-	Connection       *controlConnection; // Connection to lister data
-	Connection       *activeConnection;
+	
+	// Our connections
+	Connection       *controlConnection; // Connection to lister control data
+	Connection       *activeConnection;  // Most recently selected connection from ConnGrid
+	
+	// Our drop grids, a variety of types
+	
 	MyDropGrid        scriptDropDownList; // Detects ctrl-key held down during a selection
 	WithDropChoice<EditString>            // Allows free text entry
 	                  targetNameList;
 	DropGrid          userList
 			,		  scriptTargetList
-			,		  fastFlushTargetList;
-	EditInt           fldRowLimit;
-	TaskDefWin        taskDefWin;
-	MenuBar           mainMenu;
+			,		  fastFlushTargetList
+			,         outputColList        // Updated after output generated.
+			,         macrosAvailableList  // Coalesce of all macros in context for script
+	; 	
+	EditInt           fldRowLimit 
+	        ,         fldSepRowCount; // How many blank rows would you like?  When copying to Excel, this saves a lot of time.
 	Option            chkAddSepToOutput; // Add bogus separator lines after groups of screen row output
 	EditString        outFldSepWhenValChange; // Key in name of column header
-	EditInt           fldSepRowCount; // How many blank rows would you like?  When copying to Excel, this saves a lot of time.
-	DropGrid          outputColList; // Updated after output generated.
+	
+	// Our bars
+	ToolBar           toolbar;
+	StatusBar         statusbar;
+	MenuBar           mainMenu;
 	ContextMacros     activeContextMacros; // input/output from taskmacro table; loaded per task selection.
-	DropGrid          macrosAvailableList; // Coalesce of all macros in context for script
-	bool              showHiddenTasks;
-	//String            envLetter;           // Track at session level to reduce rebuilding macros if no env change from script to script within the same task.
-	//bool              rebuildTaskMacros;    // When the task changes, task macros must be loaded.
+	bool              showHiddenTasks; // Get back the tasks we hid
+
 	//------------------------------------------------------------------------------------------
 	                  Lister();
 	                 ~Lister();
