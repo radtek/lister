@@ -33,6 +33,8 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec, ContextMacros *contextMac
 	TimeStop t;
 	t.Reset();
 	
+	String schema = "exportspace";
+	
 	if (connection->instanceTypeName == INSTTYPNM_ORACLE) {
 		if (jobSpec.outputStat) {
 			jobSpec.outputStat->SetStatus("Configuring instance");
@@ -122,19 +124,19 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec, ContextMacros *contextMac
 				jobSpec.outputStat->SetStatus("Rebuilding target");
 			}
 			LogLine(CAT << "Rebuilding target: " << outputTable);
-			RebuildTableFromConnection(outputTable, jobSpec, contextMacros);
+			RebuildTableFromConnection(schema, outputTable, jobSpec, contextMacros);
 		}
 		
-		LogLine(CAT << "Beginning load into " << outputTable << " using Postgres COPY command");
+		LogLine(CAT << "Beginning load into " << schema << "." << outputTable << " using Postgres COPY command");
 		String copyerr;
-		rowcount = LoadIntoTableFromConnectionCOPY(outputTable, adaptedRowLimit, jobSpec, copyerr);
+		rowcount = LoadIntoTableFromConnectionCOPY(schema, outputTable, adaptedRowLimit, jobSpec, copyerr);
 		
 		String msg; 
 		if (rowcount < 0) { 
 			msg << "Target may be corrupted due to copy error: " << copyerr;
 			failed = true;
 		} else {
-			msg << "Inserted " << rowcount << " rows into " << outputTable << ", took " << t.ToString();
+			msg << "Inserted " << rowcount << " rows into " << schema << "." << outputTable << ", took " << t.ToString();
 		}
 		if (!jobSpec.batchMode) Exclamation(msg);
 		if (jobSpec.log) LogLine(msg);
@@ -176,7 +178,7 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec, ContextMacros *contextMac
 }
 
 //==============================================================================================
-int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLimit, JobSpec &jobSpec, String &copyerr) {
+int CursorHandler::LoadIntoTableFromConnectionCOPY(String schema, String outputTable, int rowLimit, JobSpec &jobSpec, String &copyerr) {
 	int rowcount = 0;
 	
 	// Generate table name or input from user
@@ -186,7 +188,7 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 	//controlConnection->Begin();
 	int colCount = connection->GetColumns();
 	String copyScript = "COPY "; // insert into %s values(", outputTable);
-	copyScript << outputTable << " (";
+	copyScript << schema << "." << outputTable << " (";
 	
 	for (int i = 0; i < colCount; i++) {
 		const SqlColumnInfo& ci = connection->GetColumnInfo(i);
@@ -217,16 +219,16 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 	
 	copyScript << "\\.\n";
 	
-	
-	FileOut fo("C:/MyApps/lister/totable.sql");
+	String tempFile("C:/MyApps/lister/totable.sql");
+	FileOut fo(tempFile);
 	
 	fo.Put(copyScript);
 	fo.Close();
 	
-	LogLine("COPY staging script complete.");
+	LogLine(Format("COPY staging script complete to %s.", tempFile));
 	Speak(EVS_FETCH_COMPLETED);
 	// Shell and execute.
-	String shellLine = "psql --host localhost --dbname postgres --username postgres -f C:/MyApps/lister/totable.sql";
+	String shellLine = "psql --host localhost --dbname postgres --username postgres -f " + tempFile;
 	LogLine(CAT << "Shell: " << DeQtf(shellLine));
 	LocalProcess lp(shellLine);
 	GuiSleep(10);
@@ -267,6 +269,8 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 	} else {
 		LogLine("Copy complete");
 		Speak(EVS_INSERT_COMPLETED);
+		FileDelete(tempFile);
+		
 		return rowcount;
 	}
 	
@@ -275,7 +279,7 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String outputTable, int rowLi
 //==============================================================================================
 // Assumes connection prepped with query already
 /*protected: */
-int CursorHandler::LoadIntoTableFromConnectionPREP(String outputTable, int rowLimit, JobSpec &jobSpec) {
+int CursorHandler::LoadIntoTableFromConnectionPREP(String schema, String outputTable, int rowLimit, JobSpec &jobSpec) {
 	int rowcount = 0;
 	
 	// Generate table name or input from user
@@ -289,7 +293,7 @@ int CursorHandler::LoadIntoTableFromConnectionPREP(String outputTable, int rowLi
 		if (i) preparedScript << ", ";
 		preparedScript << "varchar";
 	}
-	preparedScript << ") AS \nINSERT INTO " << outputTable << "(";
+	preparedScript << ") AS \nINSERT INTO " << schema << "." << outputTable << "(";
 	
 	for (int i = 0; i < colCount; i++) {
 		const SqlColumnInfo& ci = connection->GetColumnInfo(i);
@@ -342,11 +346,11 @@ int CursorHandler::LoadIntoTableFromConnectionPREP(String outputTable, int rowLi
 }
 
 //==============================================================================================
-void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobSpec, ContextMacros *contextMacros) {
-	String script = Format("drop table %s", outputTable);
+void CursorHandler::RebuildTableFromConnection(String schema, String outputTable, JobSpec &jobSpec, ContextMacros *contextMacros) {
+	String script = Format("drop table %s.%s", schema, outputTable);
 	controlConnection->SendChangeStructureScript(script, contextMacros, RUN_SILENT); // ignore errors
 	
-	script = Format("create table %s(\n", outputTable);
+	script = Format("create table %s.%s(\n", schema, outputTable);
 	int colCount = connection->GetColumns();
 
 	// Build column list
