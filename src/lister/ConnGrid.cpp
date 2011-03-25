@@ -69,7 +69,7 @@ bool       ConnGrid::GetOSAuth          (int row)               { return SqlToBo
 
 //==============================================================================================
 void ConnGrid::NewConn() {
-	GoTo(GetCurrentRow(), 2);
+	GoTo(GetCurrentRow(), 2); // Move to 2nd coloumn, past the color status
 	StartEdit(); // Puts you into editmode so you can start typing the instance name right away.
 }
 
@@ -188,11 +188,10 @@ void ConnGrid::NewInstance() {
 	// Populate the instance list
 	
 	osAuthList.Clear();
-	osAuthList.Add("0", "No");  //"Standard Authorization by password");
-	osAuthList.Add("1", "Yes"); //"Set flag for OS authorization based on current NT login");
+	osAuthList.Add(Value(false), "No");  //"Standard Authorization by password");
+	osAuthList.Add(Value(true), "Yes"); //"Set flag for OS authorization based on current NT login");
 
 	if (connection->SendQueryDataScript("select i.instanceid, i.instancename, i.instanceaddress, i.note, it.insttypid, it.insttypname, i.envid from instances i left join insttyps it on i.insttypid = it.insttypid order by instancename")) {
-
 
 		while(connection->Fetch()) {
 			instanceList.Add(connection->Get(0), connection->Get(1));
@@ -202,7 +201,6 @@ void ConnGrid::NewInstance() {
 	// Populate the Environment list
 	
 	if (connection->SendQueryDataScript("select e.envid, e.envstdname, e.envletter from environments e")) {
-
 
 		while(connection->Fetch()) {
 			envList.Add(connection->Get(0), connection->Get(1));
@@ -221,7 +219,7 @@ void ConnGrid::NewInstance() {
 	
 	while(connection->Fetch()) {
 		Add();
-		Set(IDConnState       , ConnState::ConvertStateToColor(NOCON_UNDEF));  // Show connection as red, not connected, should change to gray if unknown
+		Set(IDConnState       , ConnState::ConvertStateToColor(NOCON_UNDEF)); // Show connection as red, not connected, should change to gray if unknown
 		Set(IDConnId          , connection->Get("CONNID"         ));
 		Set(IDConnName        , connection->Get("CONNNAME"       ));
 		Set(IDLoginId         , connection->Get("LOGINID"        ));
