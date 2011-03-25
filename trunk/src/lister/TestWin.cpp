@@ -37,11 +37,33 @@ void TestWin::Build(Connection *pcontrolConnection, Connection **plastActiveConn
 //==============================================================================================
 // Add each button with gentle goodness.
 void TestWin::MyToolBar(Bar& bar) {
+
+	//__________________________________________________________________________________________
+
+	// Run all Tests as Batch
+	
 	bar.Add(testGrid.GetCount() > 0, "File", MyImages::runbatch16(), 
 		THISBACK(RunAllTestsAsBatch))
 		
 		.Tip("Run all the tests for this task in order")
 		.Key(K_SHIFT_CTRL_F8);
+
+	//__________________________________________________________________________________________
+
+	// Run Current Test (I added just for the hot key)
+	
+	bar.Add(testGrid.GetCount() > 0, "File", MyImages::runtoscreen16(), 
+		THISBACK(RunSelectedTask))
+		
+		.Tip("Run selected task")
+		.Key(K_CTRL_ENTER);
+}
+
+//==============================================================================================
+void TestWin::RunSelectedTask() {
+	if (!testGrid.IsCursor()) return;
+	
+	RunTest(testGrid.GetCursor());
 }
 
 //==============================================================================================
