@@ -12,6 +12,92 @@ SET escape_string_warning = off;
 SET search_path = public, pg_catalog;
 
 --
+-- Name: tablefunc_crosstab_2; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE tablefunc_crosstab_2 AS (
+	row_name text,
+	category_1 text,
+	category_2 text
+);
+
+
+ALTER TYPE public.tablefunc_crosstab_2 OWNER TO postgres;
+
+--
+-- Name: tablefunc_crosstab_3; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE tablefunc_crosstab_3 AS (
+	row_name text,
+	category_1 text,
+	category_2 text,
+	category_3 text
+);
+
+
+ALTER TYPE public.tablefunc_crosstab_3 OWNER TO postgres;
+
+--
+-- Name: tablefunc_crosstab_4; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE tablefunc_crosstab_4 AS (
+	row_name text,
+	category_1 text,
+	category_2 text,
+	category_3 text,
+	category_4 text
+);
+
+
+ALTER TYPE public.tablefunc_crosstab_4 OWNER TO postgres;
+
+--
+-- Name: connectby(text, text, text, text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION connectby(text, text, text, text, integer) RETURNS SETOF record
+    LANGUAGE c STABLE STRICT
+    AS '$libdir/tablefunc', 'connectby_text';
+
+
+ALTER FUNCTION public.connectby(text, text, text, text, integer) OWNER TO postgres;
+
+--
+-- Name: connectby(text, text, text, text, integer, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION connectby(text, text, text, text, integer, text) RETURNS SETOF record
+    LANGUAGE c STABLE STRICT
+    AS '$libdir/tablefunc', 'connectby_text';
+
+
+ALTER FUNCTION public.connectby(text, text, text, text, integer, text) OWNER TO postgres;
+
+--
+-- Name: connectby(text, text, text, text, text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION connectby(text, text, text, text, text, integer) RETURNS SETOF record
+    LANGUAGE c STABLE STRICT
+    AS '$libdir/tablefunc', 'connectby_text_serial';
+
+
+ALTER FUNCTION public.connectby(text, text, text, text, text, integer) OWNER TO postgres;
+
+--
+-- Name: connectby(text, text, text, text, text, integer, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION connectby(text, text, text, text, text, integer, text) RETURNS SETOF record
+    LANGUAGE c STABLE STRICT
+    AS '$libdir/tablefunc', 'connectby_text_serial';
+
+
+ALTER FUNCTION public.connectby(text, text, text, text, text, integer, text) OWNER TO postgres;
+
+--
 -- Name: cpmove_relation(character varying, character varying, character varying); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -56,6 +142,72 @@ $$;
 
 
 ALTER FUNCTION public.cpmove_relation(param_tblname character varying, param_source_schema character varying, param_dest_schema character varying) OWNER TO postgres;
+
+--
+-- Name: crosstab(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION crosstab(text) RETURNS SETOF record
+    LANGUAGE c STABLE STRICT
+    AS '$libdir/tablefunc', 'crosstab';
+
+
+ALTER FUNCTION public.crosstab(text) OWNER TO postgres;
+
+--
+-- Name: crosstab(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION crosstab(text, integer) RETURNS SETOF record
+    LANGUAGE c STABLE STRICT
+    AS '$libdir/tablefunc', 'crosstab';
+
+
+ALTER FUNCTION public.crosstab(text, integer) OWNER TO postgres;
+
+--
+-- Name: crosstab(text, text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION crosstab(text, text) RETURNS SETOF record
+    LANGUAGE c STABLE STRICT
+    AS '$libdir/tablefunc', 'crosstab_hash';
+
+
+ALTER FUNCTION public.crosstab(text, text) OWNER TO postgres;
+
+--
+-- Name: crosstab2(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION crosstab2(text) RETURNS SETOF tablefunc_crosstab_2
+    LANGUAGE c STABLE STRICT
+    AS '$libdir/tablefunc', 'crosstab';
+
+
+ALTER FUNCTION public.crosstab2(text) OWNER TO postgres;
+
+--
+-- Name: crosstab3(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION crosstab3(text) RETURNS SETOF tablefunc_crosstab_3
+    LANGUAGE c STABLE STRICT
+    AS '$libdir/tablefunc', 'crosstab';
+
+
+ALTER FUNCTION public.crosstab3(text) OWNER TO postgres;
+
+--
+-- Name: crosstab4(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION crosstab4(text) RETURNS SETOF tablefunc_crosstab_4
+    LANGUAGE c STABLE STRICT
+    AS '$libdir/tablefunc', 'crosstab';
+
+
+ALTER FUNCTION public.crosstab4(text) OWNER TO postgres;
 
 --
 -- Name: getnewlogin(); Type: FUNCTION; Schema: public; Owner: postgres
@@ -125,6 +277,17 @@ $$;
 
 
 ALTER FUNCTION public.getnewlogin(ploginid integer, ploginstr text, ploginpwd text, pisosauth boolean) OWNER TO postgres;
+
+--
+-- Name: normal_rand(integer, double precision, double precision); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION normal_rand(integer, double precision, double precision) RETURNS SETOF double precision
+    LANGUAGE c STRICT
+    AS '$libdir/tablefunc', 'normal_rand';
+
+
+ALTER FUNCTION public.normal_rand(integer, double precision, double precision) OWNER TO postgres;
 
 SET default_tablespace = '';
 
@@ -1282,6 +1445,75 @@ ALTER SEQUENCE logins_loginid_seq OWNED BY logins.loginid;
 
 
 --
+-- Name: taskdrivers; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE taskdrivers (
+    driverid integer NOT NULL,
+    drivername character varying(400) NOT NULL,
+    note text,
+    processorder integer NOT NULL,
+    taskid integer NOT NULL
+);
+
+
+ALTER TABLE public.taskdrivers OWNER TO postgres;
+
+--
+-- Name: TABLE taskdrivers; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE taskdrivers IS 'A name and a taskid.  So for a task, there might be:
+BBBAUK, BBBATK.  Each task macro must either be associated with the default (null) driver for a task, or one of these, at least macros assigned to that task.
+
+It would be nice to eventually share these drivers for other tasks, perhaps a project level??  Anything with STRAW would have the same set and a lot of the same macros, too.
+
+We''ll get there, but not today.';
+
+
+--
+-- Name: COLUMN taskdrivers.drivername; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN taskdrivers.drivername IS 'Must be set.  Otherwise we won''t have a header for grid column.  Must be unique per task id.';
+
+
+--
+-- Name: COLUMN taskdrivers.processorder; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN taskdrivers.processorder IS 'order of column listing from left to right in macro grid.  Should probably process that way too if you could run ALL macros x drivers in a batch (cool)';
+
+
+--
+-- Name: COLUMN taskdrivers.taskid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN taskdrivers.taskid IS 'task that owns these drivers.  Only accessible from task editor.  Must be populated.  A driver without a task makes no sense.';
+
+
+--
+-- Name: macrodrivers_driverid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE macrodrivers_driverid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.macrodrivers_driverid_seq OWNER TO postgres;
+
+--
+-- Name: macrodrivers_driverid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE macrodrivers_driverid_seq OWNED BY taskdrivers.driverid;
+
+
+--
 -- Name: macros; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -2048,63 +2280,6 @@ urgent? behind? stuck waiting for dependency?';
 
 
 --
--- Name: strawtestin1; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
---
-
-CREATE TABLE strawtestin1 (
-    trex_rf_id character varying(220),
-    tdc_id character varying(100),
-    straw_id character varying(220),
-    tdor_sys_tk_no character varying(100),
-    td_sta_cd character varying(40),
-    tdor_sta_cd character varying(40),
-    tdor_sys_td_sta_cd character varying(100),
-    tdor_sys_rc_sbty_lkup_cd character varying(100),
-    tdor_sys_rc_sbty_lkup_dim_ky character varying(22),
-    lkup_src_cd character varying(220),
-    lkup_nm character varying(1020),
-    td_qy character varying(22),
-    td_lcl_px character varying(22),
-    td_cpt_br_id character varying(40),
-    td_ico_td_in character varying(4),
-    td_ytm character varying(22),
-    td_cpn_rt character varying(22),
-    td_vl character varying(22),
-    cob_dt timestamp with time zone,
-    td_dt timestamp with time zone,
-    trex_ts timestamp with time zone,
-    td_stl_dt timestamp with time zone,
-    td_mat_dt timestamp with time zone,
-    td_prpy_ac_in character varying(4),
-    td_ac_in character varying(4),
-    td_bysl_cd character varying(40),
-    td_prm_bk_nm character varying(1020),
-    td_cpt_bk_nm character varying(40),
-    td_cli_coper_id character varying(22),
-    td_cli_pty_dim_ky character varying(22),
-    td_cpt_ml_lgey_id character varying(100),
-    td_cpt_id character varying(220),
-    td_cpt_ac_no character varying(220),
-    td_cpt_ac_dim_ky character varying(22),
-    td_gci_id character varying(100),
-    td_cusip_insm_id character varying(40),
-    td_isin_insm_id character varying(100),
-    td_insm_dim_ky character varying(22),
-    td_insm_hit_atr_vl character varying(100),
-    td_sub_insm_hit_atr_vl character varying(1020),
-    td_bb_tck_id character varying(220),
-    trex_dsk_tx character varying(400),
-    td_sc_ty_cd character varying(1020),
-    td_srcs_tdr_id character varying(220),
-    td_nt_tx character varying(1020),
-    tdor_src_nm character varying(220),
-    td_fd_src_nm character varying(220)
-);
-
-
-ALTER TABLE public.strawtestin1 OWNER TO postgres;
-
---
 -- Name: tables; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -2206,6 +2381,72 @@ ALTER SEQUENCE tags_tagid_seq OWNED BY tags.tagid;
 
 
 --
+-- Name: taskmacrodriverreplacement; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE taskmacrodriverreplacement (
+    tskmacdrvrepid integer NOT NULL,
+    taskmacroid integer NOT NULL,
+    replacewith character varying(400),
+    note text,
+    taskdriverid integer NOT NULL
+);
+
+
+ALTER TABLE public.taskmacrodriverreplacement OWNER TO postgres;
+
+--
+-- Name: TABLE taskmacrodriverreplacement; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE taskmacrodriverreplacement IS 'Replace task macro''s search value with this, for a specific task driver.  So a task with 3 macros and 2 drivers would have one set of macro definitions in taskmacros, and 2x3 rows in here to provide values.  If no row is found here, the value from taskmacros is used.  This saves work where a macro like TESTDATE is just repeated out.  Should be a check box in taskmacro saying its mandatory to have a value here.  Hmm.';
+
+
+--
+-- Name: COLUMN taskmacrodriverreplacement.taskmacroid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN taskmacrodriverreplacement.taskmacroid IS 'The task macro that this "replacewith" is related to.  If it is not the same taskid as the others, then it won''t show up on the same task editor screen.  Bizarre.';
+
+
+--
+-- Name: COLUMN taskmacrodriverreplacement.replacewith; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN taskmacrodriverreplacement.replacewith IS 'Value for this driver.  Either replaces the default replacewith in taskmacros or extends by looking for "{default}xxx" or somesuch.
+One issue is: Does NULL mean, replace the searchfor value with empty, or use the default replacewith from taskmacro?
+I guess if someone bothered to insert a row, they wanted to use zap out the default replacewith value for this driver.';
+
+
+--
+-- Name: COLUMN taskmacrodriverreplacement.taskdriverid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN taskmacrodriverreplacement.taskdriverid IS 'Which driver this supports.';
+
+
+--
+-- Name: taskmacrodriverreplacement_tskmacdrvrepid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE taskmacrodriverreplacement_tskmacdrvrepid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.taskmacrodriverreplacement_tskmacdrvrepid_seq OWNER TO postgres;
+
+--
+-- Name: taskmacrodriverreplacement_tskmacdrvrepid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE taskmacrodriverreplacement_tskmacdrvrepid_seq OWNED BY taskmacrodriverreplacement.tskmacdrvrepid;
+
+
+--
 -- Name: taskmacros; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -2234,28 +2475,29 @@ COMMENT ON TABLE taskmacros IS 'Macro strings (very simple) attached to tasks, i
 -- Name: COLUMN taskmacros.taskid; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN taskmacros.taskid IS 'When this task is selected, these macros are loaded into an array that scripts scan.';
+COMMENT ON COLUMN taskmacros.taskid IS 'When this task is selected, these macros are loaded into an array that scripts scan.  The macros are a heirarchy within the task''s set of macros and do not currently reference other tasks'' macros.';
 
 
 --
 -- Name: COLUMN taskmacros.searchfor; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN taskmacros.searchfor IS 'String to search for, always bracketed thusly: [[STRING]]';
+COMMENT ON COLUMN taskmacros.searchfor IS 'String to search for, always bracketed thusly: [[STRING]].  As the ExpandMacros function progresses through the taskmacros assigned to the current task (in processorder), it searches the previous macros for this string and transforms it recursively, as well as searching some hardcoded patterns like TPLUS{n}.';
 
 
 --
 -- Name: COLUMN taskmacros.replacewith; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN taskmacros.replacewith IS 'String that replaces the found input string in the script being searched.';
+COMMENT ON COLUMN taskmacros.replacewith IS 'String that replaces the found input string in the script being searched. This can be another bunch of macros.  I can''t remember if it matters where they are in the order. I think they are mostly referring to previously listed task macros or common macs like TPLUS1, etc.
+';
 
 
 --
 -- Name: COLUMN taskmacros.processorder; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN taskmacros.processorder IS 'Order that a script reads through the macros assigned to a task.  This way the output of one can feed the input of another.';
+COMMENT ON COLUMN taskmacros.processorder IS 'Order that a script reads through the macros assigned to a task.  This way the output of one can feed the input of another.  Generated automatically when a row is inserted from a grid.  Updated when drag/drop reorders a grid.  That op is buggy, though.';
 
 
 --
@@ -2364,6 +2606,20 @@ COMMENT ON COLUMN tasks.targetdateexpectation IS 'What is expected by this date?
 
 
 --
+-- Name: COLUMN tasks.enduser; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tasks.enduser IS 'I wonder if this should go at test level?  Users are not always concerned with the entire project, just pieces of it.  This is when we always add "Phases" of release.  Phase 1 is what our primary stakeholder is really concerned with, Phase 2 is stuff that never gets done.';
+
+
+--
+-- Name: COLUMN tasks.uatdate; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tasks.uatdate IS 'These need to switch to a timetable or timeline table that can show these in perspective and in relation to each other, with durations measured between each other.  That way we can track timeline shift history, too.';
+
+
+--
 -- Name: COLUMN tasks.status; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -2371,24 +2627,34 @@ COMMENT ON COLUMN tasks.status IS 'Not a code.  A description of the current sta
 
 
 --
+-- Name: COLUMN tasks.assignedbywho; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tasks.assignedbywho IS 'This may go away since I want to assign at the test level.  An evolution of design.  Each test can be assigned to one person/group, or a backup, but its much more manageable, rather than trying to assign a task like "Fix Data in Asia Data Feed" to one person.  It is impossible to track at the task level, since you can''t keep asking one person, "Have you fixed the feed?".  It can''t be statused.  This is why you see so many heat diagrams at high levels flip from green to red in a single day.  Can''t fix that without more colors for one thing.  And you can''t track at high level more gradiated without tracking status of low-level external tasks at specific levels, like, "Have you added that column?  It goes in x release, and x release is in n business days".  See?';
+
+
+--
 -- Name: COLUMN tasks.cause; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tasks.cause IS 'Enter causes found for problem describe in the task, if it is a problem or bug.';
+COMMENT ON COLUMN tasks.cause IS 'Enter causes found for problem describe in the task, if it is a problem or bug.
+IMPLEMENTATION: Accessed from task window, but kindof general and causes need to be a separate table with assignments, status or resolution.  May be done through the test interface, that way each test can isolate a bug and link to a cause.  Probably many tests could link to one cause?  Cause should be restricted to a single item that can be fixed singularly, and not split by the source system into separate tasks, like, "We fixed the trade_date but no the settlement_date".  Then you can''t really flag it as resolved.';
 
 
 --
 -- Name: COLUMN tasks.isbug; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tasks.isbug IS 'Useful to discriminate from tasks that are just to do work, run scripts, generate output, maintenance.';
+COMMENT ON COLUMN tasks.isbug IS 'Useful to discriminate from tasks that are just to do work, run scripts, generate output, maintenance.
+IMPLEMENTATION: No field for this yet. Totally spaced it.';
 
 
 --
 -- Name: COLUMN tasks.hidden; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tasks.hidden IS 'Hidden from main task list on main screen.';
+COMMENT ON COLUMN tasks.hidden IS 'Hidden from main task list on main screen.
+IMPLEMENTATION:  This has been fairly well implemented from context menu and file menu.';
 
 
 --
@@ -2874,6 +3140,23 @@ Once a joining table is created, its easier to use it to store history, too, rat
 
 
 --
+-- Name: v_taskmacro; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW v_taskmacro AS
+    SELECT tm.taskmacid, tm.taskid, tm.searchfor, tm.replacewith AS defaultreplacewith, tm.processorder, tm.note AS tm_note, t.taskname FROM (taskmacros tm JOIN tasks t ON ((tm.taskid = t.taskid))) WHERE (tm.taskmacid >= 0);
+
+
+ALTER TABLE public.v_taskmacro OWNER TO postgres;
+
+--
+-- Name: VIEW v_taskmacro; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON VIEW v_taskmacro IS 'Create transformation grid of macros x drivers for a task';
+
+
+--
 -- Name: actionid; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -3112,6 +3395,20 @@ ALTER TABLE tags ALTER COLUMN tagid SET DEFAULT nextval('tags_tagid_seq'::regcla
 
 
 --
+-- Name: driverid; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE taskdrivers ALTER COLUMN driverid SET DEFAULT nextval('macrodrivers_driverid_seq'::regclass);
+
+
+--
+-- Name: tskmacdrvrepid; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE taskmacrodriverreplacement ALTER COLUMN tskmacdrvrepid SET DEFAULT nextval('taskmacrodriverreplacement_tskmacdrvrepid_seq'::regclass);
+
+
+--
 -- Name: taskmacid; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -3254,11 +3551,43 @@ ALTER TABLE ONLY roles
 
 
 --
+-- Name: aktaskdriver_taskdrvnm; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY taskdrivers
+    ADD CONSTRAINT aktaskdriver_taskdrvnm UNIQUE (taskid, drivername);
+
+
+--
+-- Name: aktaskdriver_taskprocord; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY taskdrivers
+    ADD CONSTRAINT aktaskdriver_taskprocord UNIQUE (taskid, processorder);
+
+
+--
+-- Name: aktaskmac_taskidprocord; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY taskmacros
+    ADD CONSTRAINT aktaskmac_taskidprocord UNIQUE (taskid, processorder);
+
+
+--
 -- Name: aktransguide; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
 ALTER TABLE ONLY transguides
     ADD CONSTRAINT aktransguide UNIQUE (transguidename);
+
+
+--
+-- Name: aktskmacdrvrep_tskmacidtskdrvid; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY taskmacrodriverreplacement
+    ADD CONSTRAINT aktskmacdrvrep_tskmacidtskdrvid UNIQUE (taskmacroid, taskdriverid);
 
 
 --
@@ -3461,6 +3790,14 @@ ALTER TABLE ONLY macros
 
 
 --
+-- Name: pkmacrodriver; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY taskdrivers
+    ADD CONSTRAINT pkmacrodriver PRIMARY KEY (driverid);
+
+
+--
 -- Name: pkop; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -3586,6 +3923,14 @@ ALTER TABLE ONLY testtyps
 
 ALTER TABLE ONLY transguides
     ADD CONSTRAINT pktransguide PRIMARY KEY (transguideid);
+
+
+--
+-- Name: pktskmacdrvrep; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY taskmacrodriverreplacement
+    ADD CONSTRAINT pktskmacdrvrep PRIMARY KEY (tskmacdrvrepid);
 
 
 --
@@ -3816,6 +4161,14 @@ ALTER TABLE ONLY relations
 
 
 --
+-- Name: fktaskdrivertask; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY taskdrivers
+    ADD CONSTRAINT fktaskdrivertask FOREIGN KEY (taskid) REFERENCES tasks(taskid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
 -- Name: fktasklink; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3909,6 +4262,22 @@ ALTER TABLE ONLY tags
 
 ALTER TABLE ONLY transguides
     ADD CONSTRAINT fktransguidtransscript FOREIGN KEY (transscriptid) REFERENCES scripts(scriptid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: fktskmacdrvrep_tskdrv; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY taskmacrodriverreplacement
+    ADD CONSTRAINT fktskmacdrvrep_tskdrv FOREIGN KEY (taskdriverid) REFERENCES taskdrivers(driverid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: fktskmacdrvrep_tskmac; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY taskmacrodriverreplacement
+    ADD CONSTRAINT fktskmacdrvrep_tskmac FOREIGN KEY (taskmacroid) REFERENCES taskmacros(taskmacid) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
