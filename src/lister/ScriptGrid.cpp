@@ -29,29 +29,27 @@ void ScriptGrid::DroppedNewRows(int line, int howmanylines) {
 
 //==============================================================================================
 void ScriptGrid::Build(Connection *pconnection) {
-	connection = pconnection;
+	connection = pconnection; // control connection
 	SetTable(TASKS_R); // All relations to a task, regardless of type
-	AddKey(RELID);
-	AddColumn(TASKID, "taskid", 50);
-	HideColumn(TASKID); // For joining to task grid only.
-	AddColumn(WHY, "why", 160).Edit(why);
-	AddColumn(SCRIPTPLAINTEXT, "script", 200);
-	AddColumn(SCRIPTRICHTEXT, "rich", 200); HideColumn(SCRIPTRICHTEXT); // No need to try editing in grid
-	AddColumn(SCRIPTNOTE, "script note", 200).Edit(scriptNote);
-	AddColumn(SCRIPTID, "scriptid", 50);
-	HideColumn(SCRIPTID);
+	
+	AddKey(RELID                                     );
+	AddColumn(TASKID         , "taskid"         , 50 );HideColumn(TASKID); // For joining to task grid only.
+	AddColumn(WHY            , "why"            , 160).Edit(why);
+	AddColumn(SCRIPTPLAINTEXT, "script"         , 200);
+	AddColumn(SCRIPTRICHTEXT , "rich"           , 200);HideColumn(SCRIPTRICHTEXT); // No need to try editing in grid
+	AddColumn(SCRIPTNOTE     , "script note"    , 200).Edit(scriptNote);
+	AddColumn(SCRIPTID       , "scriptid"       , 50 );HideColumn(SCRIPTID);
 	// Nastiest way to make a dropdown, but what the hey.
 	// Took forever to figure out undocumented method for getting edited value to store the number key and display the string.
-	AddColumn(RELCONNID, "connection", 50).Edit(connectionList).SetConvert(connectionList); 
-	AddColumn(SCRIPTTARGET, "output to", 20).Edit(scriptTargetList).SetConvert(scriptTargetList);
-	AddColumn(TARGETNAME, "targetname", 30).Edit(targetName);
+	AddColumn(RELCONNID      , "connection"     , 50 ).Edit(connectionList     ).SetConvert(connectionList); 
+	AddColumn(SCRIPTTARGET   , "output to"      , 20 ).Edit(scriptTargetList   ).SetConvert(scriptTargetList);
+	AddColumn(TARGETNAME     , "targetname"     , 30 ).Edit(targetName);
 	// Example of a boolean handler
-	AddColumn(FASTFLUSHTARGET, "truncate target", 10).Edit(fastFlushTargetList).SetConvert(fastFlushTargetList);
-	AddColumn(ROWLIMIT, "rowlimit", 20).Edit(rowLimit);
-	AddColumn(PROCESSORDER, "order", 25).Edit(processOrder);
-//	AddColumn(OUTPUTTOMACRO     , "macro"          ).Edit(fldOutputToMacro);
+	AddColumn(FASTFLUSHTARGET, "truncate target", 10 ).Edit(fastFlushTargetList).SetConvert(fastFlushTargetList);
+	AddColumn(ROWLIMIT       , "rowlimit"       , 20 ).Edit(rowLimit);
+	AddColumn(PROCESSORDER   , "order"          , 25 );HideColumn(PROCESSORDER);
+//	AddColumn(OUTPUTTOMACRO  , "macro"               ).Edit(fldOutputToMacro);
 
-	HideColumn(PROCESSORDER); // No need to see it anymore since it is generated
 	connectionList.SearchHideRows().Resizeable().Width(200);
 	connectionList.NotNull(); //.AddPlus(THISBACK(NewConnection));
 	built = true;
@@ -60,7 +58,7 @@ void ScriptGrid::Build(Connection *pconnection) {
 //==============================================================================================
 void ScriptGrid::Load() {
 	
-	if (!connection->SendQueryDataScript("select ConnId, ConnName from v_conn order by ConnName")) {
+	if (!connection->SendQueryDataScript("SELECT ConnId, ConnName FROM v_conn ORDER BY ConnName")) {
 		return;
 	}
 	
@@ -93,8 +91,8 @@ void ScriptGrid::LoadScriptTargetList(DropGrid &pscriptTargetList) {
 //==============================================================================================
 void ScriptGrid::PrepTargetFastFlush(DropGrid &fastFlushTargetList) {
 	fastFlushTargetList.Clear();
-	fastFlushTargetList.Add("0", "Don't delete target");
-	fastFlushTargetList.Add("1", "Truncate target table");
+	fastFlushTargetList.Add(true, "Truncate target table");
+	fastFlushTargetList.Add(false, "Don't delete target");
 }
 
 //==============================================================================================
@@ -176,8 +174,7 @@ String ScriptGrid::GetWhy(int row) {
 // Case for dealing with PostgreSQL booleans as strings "1" and "0" (Bug in U++ driver)
 // Convert them from strings to boolean
 bool ScriptGrid::GetFastFlushTarget(int row) {
-	String v = Get(CalcCorrectRow(row), FASTFLUSHTARGET);
-	return (v == "1");
+	return Get(CalcCorrectRow(row), FASTFLUSHTARGET);
 }
 
 //==============================================================================================
