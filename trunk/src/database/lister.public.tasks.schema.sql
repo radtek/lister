@@ -100,6 +100,20 @@ COMMENT ON COLUMN tasks.targetdateexpectation IS 'What is expected by this date?
 
 
 --
+-- Name: COLUMN tasks.enduser; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tasks.enduser IS 'I wonder if this should go at test level?  Users are not always concerned with the entire project, just pieces of it.  This is when we always add "Phases" of release.  Phase 1 is what our primary stakeholder is really concerned with, Phase 2 is stuff that never gets done.';
+
+
+--
+-- Name: COLUMN tasks.uatdate; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tasks.uatdate IS 'These need to switch to a timetable or timeline table that can show these in perspective and in relation to each other, with durations measured between each other.  That way we can track timeline shift history, too.';
+
+
+--
 -- Name: COLUMN tasks.status; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -107,24 +121,34 @@ COMMENT ON COLUMN tasks.status IS 'Not a code.  A description of the current sta
 
 
 --
+-- Name: COLUMN tasks.assignedbywho; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tasks.assignedbywho IS 'This may go away since I want to assign at the test level.  An evolution of design.  Each test can be assigned to one person/group, or a backup, but its much more manageable, rather than trying to assign a task like "Fix Data in Asia Data Feed" to one person.  It is impossible to track at the task level, since you can''t keep asking one person, "Have you fixed the feed?".  It can''t be statused.  This is why you see so many heat diagrams at high levels flip from green to red in a single day.  Can''t fix that without more colors for one thing.  And you can''t track at high level more gradiated without tracking status of low-level external tasks at specific levels, like, "Have you added that column?  It goes in x release, and x release is in n business days".  See?';
+
+
+--
 -- Name: COLUMN tasks.cause; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tasks.cause IS 'Enter causes found for problem describe in the task, if it is a problem or bug.';
+COMMENT ON COLUMN tasks.cause IS 'Enter causes found for problem describe in the task, if it is a problem or bug.
+IMPLEMENTATION: Accessed from task window, but kindof general and causes need to be a separate table with assignments, status or resolution.  May be done through the test interface, that way each test can isolate a bug and link to a cause.  Probably many tests could link to one cause?  Cause should be restricted to a single item that can be fixed singularly, and not split by the source system into separate tasks, like, "We fixed the trade_date but no the settlement_date".  Then you can''t really flag it as resolved.';
 
 
 --
 -- Name: COLUMN tasks.isbug; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tasks.isbug IS 'Useful to discriminate from tasks that are just to do work, run scripts, generate output, maintenance.';
+COMMENT ON COLUMN tasks.isbug IS 'Useful to discriminate from tasks that are just to do work, run scripts, generate output, maintenance.
+IMPLEMENTATION: No field for this yet. Totally spaced it.';
 
 
 --
 -- Name: COLUMN tasks.hidden; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tasks.hidden IS 'Hidden from main task list on main screen.';
+COMMENT ON COLUMN tasks.hidden IS 'Hidden from main task list on main screen.
+IMPLEMENTATION:  This has been fairly well implemented from context menu and file menu.';
 
 
 --
