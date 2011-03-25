@@ -33,6 +33,7 @@ ConnectionFactory *connectionFactory = NULL;
 Lister::Lister() {
 	// Capture the dev folder path in mainFilePath
 	Init(__FILE__);
+	
 	windowFactory = new UrpWindowFactory();
 	connectionFactory = new ConnectionFactory();
 	
@@ -66,11 +67,17 @@ Lister::Lister() {
 	
 	AddFrame(mainMenu);
 	mainMenu.Set(THISBACK(MainMenu));
+	mainMenu.WhenHelp = statusbar; // Set Help() values on all menu and toolbars
+
+	// Status bar to show help messages
 	
+	AddFrame(statusbar);
+		
 	// Vertical Splitter
 	
 	Add(vertSplitter);
 	vertSplitter.Vert(horizTopSplitter, horizBottomSplitter);
+
 	// Set default space reserved for connection list and command script
 	vertSplitter.SetPos(2000);
 	
@@ -275,17 +282,32 @@ void Lister::ViewClipboardHTML() {
 
 //==============================================================================================	
 void Lister::FileMenu(Bar& bar) {
-	bar.Add("Mappings", THISBACK(ViewMappings));
-	bar.Add("Expand Script", THISBACK(ExpandScript));
-	bar.Add("Show Hidden Tasks", THISBACK(ToggleHiddenTasks)).Check(showHiddenTasks);
-	bar.Add("View Clipboard CF_HTML", THISBACK(ViewClipboardHTML));
-	bar.Add("Export Database Structure", THISBACK(ExtractDatabase));
+	bar.Add("Mappings", THISBACK(ViewMappings))
+	.Help("List mappings between source columns, staging columns and target columns, with ETL descriptors"
+	      " and notes on usage, links to tests for columns");
+	bar.Add("Expand Script", THISBACK(ExpandScript))
+	.Help("Display the transformed result the current script text in the script editor, converting all macros into their"
+		  " correct text based on the currently selected task and script. The script editor text is not changed.  Will not work"
+		  " if a task/script has not been selected");
+	bar.Add("Show Hidden Tasks", THISBACK(ToggleHiddenTasks)).Check(showHiddenTasks)
+	.Help("If checked, reload the task grid with any tasks marked as hidden. Unchecked shows all the unhidden tasks,"
+	      " the default state."
+		  " This is for if you hid something and forgot you still need it");
+	bar.Add("View Clipboard as CF_HTML", THISBACK(ViewClipboardHTML))
+	.Help("Take the text currently on the keyboard and assume it is CF_HTML type, instead of the usual assumption"
+		  " that it is CF_TEXT.  This will display any data copied from Excel worksheets as xml tags that you can"
+		  " copy and determine how to hack and make your own Excel formats");
+	bar.Add("Export Database Structure", THISBACK(ExtractDatabase))
+	.Help("Generate all the SQL DDL files for tables, views, and functions in the control database and write directly"
+		  " to the dev database SVN folder.  Unchanged files will not get flagged by SVN even"
+		  " though the modify timestamp will change");
 }
 
 //==============================================================================================	
 // All the options I can't fit anywhere else
 void Lister::MainMenu(Bar& bar) {
-	bar.Add("File", THISBACK(FileMenu));
+	bar.Add("File", THISBACK(FileMenu))
+	.Help("Just a mish-mash of functions I needed to put somewhere");
 }
 
 //==============================================================================================	
