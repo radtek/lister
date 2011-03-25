@@ -31,8 +31,12 @@ TaskGrid::TaskGrid() {
 	AddIndex(DEPASSIGNDESC);
 	AddIndex(DEPFEEDBACK);
 	
+	// Construct query objects ONCE to reduce maintenance sync failure risk
+	showVisibleQuery = (IsNull(HIDDEN) || HIDDEN == "0") && TASKID >= 0;
+	showHiddenQuery                     = HIDDEN == "1"  && TASKID >= 0;
+	
 	// Hide anything flagged to be hidden (from context menu)
-	SetWhere(IsNull(HIDDEN) || HIDDEN == "0");
+	SetWhere(showVisibleQuery);
 }
 
 //==========================================================================================	
@@ -41,14 +45,16 @@ TaskGrid::~TaskGrid() {
 
 //==========================================================================================	
 void TaskGrid::Build() {
+	// We built this in the constructor for some reason.  Oh well.
+	built = true;
 }
 
 //==========================================================================================	
 void TaskGrid::ReQuery(bool showHiddenFlags) {
 	if (showHiddenFlags) {
-		UrpSqlGrid::ReQuery(HIDDEN == "1");
+		UrpSqlGrid::ReQuery(showHiddenQuery);
 	} else {
-		UrpSqlGrid::ReQuery(IsNull(HIDDEN) || HIDDEN == "0");
+		UrpSqlGrid::ReQuery(showVisibleQuery);
 	}
 }
 
@@ -58,6 +64,7 @@ void TaskGrid::Load(Connection *pconnection) {
 	SetSession(*(pconnection->session));
 	SetSortColumn(TASKNAME);
 	Query();
+	loaded = true;
 }
 
 //==========================================================================================	
