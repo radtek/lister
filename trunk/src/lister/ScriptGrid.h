@@ -12,7 +12,7 @@ public:
 	typedef ScriptGrid CLASSNAME;
 
 	EditString           taskName, scriptName, taskNote, scriptNote, scriptBody, why, targetName;
-	EditInt              rowLimit, processOrder;
+	EditInt              rowLimit;
 	DropGrid             connectionList, scriptTargetList, fastFlushTargetList;
 	Connection          *connection;
 	
