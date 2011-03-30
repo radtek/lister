@@ -29,15 +29,15 @@ void LinkGrid::Build(Connection *pconnection) {
 }
 
 //==============================================================================================
-void LinkGrid::SetTaskId(int ptaskId) {
-	taskId = ptaskId;
-	SetWhere((TASKID == taskId));
-}
-
-//==============================================================================================
 void LinkGrid::Load() {
 	SetSession(*(connection->session));
 	SetSortColumn(ELEMENTNAME);
 	Query();
 	loaded = true;
 }
+//==============================================================================================
+void LinkGrid::SetTaskId(int ptaskId) {
+	taskId = ptaskId;
+	SetWhere((TASKID == taskId));
+}
+
