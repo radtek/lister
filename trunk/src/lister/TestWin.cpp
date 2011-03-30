@@ -30,7 +30,7 @@ void TestWin::Build(Connection *pcontrolConnection, Connection **plastActiveConn
 	controlConnection = pcontrolConnection;
 	lastActiveConnection = plastActiveConnection;  // Point to where the mainwindow would set the active connection
 	activeContextMacros = pactiveContextMacros;
-	testGrid.Build(); // Construct the callbacks and columns
+	testGrid.Build(controlConnection); // Construct the callbacks and columns
 	testGrid.WhenCtrlsAction = THISBACK(ClickedTest);
 }
 	
