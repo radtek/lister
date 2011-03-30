@@ -275,6 +275,8 @@ int UrpSqlGrid::CalcCorrectRow(int row) {
 				}
 			}
 			// Error if here
+			ASSERT(1==0);
+			return -2;
 		} else {
 			return -1;
 		}
