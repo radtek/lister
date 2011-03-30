@@ -55,7 +55,7 @@ public:
 	
 	// Our preconstructed grids
 	
-	OutputGrid        mainGrid; // Not currently using UrpGrid since the outputGrid's column specs are not saved (they change constantly)
+	OutputGrid        mainGrid;
 	ConnGrid          connGrid;
 	TaskGrid          taskGrid;
 	ScriptGrid        scriptGrid; // List of scripts assigned to active task
