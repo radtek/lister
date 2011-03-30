@@ -1,10 +1,37 @@
-#include "TaskDefWin.h"
+/***********************************************************************************************
+*  lister - TaskDefWin.cpp
+*  
+*  Task Editor Window
+*  
+*  This GUI screen allows the user to edit a Task and its attributes.
+*
+*  Accessed from the TaskGrid.cpp by double-clicking on a task row.  The task grid instance
+*  currently sits in the lister class.  The linkage between the task grid's double-click event
+*  and the opening of a TaskDefWin instance is made in lister's constructor.  This should be 
+*  changed to be internal to TaskDefWin.  Dependency on lister class should be removed.
+*  
+*  Task Macros are managed from this screen.
+*  
+*  No other attributes are critical at this time.  Currently many of the objects on this screen
+*  are defective, especially the ElementGrid.
+*  
+*  Author: Jeff Humphreys
+*  
+*  TODO: Make this a configurable serialized window.
+*  Complete the TaskMacroByDriverGrid.
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+***********************************************************************************************/
 
+#include "TaskDefWin.h"
 #include "shared_db.h"
 #include "Task.h"
 #include "Connection.h"
 #include "ContactGrid.h"
-
 #include "image_shared.h"
 #include <Draw/iml_header.h>
 
@@ -52,6 +79,10 @@ void TaskDefWin::Build(Connection *pconnection) {
 		taskMacroGrid.Build(pconnection);
 	}
 
+	if (!taskMacroByDriverGrid.built) {
+		taskMacroByDriverGrid.Build(pconnection);
+	}
+
 	ContactGrid::LoadContact(connection, fldAssignedToWho);
 	ContactGrid::LoadContact(connection, fldAssignedByWho);
 	ContactGrid::LoadContact(connection, fldDepOnWho);
@@ -67,7 +98,6 @@ void TaskDefWin::Build(Connection *pconnection) {
 	ContactGrid::BuildContactList(fldDepOnWho3);
 	ContactGrid::BuildContactList(fldDepOnWho4);
 	ContactGrid::BuildContactList(fldDepOnWho5);
-	
 }
 
 //==============================================================================================
@@ -87,6 +117,9 @@ void TaskDefWin::Load(Task &ptask) {
 	
 	taskMacroGrid.SetTaskId(taskId);
 	taskMacroGrid.Load();
+
+	taskMacroByDriverGrid.SetTaskId(taskId);
+	taskMacroByDriverGrid.Load();
 
 	fldTaskName              .SetData(task.taskName);
 	fldSrcCode               .SetData(task.srcCode);
@@ -110,8 +143,6 @@ void TaskDefWin::Load(Task &ptask) {
 	fldDepExpectSampWhen     .SetData(task.depExpectSampWhen);
 	fldDepAssignDesc         .SetData(task.depAssignDesc);
 	fldDepFeedback           .SetData(task.depFeedback);
-	
-
 }
 
 //==============================================================================================
@@ -149,10 +180,11 @@ void TaskDefWin::SaveTask() {
 	// Use generic names internally to xml with numbers so if splitters added/moved, we can 
 	// retain users setting if lucky
 	xml
-		("grid1", elementGrid)
-		("grid2", taskScriptGrid)
-		("grid3", linkGrid)
-		("grid4", taskMacroGrid)
+		("grid1", elementGrid           )
+		("grid2", taskScriptGrid        )
+		("grid3", linkGrid              )
+		("grid4", taskMacroGrid         )
+		("grid5", taskMacroByDriverGrid )
 	;
 	
 	UrpConfigWindow::Xmlize(xml); // Make sure and save our window position!
