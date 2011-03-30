@@ -219,11 +219,22 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String schema, String outputT
 	
 	copyScript << "\\.\n";
 	
-	String tempFile("C:/MyApps/lister/totable.sql");
-	FileOut fo(tempFile);
+	String tempPath = "C:/MyApps/lister";
+	RealizeDirectory(tempPath); // Make sure directory is there
+	if (!DirectoryExists(tempPath)) {
+		Exclamation(CAT << "Can't create path " << tempPath);
+		return -1;
+	}
 	
+	String tempFile(CAT << tempPath << "totable.sql");
+	
+	FileOut fo(tempFile);
 	fo.Put(copyScript);
 	fo.Close();
+	if (!FileExists(tempFile)) {
+		Exclamation(CAT << "Unable to create copyscript as file " << tempFile);
+		return -1;
+	}
 	
 	LogLine(Format("COPY staging script complete to %s.", tempFile));
 	Speak(EVS_FETCH_COMPLETED);
@@ -254,6 +265,8 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String schema, String outputT
 			copyerr = (CAT <<"Copy error: " << estr);
 			LogLine(copyerr);
 			break;
+		} else {
+			LogLine(Format("Output from proc: %s", estr));
 		}
 		
 		e = lp.GetExitCode(); // Appears to be useless
@@ -268,6 +281,7 @@ int CursorHandler::LoadIntoTableFromConnectionCOPY(String schema, String outputT
 		return -1;
 	} else {
 		LogLine("Copy complete");
+		
 		Speak(EVS_INSERT_COMPLETED);
 		FileDelete(tempFile);
 		
@@ -383,6 +397,8 @@ void CursorHandler::RebuildTableFromConnection(String schema, String outputTable
 			datadef = "integer";
 		} else if(ci.valuetype == BOOL_V) {
 			datadef = "boolean";
+		} else if(ci.valuetype == DOUBLE_V) {
+			datadef = "double precision";
 		} else {
 			datadef = Format("character varying(%d)", actualwidth);
 		}
@@ -400,7 +416,7 @@ int CursorHandler::LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobS
 	bool gridStyle = false;
 	bool tabStyle = !gridStyle;
 	outputGrid->outputSpec.Clear();
-	outputGrid->Build();
+	outputGrid->Build(connection);
 	outputGrid->Ready(false);
 	//outputGrid->Reset(); // Crashing when first column is sorted!  U++ bug.
 	outputGrid->Clear(true /* Clear all columns.  Required or internal error hitems counts show all columns still, will crash. */);
