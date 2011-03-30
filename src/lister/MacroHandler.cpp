@@ -72,6 +72,7 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 		// http://www.regextester.com/pregsyntax.html
 		// Matches can be TPLUS1, TPLUS5, TMINUS3
 		
+		
 		String searchFor = "\\[\\[([a-zA-Z]+)(\\d+)\\]\\]"; // Parens force the digits to be inserted into r0[0], r0[1]
 		RegExp r0(searchFor);
 		String command;
@@ -79,7 +80,7 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 			command = r0[0]; 
 			String subcommand1, subcommand2;
 			String arg1 = r0[1];
-			macro << "[[" << command << arg1 << "]]";
+			macro = "[[" + command + arg1 + "]]";
 			ToUpper(Trim(command));
 			if (In(command, 
 					"TPLUS"        , "TMINUS"        , 
@@ -100,7 +101,6 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 					} else if (command.StartsWith("TMINUS")) {
 						subcommand1 = RestOf(command, "TMINUS");
 					}
-					
 						
 					Date endDate = GetDateFromDateBDays(curDate, arg1num);
 					
@@ -198,7 +198,7 @@ String ExpandMacros(String inputText, ContextMacros *contextMacros) {
 		
 		loopcnt++;
 		
-		if (loopcnt > 20) {
+		if (loopcnt > 40) {
 			Exclamation(CAT << "Max loop count reached: " << inputText << ", " << expansion);
 			break;
 		}
