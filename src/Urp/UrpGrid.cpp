@@ -1,6 +1,11 @@
 #include "UrpGrid.h"
 #include "UrpPaint.h"
 #include "UrpString.h" // IfNull
+
+// BAD Design, I know, but I don't have time to move Connection into Urp
+#include "../lister/Connection.h" // ->enumConnState method
+#include "../lister/ConnState.h" // CON_SUCCEED definition
+
 //==============================================================================================
 UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
 	Appending();
@@ -39,8 +44,38 @@ UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
 	WhenMovedRows         = THISBACK(MovedRows);
 	built     = false;
 	loaded    = false;
-	
-	//SetDisplay(Single<TightFontDisplayForGridCtrl>());
+}
+
+//==============================================================================================
+void UrpGrid::BuildBase(Connection * pconnection) {
+	ASSERT(pconnection);
+	ASSERT(pconnection->enumConnState == CON_SUCCEED);
+	connection = pconnection;
+}
+
+//==============================================================================================
+void UrpGrid::BuildComplete() {
+	ASSERT(connection);
+	ASSERT(connection->enumConnState == CON_SUCCEED);
+	built = true;
+	loaded = false; // Just built; can't be loaded.
+}
+
+//==============================================================================================
+void UrpGrid::LoadBase() {
+	Ready(false);
+	ASSERT(connection);
+	ASSERT(connection->enumConnState == CON_SUCCEED);
+	ASSERT(built);
+}
+
+//==============================================================================================
+void UrpGrid::LoadComplete() {
+	Ready(true);
+	ASSERT(connection);
+	ASSERT(connection->enumConnState == CON_SUCCEED);
+	ASSERT(built);
+	loaded = true;
 }
 
 //==============================================================================================
@@ -140,7 +175,7 @@ void UrpGrid::NormalizeColumnWidth() {
 
 //==============================================================================================
 // Obviously, U++ developer Uno was being a total dickwad when he refused to give a function
-// to extract column widths, so I've created it.
+// to return individual column widths, so I've created it.
 int UrpGrid::GetFloatingColumnWidth(int colno) {
 	String colWidthsBunch = GetColumnWidths();
 	Vector<String> colWidthsVector = UPP::Split(colWidthsBunch, ' ');
@@ -149,7 +184,7 @@ int UrpGrid::GetFloatingColumnWidth(int colno) {
 }
 
 //==============================================================================================
-// Series of corrective functions to deal with Lamo Uno's confusion about when and when not to adjust references for fixed columns
+// Series of corrective functions to deal with Lamo Uno's confusion about consistent coordinate bases
 int UrpGrid::GetFloatingColumnCount() {
 	// Takes into account the fixed columns
 	return GetColumnCount();
@@ -210,15 +245,14 @@ void UrpGrid::Xmlize(XmlIO xml) {
 
 	if (xml.IsLoading()) {
 		// Restore last known row selection
+		lastKnownRow = -1;
 		xml("rowselected", rowselected);
 		// Trap if no such attribute
 		if (IfNull(rowselected, NOSELECTION) != NOSELECTION) {
-			if (rowselected >= 0 && rowselected < GetCount()) {
-				SetCursor(rowselected);
-				CenterCursor();
-				Select(rowselected); // Slightly different than ArrayCtrl-based UrpSqlGrid
-			}
+			// the application can determine whether to repos on last row.
+			lastKnownRow = rowselected;
 		}
+		
 		xml("columnwidths", floatingColumnWidths); // Read from store
 		for (int i = 0; i < GetFloatingColumnCount(); i++) {
 			String colIdName = GetFloatingColumnId(i).ToString();
