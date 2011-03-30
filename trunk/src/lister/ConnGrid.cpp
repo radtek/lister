@@ -1,5 +1,4 @@
 #include "ConnGrid.h"
-
 #include "shared_db.h"
 #include <lister/Sql/Sql.h>
 
@@ -66,7 +65,6 @@ String     ConnGrid::GetLoginPwd        (int row)				{ return TrimBoth(Get(row, 
 ConnState *ConnGrid::GetConnState       (int row)       	    { return (ConnState *)GetCtrl(row, FindCol(IDConnState)); }
 bool       ConnGrid::GetOSAuth          (int row)               { return SqlToBool(Get(row, IDIsOSAuth)); }
 
-
 //==============================================================================================
 void ConnGrid::NewConn() {
 	GoTo(GetCurrentRow(), 2); // Move to 2nd coloumn, past the color status
@@ -74,8 +72,8 @@ void ConnGrid::NewConn() {
 }
 
 //==============================================================================================
-void ConnGrid::Build() {
-	
+/*virtual=0*/void ConnGrid::Build(Connection *pconnection) {
+	BuildBase(pconnection);
 	WhenNewRow = THISBACK(NewConn);
 	
 	instanceList.SearchHideRows().Resizeable().Width(200);
@@ -108,72 +106,13 @@ void ConnGrid::Build() {
 	// Always last column, helps overcome bug in GridCtrl
 	AddColumn( IDDUMMY          , ""            )                  .Fixed(1); // This is required due to bug in GridCtrl where image clones across all downstream cells if at end of visible chain.
 	
-	built = true;
+	BuildComplete();
 }
 
 //==============================================================================================
-// Popup to let user enter new connection instance details
-void ConnGrid::NewInstance() {
-	int row = GetCurrentRow(); // Save our place
-	
-	switch(newInstanceWin.Run()) {
-	case IDOK:
-		Exclamation("Adding");
-		{
-			String newInstanceName = ToUpper(newInstanceWin.GetInstanceName());
-		 	String instAddr        = newInstanceWin.instanceAddress.GetData().ToString();
-		 	int instTypId          = newInstanceWin.instTypList.GetKey();
-		 	int envId              = newInstanceWin.envList.GetKey();
-		 	int portNo;
-		 	Value vportNo          = newInstanceWin.portNo.GetData();
-
-		 	if (vportNo == -1 || vportNo.IsNull()) { 
-		 		portNo = -1;
-		 	} else {
-		 		portNo = vportNo;
-		 	}
-
-			SqlInsert q = ::Insert(INSTANCES);
-			
-			q(INSTANCENAME    , newInstanceName);
-			q(INSTANCEADDRESS , instAddr);
-			q(INSTTYPID       , instTypId);
-			q(ENVID           , envId);
-			q(PORTNO          , portNo);
-			;
-
-			String script = SqlStatement(q).Get(PGSQL);
-			if (connection->SendAddDataScript(script)) {
-				// Fetch id
-				int id = connection->GetInsertedId("instances", "instanceid");
-				instanceList.Add(id, newInstanceName);
-				instanceList.FindMove(newInstanceName);
-								
-				SetInstanceId      (row, id);
-				SetInstanceName    (row, newInstanceName);
-				SetEnvId           (row, envId);
-				SetInstTypId       (row, instTypId);
-				SetInstanceAddress (row, instAddr);
-				if (portNo != -1) {
-					SetPortNo          (row, portNo);
-				}
-				
-				EndEdit();
-			}
-		}
-		break;
-
-	case IDCANCEL:
-		break;
-	}
-	newInstanceWin.Close();
-}
-
 // Has to pass a connection that persists after this window closes
-//==============================================================================================
-/*virtual*/ void ConnGrid::Load(Connection *pconnection) {
-	ConnectedCtrl::Load(pconnection);
-	connection = pconnection;
+/*virtual*/ void ConnGrid::Load() {
+	LoadBase();
 
 	// Populate the instance types
 		
@@ -235,10 +174,72 @@ void ConnGrid::NewInstance() {
 		Set(IDPortNo          , connection->Get( PORTNO          ));
 		Set(IDEnvId           , connection->Get("ENVID"          ));
 	}
+
+	if (lastKnownRow >= 0 && lastKnownRow < GetCount()) {
+		SetCursor(lastKnownRow);
+	}
 	
 	// Create a blank row so user can just type new connection detail (not have to preset Insert)
 
 	WhenAcceptedRow = THISBACK(AddedNewConnection);
+}
+
+//==============================================================================================
+// Popup to let user enter new connection instance details
+void ConnGrid::NewInstance() {
+	int row = GetCurrentRow(); // Save our place
+	
+	switch(newInstanceWin.Run()) {
+	case IDOK:
+		Exclamation("Adding");
+		{
+			String newInstanceName = ToUpper(newInstanceWin.GetInstanceName());
+		 	String instAddr        = newInstanceWin.instanceAddress.GetData().ToString();
+		 	int instTypId          = newInstanceWin.instTypList.GetKey();
+		 	int envId              = newInstanceWin.envList.GetKey();
+		 	int portNo;
+		 	Value vportNo          = newInstanceWin.portNo.GetData();
+
+		 	if (vportNo == -1 || vportNo.IsNull()) { 
+		 		portNo = -1;
+		 	} else {
+		 		portNo = vportNo;
+		 	}
+
+			SqlInsert q = ::Insert(INSTANCES);
+			
+			q(INSTANCENAME    , newInstanceName);
+			q(INSTANCEADDRESS , instAddr);
+			q(INSTTYPID       , instTypId);
+			q(ENVID           , envId);
+			q(PORTNO          , portNo);
+			;
+
+			String script = SqlStatement(q).Get(PGSQL);
+			if (connection->SendAddDataScript(script)) {
+				// Fetch id
+				int id = connection->GetInsertedId("instances", "instanceid");
+				instanceList.Add(id, newInstanceName);
+				instanceList.FindMove(newInstanceName);
+								
+				SetInstanceId      (row, id);
+				SetInstanceName    (row, newInstanceName);
+				SetEnvId           (row, envId);
+				SetInstTypId       (row, instTypId);
+				SetInstanceAddress (row, instAddr);
+				if (portNo != -1) {
+					SetPortNo          (row, portNo);
+				}
+				
+				EndEdit();
+			}
+		}
+		break;
+
+	case IDCANCEL:
+		break;
+	}
+	newInstanceWin.Close();
 }
 
 //==============================================================================================
