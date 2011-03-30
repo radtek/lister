@@ -289,12 +289,12 @@ String ToString(int in) {
 }
 
 //==============================================================================================
-String ToSQL(String in) {
+String ToSQLxx(String in) {
 	if (in.IsVoid() || in == "" || in == "NULL") {
 		return "NULL";
 	}
 	
-	return in;
+	return Format("'%s'", in);
 }
 
 //==============================================================================================
@@ -307,12 +307,105 @@ String ToSQL(int in) {
 }
 
 //==============================================================================================
-String ToSQL(bool in) {
-	return (in? "1" : "0");
+String ToSQLx(bool in) {
+	return (in? "'1'" : "'0'");
 	// No way to detect null with a bool
 }
 
 //==============================================================================================
+// To be used when build in SQL scripts with a Format command.
+// 99% of time for internal control tables, so PGSQL support for bool
+String ToSQL(const Value &in, int dialect /*=PGSQL*/, bool nestedconstant /*=false*/) {
+	if (in.IsNull()) return "NULL";
+	
+	switch (in.GetType()) {
+		case STRING_V: 
+			if (in.ToString().IsEmpty()) return "NULL";
+			if (nestedconstant)
+				return Format("\"%s\"", in);
+			else
+				return Format("'%s'", in);
+			break;
+		case INT_V:
+			if (in == INT_NULL) return "NULL";
+			return in;
+			break;
+		case BOOL_V:
+			if (dialect == PGSQL)
+				if (nestedconstant) // We are building a value array insert, so values are quotes instead of aposts
+					return (in? "\"1\"" : "\"0\""); // Postrgres flips when you stuff numerics in, unless I suppose I make a cast converter.  Might be best.
+				else
+					return (in? "'1'" : "'0'"); // Postrgres flips when you stuff numerics in, unless I suppose I make a cast converter.  Might be best.
+			else 
+				return (in? "1" : "0");
+		case INT64_V:
+			if (in == INT64_NULL) return "NULL";
+			return in;
+			break;
+		
+		case DATE_V: {
+			Date d = in;	
+			if (d.year == 1900 && d.month == 1 && d.day == 1) return NULL; 
+			if (!d.year && !d.month && !d.day) return NULL;
+			// Assume US.
+			if (dialect == PGSQL)
+				return Format("'%04d-%02d-%02d'", d.year, d.month, d.day);
+			else if (dialect == ORACLE)
+				return Format("'%02d-%s-%d'", d.day, Upper(MonName(d.month-1)), d.year);
+			else if (dialect == MSSQL)
+				return Format("'%02d-%02d-%04d'", d.month, d.day, d.year);
+			else 
+				return Format("'%02d-%02d-%04d'", d.month, d.day, d.year);
+		}
+		
+		case TIME_V: {
+			Time t = in;	
+			return Format("'%02d:%02d:%02d'", t.hour, t.minute, t.second);
+		}
+
+		case DOUBLE_V:
+			if (in == DOUBLE_NULL) return "NULL";
+			return in;
+			
+		// May not work for multidimensional 
+		
+		case VALUEARRAY_V: {
+			ValueArray va = in;
+			String vastr;
+			if (!nestedconstant) vastr << "'";
+			vastr << "{";
+			for (int i = 0; i < va.GetCount(); i++) {
+				if (i) vastr << ",";
+				vastr << ToSQL(va.Get(i), dialect, true);
+			}
+			vastr << "}";
+			if (!nestedconstant) vastr << "'";
+			break;
+		}
+		case WSTRING_V:
+			// For PGSQL, U&"\0441\043B\043E\043D" = Russian word "slon" (elephant) in Cyrillic letters
+			WString ws = in;
+			String s = "U&\"";
+			for (int i = 0; i < ws.GetLength(); i++) {
+				wchar wc = ws[i];
+				String sh = HexString(ToString((int)wc));
+				s << "\\" << sh;
+			}
+			s << "\"";
+			return s;
+			break;
+			
+		//case TIMESTAMP_V??
+		//case VALUEMAP_V:
+		// INTERVAL_V??
+		// MILLISECONDS??
+		// Time zone, epoch, microseconds, doy, dow, millenium, century , weekofyear, weekofmonth
+	}
+}
+
+//==============================================================================================
+// Trim off a specific string at the beginning of a string.  A convenience function only.
+// So RestOf("CatHouse", "Cat") returns "House", so you don't have to deal with lengths.
 String RestOf(const String &startwith, const String &skipthis) {
 	if (startwith.StartsWith(skipthis)) {
 		return startwith.Mid(skipthis.GetLength());
@@ -322,7 +415,7 @@ String RestOf(const String &startwith, const String &skipthis) {
 }
 
 //==============================================================================================
-// Tired of the "To" prefix :)
+// Tired of the "To" prefix :)  U++ function is ToUpper.
 String Upper(const String& s) {
 	return(ToUpper(s));
 }

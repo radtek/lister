@@ -46,9 +46,13 @@ int                 AsInt(Value in, Value defval);
 int                 ToInt(String in, String defval = "0");
 int                 ToInt(String in, int defval);
 String              ToString(int in);
-String              ToSQL(String in); // If input is empty string, stuff as NULL
+					// If input is empty string, stuff as NULL
+					// If populated, wrap in apostrophies for me
+String              ToSQLxx(String in);
 String              ToSQL(int in);
-String              ToSQL(bool in);
+String              ToSQLx(bool in);
+                    // The mother of helpers
+String              ToSQL(const Value &in, int dialect = PGSQL, bool nestedconstant = false);
                     // For my lazy bones, just strip the string and return the rest, please
 String              RestOf(const String &startwith, const String &skipthis);
 String              Upper(const String& s);
