@@ -6,10 +6,10 @@
 #include "Connection.h"
 #include "ConnState.h"
 #include "NewInstanceWin.h"
-#include "ConnectedCtrl.h"
+class Connection;
 
 //==============================================================================================
-class ConnGrid : public UrpGrid, ConnectedCtrl {
+class ConnGrid : public UrpGrid {
 public:
 	
 	EditInt           fldConnId;
@@ -59,17 +59,22 @@ public:
 	void              SetConnState          (int row, EnumConnState enumConnState);
 	bool              GetOSAuth             (int row);
 	void              NewConn               ();
-	void              Build                 ();
-	// Popup to let user enter new connection instance details
+	virtual void      Build                 (Connection *pconnection);
+
+	                  // Has to pass a connection that persists after this window closes
+	virtual void      Load                  ();
+	
+	                  // Popup to let user enter new connection instance details
 	void              NewInstance           ();
-	// Has to pass a connection that persists after this window closes
-	virtual void      Load                  (Connection *pconnection);
-	//  Let main interface set colors representing the state of the connection.
+
+	                  // Let main interface set colors representing the state of the connection.
 	void              AddedNewConnection    ();
-	// Don't care if the connect button changed, or the color changed.
+	
+	                  // Don't care if the connect button changed, or the color changed.
 	bool              MeaningfulDataChange  ();
-	//  The main interface calls this to position and select a specific connection, usually
-	//  so it can trigger a connect event.
+	
+	                  // The main interface calls this to position and select a specific connection, usually
+	                  // so it can trigger a connect event.
 	bool              FindConnName          (String pconnName, bool silent = false);
 	bool              FindConnId            (int pconnId, bool silent = false );
 	bool              WasConnectionRequested();
