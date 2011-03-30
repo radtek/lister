@@ -42,7 +42,8 @@ CREATE TABLE tests (
     theirticket character varying(20),
     testmacros character varying(1000),
     lastrunwhen timestamp with time zone,
-    stopbatchrunonfail boolean
+    stopbatchrunonfail boolean,
+    taskdriverid integer
 );
 
 
@@ -96,7 +97,8 @@ Indeterminate (I) means not enough information was gleaned in order to complete 
 -- Name: COLUMN tests.outputvalue; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.outputvalue IS 'Value returned, somewhat mangled to fit  into a character column.';
+COMMENT ON COLUMN tests.outputvalue IS 'Value returned, somewhat mangled to fit  into a character column.
+IMPLEMENTATION: Implemented.  R/O from test grid.  Assigned when test is run.';
 
 
 --
@@ -110,7 +112,8 @@ COMMENT ON COLUMN tests.x IS 'first comparison value if applicable to the compar
 -- Name: COLUMN tests.y; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.y IS 'For between tests';
+COMMENT ON COLUMN tests.y IS 'For between tests, like "if value between x and y".
+IMPLEMENTATION: Not implemented.  Saveable from Test Grid, though.';
 
 
 --
@@ -118,7 +121,8 @@ COMMENT ON COLUMN tests.y IS 'For between tests';
 --
 
 COMMENT ON COLUMN tests.invertcomparison IS 'If true, make this a NOT test,  Do not use this in leu of setting desired outcome as Fail instead of Pass.
-Pass should always be Green/Good.';
+Pass should always be Green/Good.
+IMPLEMENTATION: Settable from Test Grid, checked when test is run.';
 
 
 --
@@ -146,14 +150,16 @@ COMMENT ON COLUMN tests.taskid IS 'It was starting to look like tests would be u
 -- Name: COLUMN tests.processorder; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.processorder IS 'Generic column that is the numeric order of the tests within a task #.  For display and for execution order if run as a batch.';
+COMMENT ON COLUMN tests.processorder IS 'Generic column that is the numeric order of the tests within a task #.  For display and for execution order if run as a batch.
+IMPLEMENTATION: Complete.';
 
 
 --
 -- Name: COLUMN tests.assigntowho; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.assigntowho IS 'Who or what contact team will we assign this to?';
+COMMENT ON COLUMN tests.assigntowho IS 'Who or what contact team will we assign this to?
+IMPLEMENTATION: Added to test suite screen.  Can assign and sort by.';
 
 
 --
@@ -174,28 +180,39 @@ COMMENT ON COLUMN tests.firstacceptedwhen IS 'Includes any email/voice that says
 -- Name: COLUMN tests.theirticket; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.theirticket IS 'JIRA ticket or whatever # they will recognize as a tracking number on the target''s side.';
+COMMENT ON COLUMN tests.theirticket IS 'JIRA ticket or whatever # they will recognize as a tracking number on the target''s side.
+IMPLEMENTATION: Not added to test suite screen yet.';
 
 
 --
 -- Name: COLUMN tests.testmacros; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.testmacros IS 'Keypairs by semicolon list.  Parsed in and added to macro context so you can override macros.  Can''t really add new macros probably, since the scripts wouldn''t have been added to script list if they hadn''t resolved all the macros??';
+COMMENT ON COLUMN tests.testmacros IS 'Keypairs by semicolon list.  Parsed in and added to macro context so you can override macros.  Can''t really add new macros probably, since the scripts wouldn''t have been added to script list if they hadn''t resolved all the macros??
+IMPLEMENTATION: Not implemented yet.  Too much other stuff.';
 
 
 --
 -- Name: COLUMN tests.lastrunwhen; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.lastrunwhen IS 'When was it last run?  Means SQL at least compiled, so not last time attempted to run.';
+COMMENT ON COLUMN tests.lastrunwhen IS 'When was it last run?  Means SQL at least compiled, so not last time attempted to run.
+IMPLEMENTATION: Assigned when run complete.';
 
 
 --
 -- Name: COLUMN tests.stopbatchrunonfail; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.stopbatchrunonfail IS 'If set, then if this test does not pass in a batch run, then the batch run stops.';
+COMMENT ON COLUMN tests.stopbatchrunonfail IS 'If set, then if this test does not pass in a batch run, then the batch run stops.
+IMPLEMENTATION: Settible from checkbox in test grid.  Complete.  Code checks when run in batch mode and stops if failure.';
+
+
+--
+-- Name: COLUMN tests.taskdriverid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tests.taskdriverid IS 'This is the driver (Path) that this test was run for.  R/O from the test grid.  Only set when the active driver for the test suite is selected at the task editor level and then the tests are run.';
 
 
 --
@@ -246,6 +263,14 @@ ALTER TABLE ONLY tests
 --
 
 CREATE INDEX fki_fktestrel ON tests USING btree (relid);
+
+
+--
+-- Name: fktest_taskdriver; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY tests
+    ADD CONSTRAINT fktest_taskdriver FOREIGN KEY (taskdriverid) REFERENCES taskdrivers(driverid) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
