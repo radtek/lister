@@ -12,7 +12,7 @@ Id IDColumnWidth("Width");
 using namespace Upp;
 
 //==============================================================================================
-RecordViewGrid::RecordViewGrid() {
+RecordViewGrid::RecordViewGrid() : UrpGrid() {
 	Indicator(); // Critical.  Sizing of columns will be distorted without this.
 	MultiSelect();
 	MultiSorting();
@@ -34,18 +34,22 @@ RecordViewGrid::RecordViewGrid() {
 }
 
 //==============================================================================================
-void RecordViewGrid::Build() {
+/*virtual=0*/void RecordViewGrid::Build(Connection *pconnection) {
+	BuildBase(pconnection);
+	
 	if (!built) {
 		AddColumn(IDColumnName       , "Name"   , 100);
 		AddColumn(IDColumnValue      , "Value"  , 100);
 	}
-	built = true;
+	BuildComplete();
 }
 
 //==============================================================================================
-/*virtual*/ void RecordViewGrid::Load(Connection *pconnection) {
+/*virtual=0*/ void RecordViewGrid::Load() {
+	LoadBase();
 	Clear();
 	// Nothing to do.  The MainGrid must add rows.
+	LoadComplete();
 }
 
 //==============================================================================================
