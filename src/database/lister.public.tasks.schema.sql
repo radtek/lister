@@ -51,7 +51,8 @@ CREATE TABLE tasks (
     cause text,
     isbug boolean,
     hidden boolean,
-    processorder integer
+    processorder integer,
+    taskdriverid integer
 );
 
 
@@ -68,7 +69,16 @@ COMMENT ON TABLE tasks IS 'List of QCs and tasks, linkage to QC system.  Some ar
 -- Name: COLUMN tasks.srccode; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tasks.srccode IS 'Currently used to hold the Ticket # in the Quality Center (Qual Assurance).  Allows me to keep linked to the web Mercury tool without having to go in there.';
+COMMENT ON COLUMN tasks.srccode IS 'Currently used to hold the Ticket # in the Quality Center (Qual Assurance).  Allows me to keep linked to the web Mercury tool without having to go in there.
+IMPLEMENTATION: Allows fill in from Task Grid, not sure if editable from task editor.  Used alot.';
+
+
+--
+-- Name: COLUMN tasks.note; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tasks.note IS 'History of the task, actions done, each line starts with m/d. Needs to be in a separate grid of history with dates autofilled in, who/what/when/where.
+IMPLEMENTATION: Ironically, pretty much the only field used so far!  Needs a way to expand.';
 
 
 --
