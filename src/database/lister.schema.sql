@@ -644,6 +644,39 @@ ALTER SEQUENCE blocks_blockid_seq OWNED BY blocks.blockid;
 
 
 --
+-- Name: changetools; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE changetools (
+    changetoolid integer NOT NULL,
+    changetoolname character varying(200)
+);
+
+
+ALTER TABLE public.changetools OWNER TO postgres;
+
+--
+-- Name: changetools_changetoolid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE changetools_changetoolid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.changetools_changetoolid_seq OWNER TO postgres;
+
+--
+-- Name: changetools_changetoolid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE changetools_changetoolid_seq OWNED BY changetools.changetoolid;
+
+
+--
 -- Name: columns; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -2076,6 +2109,46 @@ ALTER SEQUENCE relations_relid_seq OWNED BY relations.relid;
 
 
 --
+-- Name: reportingtools; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE reportingtools (
+    reportingtoolid integer NOT NULL,
+    reportingtoolname character varying(200)
+);
+
+
+ALTER TABLE public.reportingtools OWNER TO postgres;
+
+--
+-- Name: TABLE reportingtools; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE reportingtools IS 'Found a cool list of reporting vendors, and added it.';
+
+
+--
+-- Name: reportingtools_reportingtoolid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE reportingtools_reportingtoolid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.reportingtools_reportingtoolid_seq OWNER TO postgres;
+
+--
+-- Name: reportingtools_reportingtoolid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE reportingtools_reportingtoolid_seq OWNED BY reportingtools.reportingtoolid;
+
+
+--
 -- Name: roles; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -2115,6 +2188,17 @@ ALTER TABLE public.roles_roleid_seq OWNER TO postgres;
 
 ALTER SEQUENCE roles_roleid_seq OWNED BY roles.roleid;
 
+
+--
+-- Name: scriptlanguages; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE scriptlanguages (
+    languagename character varying(200)
+);
+
+
+ALTER TABLE public.scriptlanguages OWNER TO postgres;
 
 --
 -- Name: scripts; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
@@ -2214,6 +2298,42 @@ ALTER TABLE public.servers_serverid_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE servers_serverid_seq OWNED BY servers.serverid;
+
+
+--
+-- Name: sources; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE sources (
+    sourceid integer NOT NULL,
+    sourcename character varying(300) NOT NULL,
+    note text,
+    briefsummary text,
+    history text
+);
+
+
+ALTER TABLE public.sources OWNER TO postgres;
+
+--
+-- Name: sources_sourceid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE sources_sourceid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.sources_sourceid_seq OWNER TO postgres;
+
+--
+-- Name: sources_sourceid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE sources_sourceid_seq OWNED BY sources.sourceid;
 
 
 --
@@ -2557,7 +2677,8 @@ CREATE TABLE tasks (
     cause text,
     isbug boolean,
     hidden boolean,
-    processorder integer
+    processorder integer,
+    taskdriverid integer
 );
 
 
@@ -2574,7 +2695,16 @@ COMMENT ON TABLE tasks IS 'List of QCs and tasks, linkage to QC system.  Some ar
 -- Name: COLUMN tasks.srccode; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tasks.srccode IS 'Currently used to hold the Ticket # in the Quality Center (Qual Assurance).  Allows me to keep linked to the web Mercury tool without having to go in there.';
+COMMENT ON COLUMN tasks.srccode IS 'Currently used to hold the Ticket # in the Quality Center (Qual Assurance).  Allows me to keep linked to the web Mercury tool without having to go in there.
+IMPLEMENTATION: Allows fill in from Task Grid, not sure if editable from task editor.  Used alot.';
+
+
+--
+-- Name: COLUMN tasks.note; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tasks.note IS 'History of the task, actions done, each line starts with m/d. Needs to be in a separate grid of history with dates autofilled in, who/what/when/where.
+IMPLEMENTATION: Ironically, pretty much the only field used so far!  Needs a way to expand.';
 
 
 --
@@ -2689,6 +2819,61 @@ ALTER SEQUENCE tasks_taskid_seq OWNED BY tasks.taskid;
 
 
 --
+-- Name: testruns; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE testruns (
+    testrunid integer NOT NULL,
+    testid integer NOT NULL,
+    taskdriverid integer
+);
+
+
+ALTER TABLE public.testruns OWNER TO postgres;
+
+--
+-- Name: TABLE testruns; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE testruns IS 'Run history of tests, including which task driver it was run for.  The task driver # in the test is what the NEXT run will use, not necessarily what the history shows. (Confusing!)';
+
+
+--
+-- Name: COLUMN testruns.testid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN testruns.testid IS 'The test this run was for.';
+
+
+--
+-- Name: COLUMN testruns.taskdriverid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN testruns.taskdriverid IS 'Null if just using default taskmacro values for scripts, but if set, the taskmacrodriverreplacement value is pivoted in if present for the driver selected.  This allows tests to run over different versions of the task macros, and really making tests more useful.';
+
+
+--
+-- Name: testruns_testrunid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE testruns_testrunid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.testruns_testrunid_seq OWNER TO postgres;
+
+--
+-- Name: testruns_testrunid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE testruns_testrunid_seq OWNED BY testruns.testrunid;
+
+
+--
 -- Name: tests; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -2715,7 +2900,8 @@ CREATE TABLE tests (
     theirticket character varying(20),
     testmacros character varying(1000),
     lastrunwhen timestamp with time zone,
-    stopbatchrunonfail boolean
+    stopbatchrunonfail boolean,
+    taskdriverid integer
 );
 
 
@@ -2769,7 +2955,8 @@ Indeterminate (I) means not enough information was gleaned in order to complete 
 -- Name: COLUMN tests.outputvalue; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.outputvalue IS 'Value returned, somewhat mangled to fit  into a character column.';
+COMMENT ON COLUMN tests.outputvalue IS 'Value returned, somewhat mangled to fit  into a character column.
+IMPLEMENTATION: Implemented.  R/O from test grid.  Assigned when test is run.';
 
 
 --
@@ -2783,7 +2970,8 @@ COMMENT ON COLUMN tests.x IS 'first comparison value if applicable to the compar
 -- Name: COLUMN tests.y; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.y IS 'For between tests';
+COMMENT ON COLUMN tests.y IS 'For between tests, like "if value between x and y".
+IMPLEMENTATION: Not implemented.  Saveable from Test Grid, though.';
 
 
 --
@@ -2791,7 +2979,8 @@ COMMENT ON COLUMN tests.y IS 'For between tests';
 --
 
 COMMENT ON COLUMN tests.invertcomparison IS 'If true, make this a NOT test,  Do not use this in leu of setting desired outcome as Fail instead of Pass.
-Pass should always be Green/Good.';
+Pass should always be Green/Good.
+IMPLEMENTATION: Settable from Test Grid, checked when test is run.';
 
 
 --
@@ -2819,14 +3008,16 @@ COMMENT ON COLUMN tests.taskid IS 'It was starting to look like tests would be u
 -- Name: COLUMN tests.processorder; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.processorder IS 'Generic column that is the numeric order of the tests within a task #.  For display and for execution order if run as a batch.';
+COMMENT ON COLUMN tests.processorder IS 'Generic column that is the numeric order of the tests within a task #.  For display and for execution order if run as a batch.
+IMPLEMENTATION: Complete.';
 
 
 --
 -- Name: COLUMN tests.assigntowho; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.assigntowho IS 'Who or what contact team will we assign this to?';
+COMMENT ON COLUMN tests.assigntowho IS 'Who or what contact team will we assign this to?
+IMPLEMENTATION: Added to test suite screen.  Can assign and sort by.';
 
 
 --
@@ -2847,28 +3038,39 @@ COMMENT ON COLUMN tests.firstacceptedwhen IS 'Includes any email/voice that says
 -- Name: COLUMN tests.theirticket; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.theirticket IS 'JIRA ticket or whatever # they will recognize as a tracking number on the target''s side.';
+COMMENT ON COLUMN tests.theirticket IS 'JIRA ticket or whatever # they will recognize as a tracking number on the target''s side.
+IMPLEMENTATION: Not added to test suite screen yet.';
 
 
 --
 -- Name: COLUMN tests.testmacros; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.testmacros IS 'Keypairs by semicolon list.  Parsed in and added to macro context so you can override macros.  Can''t really add new macros probably, since the scripts wouldn''t have been added to script list if they hadn''t resolved all the macros??';
+COMMENT ON COLUMN tests.testmacros IS 'Keypairs by semicolon list.  Parsed in and added to macro context so you can override macros.  Can''t really add new macros probably, since the scripts wouldn''t have been added to script list if they hadn''t resolved all the macros??
+IMPLEMENTATION: Not implemented yet.  Too much other stuff.';
 
 
 --
 -- Name: COLUMN tests.lastrunwhen; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.lastrunwhen IS 'When was it last run?  Means SQL at least compiled, so not last time attempted to run.';
+COMMENT ON COLUMN tests.lastrunwhen IS 'When was it last run?  Means SQL at least compiled, so not last time attempted to run.
+IMPLEMENTATION: Assigned when run complete.';
 
 
 --
 -- Name: COLUMN tests.stopbatchrunonfail; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN tests.stopbatchrunonfail IS 'If set, then if this test does not pass in a batch run, then the batch run stops.';
+COMMENT ON COLUMN tests.stopbatchrunonfail IS 'If set, then if this test does not pass in a batch run, then the batch run stops.
+IMPLEMENTATION: Settible from checkbox in test grid.  Complete.  Code checks when run in batch mode and stops if failure.';
+
+
+--
+-- Name: COLUMN tests.taskdriverid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tests.taskdriverid IS 'This is the driver (Path) that this test was run for.  R/O from the test grid.  Only set when the active driver for the test suite is selected at the task editor level and then the tests are run.';
 
 
 --
@@ -3140,23 +3342,6 @@ Once a joining table is created, its easier to use it to store history, too, rat
 
 
 --
--- Name: v_taskmacro; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW v_taskmacro AS
-    SELECT tm.taskmacid, tm.taskid, tm.searchfor, tm.replacewith AS defaultreplacewith, tm.processorder, tm.note AS tm_note, t.taskname FROM (taskmacros tm JOIN tasks t ON ((tm.taskid = t.taskid))) WHERE (tm.taskmacid >= 0);
-
-
-ALTER TABLE public.v_taskmacro OWNER TO postgres;
-
---
--- Name: VIEW v_taskmacro; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON VIEW v_taskmacro IS 'Create transformation grid of macros x drivers for a task';
-
-
---
 -- Name: actionid; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -3189,6 +3374,13 @@ ALTER TABLE assignments ALTER COLUMN assignmentid SET DEFAULT nextval('assignmen
 --
 
 ALTER TABLE blocks ALTER COLUMN blockid SET DEFAULT nextval('blocks_blockid_seq'::regclass);
+
+
+--
+-- Name: changetoolid; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE changetools ALTER COLUMN changetoolid SET DEFAULT nextval('changetools_changetoolid_seq'::regclass);
 
 
 --
@@ -3353,6 +3545,13 @@ ALTER TABLE relations ALTER COLUMN relid SET DEFAULT nextval('relations_relid_se
 
 
 --
+-- Name: reportingtoolid; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE reportingtools ALTER COLUMN reportingtoolid SET DEFAULT nextval('reportingtools_reportingtoolid_seq'::regclass);
+
+
+--
 -- Name: roleid; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -3371,6 +3570,13 @@ ALTER TABLE scripts ALTER COLUMN scriptid SET DEFAULT nextval('scripts_scriptid_
 --
 
 ALTER TABLE servers ALTER COLUMN serverid SET DEFAULT nextval('servers_serverid_seq'::regclass);
+
+
+--
+-- Name: sourceid; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE sources ALTER COLUMN sourceid SET DEFAULT nextval('sources_sourceid_seq'::regclass);
 
 
 --
@@ -3427,6 +3633,13 @@ ALTER TABLE taskmacros ALTER COLUMN processorder SET DEFAULT currval('taskmacros
 --
 
 ALTER TABLE tasks ALTER COLUMN taskid SET DEFAULT nextval('tasks_taskid_seq'::regclass);
+
+
+--
+-- Name: testrunid; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE testruns ALTER COLUMN testrunid SET DEFAULT nextval('testruns_testrunid_seq'::regclass);
 
 
 --
@@ -3647,6 +3860,14 @@ ALTER TABLE ONLY blocks
 
 
 --
+-- Name: pkchangetool; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY changetools
+    ADD CONSTRAINT pkchangetool PRIMARY KEY (changetoolid);
+
+
+--
 -- Name: pkcol; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -3846,6 +4067,14 @@ ALTER TABLE ONLY relations
 
 
 --
+-- Name: pkreptool; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY reportingtools
+    ADD CONSTRAINT pkreptool PRIMARY KEY (reportingtoolid);
+
+
+--
 -- Name: pkrole; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -3867,6 +4096,14 @@ ALTER TABLE ONLY scripts
 
 ALTER TABLE ONLY servers
     ADD CONSTRAINT pkserver PRIMARY KEY (serverid);
+
+
+--
+-- Name: pksource; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY sources
+    ADD CONSTRAINT pksource PRIMARY KEY (sourceid);
 
 
 --
@@ -3907,6 +4144,14 @@ ALTER TABLE ONLY tables
 
 ALTER TABLE ONLY tests
     ADD CONSTRAINT pktest PRIMARY KEY (testid);
+
+
+--
+-- Name: pktestrun; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY testruns
+    ADD CONSTRAINT pktestrun PRIMARY KEY (testrunid);
 
 
 --
@@ -4201,6 +4446,14 @@ ALTER TABLE ONLY questions
 
 
 --
+-- Name: fktest_taskdriver; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY tests
+    ADD CONSTRAINT fktest_taskdriver FOREIGN KEY (taskdriverid) REFERENCES taskdrivers(driverid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
 -- Name: fktestassgnto; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4230,6 +4483,22 @@ ALTER TABLE ONLY tests
 
 ALTER TABLE ONLY tests
     ADD CONSTRAINT fktestrel FOREIGN KEY (relid) REFERENCES relations(relid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: fktestrun_taskdriver; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY testruns
+    ADD CONSTRAINT fktestrun_taskdriver FOREIGN KEY (taskdriverid) REFERENCES taskdrivers(driverid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: fktestrun_test; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY testruns
+    ADD CONSTRAINT fktestrun_test FOREIGN KEY (testid) REFERENCES tests(testid) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
