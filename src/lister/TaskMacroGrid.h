@@ -10,7 +10,7 @@ class TaskMacroGrid : public UrpSqlGrid {
 public:
 	typedef TaskMacroGrid CLASSNAME;
 	
-	int            taskId;
+	int            taskId; // Set from caller or it probably won't function well
 	EditString     searchFor, replaceWith, expansion, note, processOrder;
 	Connection    *connection; // Our metadata about the query we will be running
 	

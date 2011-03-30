@@ -3,18 +3,20 @@
 
 //==============================================================================================
 TaskMacroGrid::TaskMacroGrid() : UrpSqlGrid() {
+	taskId = UNKNOWN;
 }
 
 //==============================================================================================
+// Called from WhenStartEdit from inside StartEdit	
 void TaskMacroGrid::UpdatingRow() {
-	// Called from WhenStartEdit from inside StartEdit	
 	if (IsInsert()) { // Not IsInserting, this checks insertmode
+		// Make sure we stay linked to the active task in the taskgrid.
 		Set(TASKID, taskId);
 	}
 }
 
 //==============================================================================================
-	// Trick to ask DB (Postgresql) to populate with its default function
+// Trick to ask DB (Postgresql) to populate with its default function
 struct ForceDBDefaultConvert : public Convert {
 	Value Format(const Value& v) const {
 		if (IsNull(v))
@@ -25,8 +27,8 @@ struct ForceDBDefaultConvert : public Convert {
 };
 
 //==============================================================================================
+// Build columns
 void TaskMacroGrid::Build(Connection *pconnection) {
-	// Build columns
 	connection = pconnection;
 	SetTable(TASKMACROS);
 	AddKey(TASKMACID);
@@ -40,22 +42,25 @@ void TaskMacroGrid::Build(Connection *pconnection) {
 	AddColumn(NOTE, "note", 200).Edit(note);
 	AddIndex(TASKID);
 	WhenAcceptRow = THISBACK(CompleteNewRow);
-	built = true;
 	// DoInsert()->DoEdit()->StartEdit()
 	WhenStartEdit = THISBACK(UpdatingRow);
+	built = true;
 }
 
 //==============================================================================================
+// Make sure the process order gets a default value that should be unique. Return true to
+// signify accept and post to db.
 bool TaskMacroGrid::CompleteNewRow() {
-	Value currProcessOrder = Get(PROCESSORDER);
-	if (currProcessOrder.IsNull()) {
-		Set(PROCESSORDER, GetNextProcessOrder());
+	Value currProcessOrder = Get(PROCESSORDER); // Perhaps they set it manually?
+	if (currProcessOrder.IsNull()) { // Nope.
+		Set(PROCESSORDER, GetNextProcessOrder()); // Scan all the available orders and grab the next #
 	}
 	
 	return true;
 }
 
 //==============================================================================================
+// Must be set or this will show everything.
 void TaskMacroGrid::SetTaskId(int ptaskId) {
 	taskId = ptaskId;
 	SetWhere((TASKID == taskId));
@@ -73,9 +78,12 @@ void TaskMacroGrid::Load() {
 }
 
 //==============================================================================================
+// Called from others who want a task macro grid.  By placing here we can hopefully 
+// share some related SQL.
 /*static */void TaskMacroGrid::LoadTaskMacro(Connection *connection, DropGrid &dropGrid) {
 	
-	if (!connection->SendQueryDataScript("select elementid, elementname, elementdesc, taskid, note, status from elements order by elementname")) {
+	// OOPS! Buggy!
+	if (!connection->SendQueryDataScript("select taskmacid!!!!!???, elementname, elementdesc, taskid, note, status from elements order by elementname")) {
 		return;
 	}
 	
