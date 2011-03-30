@@ -65,6 +65,11 @@ void TaskGrid::Load(Connection *pconnection) {
 	SetSortColumn(TASKNAME);
 	Query();
 	loaded = true;
+	
+	if (lastKnownRow >= 0 && lastKnownRow < GetCount()) {
+		SetCursor(lastKnownRow);
+	}
+
 }
 
 //==========================================================================================	
