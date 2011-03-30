@@ -11,7 +11,7 @@
 #include <lister/PostgreSQL/PostgreSQL.h>
 #include <lister/ODBC/ODBC.h>
 #include <lister/Urp/UrpInput.h>
-
+// http://www.datadirect.com/download.html (Progress??)
 //==============================================================================================
 Connection::Connection() {
 	connId                      = UNKNOWN;
