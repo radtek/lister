@@ -3,13 +3,18 @@
 
 using namespace Upp;
 
-#include "ScriptGrid.h" // Referenced from layout
-#include "TestGrid.h"   // Referenced from layout
-#include "TaskMacroGrid.h" // Referenced in task
+// Referenced from TaskDefWin.cpp in layout
+// lister.cpp populates mainwindow manually
+#include "TaskMacroGrid.h" 
+#include "TaskMacroByDriverGrid.h" // Replacing TaskMacro (slowly)
 #include "ElementGrid.h"
 #include "TaskGrid.h"
+#include "ScriptGrid.h" 
 #include "LinkGrid.h"
-#include "RecordViewGrid.h" // On the RecordViewWin
+#include "TestGrid.h"   // Referenced from layout
+
+// Referenced from MainGrid
+#include "RecordViewGrid.h" 
 
 #include <lister/Urp/UrpEdit.h> // My fix of U++ RichEdit
 
