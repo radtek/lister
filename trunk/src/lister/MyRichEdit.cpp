@@ -1,6 +1,7 @@
 #include <RichEdit/RichEdit.h>
 #include <lister/Urp/UrpString.h>
 #include <Web/Web.h>
+#include <plugin/pcre/Pcre.h>
 
 #include "MyRichEdit.h"
 #include "Connection.h"
@@ -9,7 +10,7 @@
 
 static const String MACRO = "[[INPUT]]";
 
-//==============================================================================================	
+//==============================================================================================
 MyRichEdit::MyRichEdit() {
 	connection = NULL;
 	scriptId = UNKNOWN;
@@ -24,11 +25,11 @@ MyRichEdit::MyRichEdit() {
 	zoomlevel = 8.0; // default zoom is about 9 pt on my screen
 }
 
-//==============================================================================================	
+//==============================================================================================
 /*virtual */MyRichEdit::~MyRichEdit() {
 }
 
-//==============================================================================================	
+//==============================================================================================
 //  Added a zoom text feature.
 /*virtual*/ void MyRichEdit::MouseWheel(Point p, int zdelta, dword keyflags) {
 	if (keyflags == K_CTRL) {
@@ -42,7 +43,7 @@ MyRichEdit::MyRichEdit() {
 	}
 }
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::Layout() {
 	
 	RichEdit::Layout();
@@ -51,7 +52,7 @@ void MyRichEdit::Layout() {
 	SetPage(Size(adaptive_cx, INT_MAX));
 }
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::SplitOnComma() {
 	String ci = ReadClipboardText();
 	String co;
@@ -70,7 +71,7 @@ void MyRichEdit::SplitOnComma() {
 
 }
 
-//==============================================================================================	
+//==============================================================================================
 // Our system is partitioned by date, with no global indexes, so to search across dates,
 // You need to supply a list of dates across the range
 void MyRichEdit::PasteRunOfOraDates() {
@@ -106,30 +107,30 @@ void MyRichEdit::PasteRunOfOraDates() {
 	}
 }
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::PasteWithNoWrapper() {
 	PasteJoinLinesWithWrapper();
 }
 
-//==============================================================================================	
+//==============================================================================================
 // My helper, unintentionally hides the RichText version
 void MyRichEdit::PasteText(const String &s) {
 	RichEdit::PasteText(AsRichText(s.ToWString()));
 }
 
-//==============================================================================================	
+//==============================================================================================
 // Re-visiblize
 void MyRichEdit::PasteText(const RichText& text) {
 	RichEdit::PasteText(text);
 }
 
-//==============================================================================================	
+//==============================================================================================
 //  Turn a set of lines into a stream for IN clause use
 void MyRichEdit::PasteWithApostrophe() {
 	PasteJoinLinesWithWrapper("'", "'");
 }
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::PasteJoinLinesWithWrapper(const String& wrapper, const String &wrapperRight) {
 	
 	String ci = ReadClipboardText();
@@ -151,7 +152,7 @@ void MyRichEdit::PasteJoinLinesWithWrapper(const String& wrapper, const String &
 	WriteClipboardText(ci); // Restore clipboard so it doesn't keep expanding
 }
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::PasteConcat() {
 	String ci = ReadClipboardText();
 	String co;
@@ -167,7 +168,7 @@ void MyRichEdit::PasteConcat() {
 }
 
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::PasteAsLineMacro() {
 	static String wrapperCmd = MACRO;  // Retain any changes the user makes
 	
@@ -191,7 +192,7 @@ void MyRichEdit::PasteAsLineMacro() {
 	}
 }
 
-//==============================================================================================	
+//==============================================================================================
 //  Turn a set of lines into series of text with the clipboard text pasted in
 String MyRichEdit::PasteAsLineMacro(
 	Vector<String> lines, String macroMarker, String inBetweenNewLine, String title, 
@@ -258,7 +259,7 @@ String MyRichEdit::PasteAsLineMacro(
 	return Null;
 }
 
-//==============================================================================================	
+//==============================================================================================
 //  Turn a set of lines into series of union alls (for ex:)
 void MyRichEdit::PasteAsWrappedUnion() {
 	static String wrapperCmd = MACRO;  // Retain any changes the user makes
@@ -318,12 +319,12 @@ void MyRichEdit::PasteAsWrappedUnion() {
     return out;
 }
 
-//==============================================================================================	
+//==============================================================================================
 String MyRichEdit::GetSelectionAsPlainText() {
 	return GetSelection().GetPlainText().ToString();
 }
 
-//==============================================================================================	
+//==============================================================================================
 // Doesn't work.
 void MyRichEdit::SearchSharePoint() {
 	String searchString = GetSelectionAsPlainText();
@@ -346,20 +347,20 @@ void MyRichEdit::SearchSharePoint() {
 	Pick(AsRichText(dcontent.ToWString()));
 }
 
-//==============================================================================================	
+//==============================================================================================
 // Strip Qtf codes off of text.
 void MyRichEdit::DeFormatSelection() {
 	WriteClipboardText(GetSelectionAsPlainText());
 	Paste();
 }
 
-//==============================================================================================	
-// Clean entire thing of Qtf.
+//==============================================================================================
+// Clean entire thing of Qtf coding.
 void MyRichEdit::DeFormatScript() {
 	SetScriptPlainText(GetScriptPlainText());
 }
 
-//==============================================================================================	
+//==============================================================================================
 // Useful to count the highlighted selection's comma-separated values, especially when trying
 // to determine how many of the in clause values matched up.
 void MyRichEdit::CountCommaSepValues() {
@@ -368,7 +369,85 @@ void MyRichEdit::CountCommaSepValues() {
 	Exclamation(ToString(itemcount));
 }
 
-//==============================================================================================	
+//==============================================================================================
+// Applied to a selection, not a copy.  It is confusing, what is applied to selection vs. applied to what is on the clipboard.
+// Should alter name to express difference, like "SelPrefix", then call "Clip" to operate on the clipboard, then "Paste" to apply a function to the clipboard.
+// Perhaps all code should work de-context stuff.  But the original op chosen by the user implies "apply to selection", "replace selection", and probably "don't affect current clipboard contents"
+
+// This function doesn't get too clever since most SQL systems are very tolerant about alias prefixing placement.
+void MyRichEdit::PrefixCommaColsWthAlias() {
+	String ci = GetSelectionAsPlainText();
+	String co;
+	
+	Vector<String> elems = Split(ci, ","); // In Util.cpp: Vector<String> Split(const char *s, const String& delim, bool ignoreempty)
+	String newTableAlias = "t.";
+	
+	if (!UrpInputBox(newTableAlias, "Enter a new table prefix for each column", "Generate table aliases as column prefixes")) {
+		return;
+	}
+	
+	// Have to control addition of separator to cases where one before AND one following.
+	bool addedatleastoneitem = false;
+	for (int i = 0; i < elems.GetCount(); i++) {
+		//if (i) co << "\n";
+		if (addedatleastoneitem) co << ", ";
+		String elem = newTableAlias + elems.At(i);
+		addedatleastoneitem = true;
+		
+		co << elem;
+	}
+
+	WriteClipboardText(co);
+	Paste();
+}
+
+//==============================================================================================
+// Convert "t.trex_rf_id, " to "t.trex_rf_id as c_trex_rf_id, ". Useful for converting existing
+// formatted SQL into columns that can merge with a final version of several table's columns.
+void MyRichEdit::AliasColumnsInPlace() {
+	String ci = GetSelectionAsPlainText();
+	String co;
+
+	Vector<String> elems = Split(ci, ","); // In Util.cpp: Vector<String> Split(const char *s, const String& delim, bool ignoreempty)
+	String newColumnAlias = "c_";
+	
+	if (!UrpInputBox(newColumnAlias, "Enter a new alias prefix for each column", "Generate prefixed column aliases")) {
+		return;
+	}
+	
+	// Have to control addition of separator to cases where one before AND one following.
+	bool addedatleastoneitem = false;
+	for (int i = 0; i < elems.GetCount(); i++) {
+		String columnElem = elems.At(i);
+		// Parse out column name portion
+		
+		// Possibly the last alphanum string (ignore trailing spaces)
+		// TODO: Ignore trailing comments; replace an existing alias
+		String searchFor = "([a-zA-Z0-9_]+)[\\s]*$";
+		RegExp r2(searchFor);
+		String columnName;
+			
+		// Scan our input for the search pattern
+		if (r2.Match(columnElem)) {
+			columnName = r2[0];
+		} else {
+			// Just make up a column "name" to put something out
+			columnName = ToString(i);
+		}
+
+		if (addedatleastoneitem) co << ", ";
+		
+		addedatleastoneitem = true;
+		
+		co << columnElem << " as " << newColumnAlias << columnName;
+	}
+
+	WriteClipboardText(co);
+	Paste();
+	
+}
+
+//==============================================================================================
 // Stolen from the RichEdit since I needed to manipulated non-exposed components.
 /*virtual*/ void MyRichEdit::RightDown(Point p, dword flags) {
 	useraction = true;
@@ -391,9 +470,13 @@ void MyRichEdit::CountCommaSepValues() {
 			menu.Add("Search SharePoint", THISBACK(SearchSharePoint));
 			menu.Add("De-Format", THISBACK(DeFormatSelection));
 			menu.Add("Count Comma-sep", THISBACK(CountCommaSepValues));
+			menu.Add("Prefix Column w/ table alias", THISBACK(PrefixCommaColsWthAlias));
+			menu.Add("Append Alias to Columns", THISBACK(AliasColumnsInPlace));
 		}
 		PasteTool(menu);
 	}
+	
+	// No selection
 	else {
 		LeftDown(p, flags);
 		if(objectpos >= 0) {
@@ -479,12 +562,12 @@ void MyRichEdit::CountCommaSepValues() {
 	}
 }
 
-//==============================================================================================	
+//==============================================================================================
 bool MyRichEdit::IsLegalWordChar(char cc) {
 	return (IsLeNum(cc) || cc == '_');
 }
 
-//==============================================================================================	
+//==============================================================================================
 String MyRichEdit::GetPreviousWord(int &pc, WordTests &wordTests) {
 	int c = pc;
 	String w = Null; // ERROR!String::GetVoid();
@@ -531,7 +614,7 @@ String MyRichEdit::GetPreviousWord(int &pc, WordTests &wordTests) {
 	return w;
 }
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::ProcessPaste() {
 	String pasteData = ReadClipboardText();
 	ClearClipboard();
@@ -539,7 +622,7 @@ void MyRichEdit::ProcessPaste() {
 	Paste();
 }
 
-//==============================================================================================	
+//==============================================================================================
 MyRichEdit::KeyProcessorResponse MyRichEdit::PopupRequested(bool ShowAllColumns) {
 	// We are now pointing to the character following the period
 	int c = GetCursor();
@@ -746,7 +829,7 @@ MyRichEdit::KeyProcessorResponse MyRichEdit::PopupRequested(bool ShowAllColumns)
 	return ALLOWDEFAULTKEYPROCESSORTORUN;
 }
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::ScriptContentChanged(dword key) {
 	
 	// Script has changed, so the script id is no longer correct
@@ -759,7 +842,7 @@ void MyRichEdit::ScriptContentChanged(dword key) {
 	if (WhenScriptContentChanged) WhenScriptContentChanged();
 }
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::ResetEditorState() {
 	ClearModify(); // May zap the Ctrl-Z capability
 	columnlist.Clear();
@@ -851,7 +934,7 @@ bool MyRichEdit::Key(dword key, int count) {
 	return didWeProcessKey;
 }
 
-//==============================================================================================	
+//==============================================================================================
 // User selected an item from the popup grid, which closes it and sets the Cursor to the selected item.
 // We now paste it into the script at the current script cursor.
 void MyRichEdit::SelectedPopUpTable() {
@@ -860,7 +943,7 @@ void MyRichEdit::SelectedPopUpTable() {
 	PasteText(AsRichText(txt, GetFormatInfo()));
 }
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::SelectedPopUpColumn() {
 	if (!columnlist.IsCursor()) return;
 	WString txt = columnlist.Get(0);
@@ -868,7 +951,7 @@ void MyRichEdit::SelectedPopUpColumn() {
 	PasteText(AsRichText(txt, GetFormatInfo()));
 }
 
-//==============================================================================================	
+//==============================================================================================
 void MyRichEdit::AddColumns(String schema, String table) {
 			
 	if (columnlist.schemaName == schema && columnlist.tableName == table) {

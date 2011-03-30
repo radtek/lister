@@ -100,6 +100,8 @@ struct MyRichEdit : public RichEdit, public Script {
 	void            DeFormatScript(); // Clean entire thing of Qtf.
 	void            CountCommaSepValues(); // In selection
 	// Stolen from the RichEdit since I needed to manipulated non-exposed components.
+	void            PrefixCommaColsWthAlias();
+	void            AliasColumnsInPlace();
 	virtual void    RightDown(Point p, dword flags);
 	bool            IsLegalWordChar(char cc);
 	String          GetPreviousWord(int &pc, WordTests &wordTests);
