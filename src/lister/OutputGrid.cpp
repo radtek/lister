@@ -34,13 +34,16 @@ OutputGrid::OutputGrid() : UrpGrid() {
 }
 
 //==============================================================================================
-void OutputGrid::Build() {
-	recordViewWin.recordViewGrid.Build();
+/*virtual=0*/ void OutputGrid::Build(Connection *pconnection) {
+	BuildBase(pconnection); // pconnection must be non-null
+	recordViewWin.recordViewGrid.Build(connection);
+	BuildComplete(); // sets built
 }
 
 //==============================================================================================
-void OutputGrid::Load(Connection *pconnection) {
-	connection = pconnection;
+/*virtual=0*/ void OutputGrid::Load() {
+	LoadBase(); // Build must have been called
+	LoadComplete(); //sets loaded
 }
 
 //==============================================================================================
@@ -98,13 +101,13 @@ void OutputGrid::PopUpRecordView() {
 		// one-time ops
 		g = new RecordViewGrid();
 		w->Icon(MyImages::recview16()); // Have to set here, not in constructor for dynamics.
-		g->Build(); // Create the columns
+		g->Build(connection); // Create the columns
 		w->AddCtrl(g);
 	} else {
 		g = (RecordViewGrid *)w->ctrls.At(0);
 	}
 
-	g->Load(connection);
+	g->Load();
 	for (int i = 0; i < GetFloatingColumnCount(); i++) {
 		String colname = TrimRight(GetFloatingColumn(i).GetName());
 		String colvalue = Get(i).ToString();
