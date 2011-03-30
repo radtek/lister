@@ -96,6 +96,135 @@ TestGrid::TestGrid() {
 }
 
 //==============================================================================================
+/*virtual=0*/void TestGrid::Build(Connection *pconnection) {
+	BuildBase(pconnection);
+	WhenNewRow      = THISBACK(NewTest);    // At the creation of a new row; pre-populate fields
+	WhenRemoveRow   = THISBACK(RemoveTest);
+	WhenAcceptedRow = THISBACK(SaveTestPrompt);   // Build/Run SQL to save data
+
+	// SizePos(); GRIDCTRL BUG: // Cannot SizePos in TestGrid.Build() or Graphics will cycle onto all cells (see SetImage(CtrlImg::go_forward())
+	// Make the dropgrids of values extend past the width of the column they are for, to improve readability without wasting grid space.
+	
+	connList   .SearchHideRows().Resizeable().Width(200);
+	scriptList .SearchHideRows().Resizeable().Width(200);
+	testTypList.SearchHideRows().Resizeable().Width(200);
+	compTypList.SearchHideRows().Resizeable().Width(200);
+	
+	// Set a display controller to help user see statuses of tests easily
+	//SetDisplay(Single<TestGraphicalStatusDisplay>());
+	SetDisplay(Single<TestGraphicalStatusDisplay>());
+	
+	AddColumn(IDTestState       , ""               ).Ctrls(MakeTestState)       .Default(TestState::ConvertStateToColor(NOTEST_NEVER)).Fixed(16).CalculatedColumn();
+	AddColumn(TESTID            , "Id"  , 100      ).Edit(fldTestId)            .Default(Null).NoEditable();
+	AddColumn(TESTNAME          , "Name", 100      ).Edit(fldTestName)                        ;
+	AddColumn(RELID             , "Script"         ).Edit(scriptList)           .SetConvert(scriptList)        .Default(-1);
+	AddColumn(NOTE              , "Note"           ).Edit(fldTestNote);
+	AddColumn(CONNID            , "Conn"           ).Edit(connList)             .SetConvert(connList)          .Default(-1);
+	AddColumn(TESTTYPID         , "TestType"       ).Edit(testTypList)          .SetConvert(testTypList)       .Default(-1);
+	AddColumn(INVERTCOMPARISON  , "NOT?"           ).Edit(invertCompList)       .SetConvert(invertCompList)    .Default(false);
+	AddColumn(COMPTYPID         , "ComparisonType" ).Edit(compTypList)          .SetConvert(compTypList)       .Default(-1);
+	AddColumn(X                 , "X"              ).Edit(fldCompareUsingX);
+	AddColumn(Y                 , "Y"              ).Edit(fldCompareUsingY);
+	AddColumn(DESIREDOUTCOME    , "Desired Outcome").Edit(desiredOutcomeList)   .SetConvert(desiredOutcomeList).Default("P");  // P)ass or F)ail
+	AddColumn(ACTUALOUTCOME     , "Actual Outcome" ).Edit(actualOutcomeList)    .SetConvert(actualOutcomeList);   // P)ass, F)ail, I)ndeterminate
+	AddColumn(OUTPUTVALUE       , "Output"         );                                          // Result of script, if a single value
+	AddColumn(TASKID            , "Task", 50       );                                          // The task that owns this test
+	AddColumn(PROCESSORDER      , "processorder"   ).Hidden();                                 // Required for ordering
+	AddColumn(ASSIGNTOWHO       , "assgnd to"      ).Edit(assignToWhoList)      .SetConvert(assignToWhoList);
+	AddColumn(LASTRUNWHEN       , "runtime"        ).Edit(fldLastRunWhen)                                                   .NoEditable();
+	AddColumn(STOPBATCHRUNONFAIL, "must pass"      ).Edit(optStopBatchRunOnFail).SetConvert(Single<BoolOptionBackToInt>()).Default(false);
+	AddColumn(IDTEST            , ""               ).Ctrls(MakeTestButton).Fixed(20).SetImage(CtrlImg::go_forward()).CalculatedColumn();
+	// Following line works around bug with images in last column
+	AddColumn(IDTESTDUMMY       , ""               ).Fixed(1)                                                       .CalculatedColumn();
+	if (WhenToolBarNeedsUpdating) WhenToolBarNeedsUpdating(UrpGrid::ADDEDSTRUCTURE);
+	BuildComplete();
+}
+
+//==============================================================================================
+// Hope someone set the taskId, or all tests will be fetched.
+/*virtual=0*/ void TestGrid::Load() {
+	LoadBase();
+	
+	desiredOutcomeList.Clear();
+	desiredOutcomeList.Add("P", "Pass");
+	desiredOutcomeList.Add("F", "Fail");
+
+	actualOutcomeList.Clear();
+	actualOutcomeList.Add("P", "Pass");
+	actualOutcomeList.Add("F", "Fail");
+	actualOutcomeList.Add("I", "Indeterminate");
+	
+	invertCompList.Clear();
+	invertCompList.Add(Value((bool)false), "");
+	invertCompList.Add(Value((bool)true), "NOT");
+
+	// Types of comparisons
+	compTypList.Clear();
+	if (connection->SendQueryDataScript("select comptypid, comptypname from comptyps")) {
+		while(connection->Fetch()) {
+			compTypList.Add(connection->Get(0), connection->Get(1));
+		}
+	}
+
+	testTypList.Clear();
+	if (connection->SendQueryDataScript("select testtypid, testtypname from testtyps")) {
+		while(connection->Fetch()) {
+			testTypList.Add(connection->Get(0), connection->Get(1));
+		}
+	}
+
+	// Not scripts really, but the relations which hold the task, script, and connection together
+	scriptList.Clear();
+	if (taskId != UNKNOWN) {
+		String s = Format("select relid, why, scriptplaintext, relconnid, relconnname from tasks_r where taskid = %d order by processorder", taskId);
+		if (connection->SendQueryDataScript(s)) {
+			while(connection->Fetch()) {
+				scriptList.Add(connection->Get(0), connection->Get(1));
+			}
+		}
+	}
+	
+	connList.Clear();
+	if (connection->SendQueryDataScript("select connid, connname from connections order by connname")) {
+		while(connection->Fetch()) {
+			connList.Add(connection->Get(0), connection->Get(1));
+		}
+	}
+
+	ContactGrid::LoadContact(connection, assignToWhoList);
+	ContactGrid::BuildContactList(assignToWhoList);
+	
+	// Load all the tests for current task
+	
+	Clear();
+	
+	SqlSelect s = SqlSelect(THISBACK(FieldLayout)).From(TESTS);
+	SqlBool filter(TESTID >= 0);
+	
+	if (taskId != UNKNOWN) {
+		filter&= TASKID == taskId;
+	}
+	
+	String controlScript = SqlStatement(s.Where(filter).OrderBy(PROCESSORDER)).Get(connection->GetDialect());
+	LOG(controlScript);
+
+	if (connection->SendQueryDataScript(controlScript)) {
+		while(connection->Fetch()) {
+			Add();
+			for (int i = 0; i < GetFloatingColumnCount(); i++) {
+				GridCtrl::ItemRect& ir = GetFloatingColumn(i);
+				if (ir.linkedtodbcol == 1) {
+					Set(GetFloatingColumnId(i), connection->Get((SqlId)GetFloatingColumnId(i)));
+				}
+			}
+		}
+	}
+	
+	if (WhenToolBarNeedsUpdating) WhenToolBarNeedsUpdating(UrpGrid::ADDEDROWSFROMDB);
+	LoadComplete();
+}
+
+//==============================================================================================
 // Added manually from appending a row.
 void TestGrid::NewTest() {
 	if (taskId != UNKNOWN) {
@@ -142,50 +271,6 @@ void TestGrid::AddTest(String script, int scriptId, int connId) {
 //	
 //	Set(IDTestScriptId, scriptId);
 //	Set(IDTestConnId, connId);
-}
-
-//==============================================================================================
-void TestGrid::Build() {
-	WhenNewRow      = THISBACK(NewTest);    // At the creation of a new row; pre-populate fields
-	WhenRemoveRow   = THISBACK(RemoveTest);
-	WhenAcceptedRow = THISBACK(SaveTestPrompt);   // Build/Run SQL to save data
-
-	// SizePos(); GRIDCTRL BUG: // Cannot SizePos in TestGrid.Build() or Graphics will cycle onto all cells (see SetImage(CtrlImg::go_forward())
-	// Make the dropgrids of values extend past the width of the column they are for, to improve readability without wasting grid space.
-	
-	connList   .SearchHideRows().Resizeable().Width(200);
-	scriptList .SearchHideRows().Resizeable().Width(200);
-	testTypList.SearchHideRows().Resizeable().Width(200);
-	compTypList.SearchHideRows().Resizeable().Width(200);
-	
-	// Set a display controller to help user see statuses of tests easily
-	//SetDisplay(Single<TestGraphicalStatusDisplay>());
-	SetDisplay(Single<TestGraphicalStatusDisplay>());
-	
-	AddColumn(IDTestState       , ""               ).Ctrls(MakeTestState)       .Default(TestState::ConvertStateToColor(NOTEST_NEVER)).Fixed(16).CalculatedColumn();
-	AddColumn(TESTID            , "Id"  , 100      ).Edit(fldTestId)            .Default(Null).NoEditable();
-	AddColumn(TESTNAME          , "Name", 100      ).Edit(fldTestName)                        ;
-	AddColumn(RELID             , "Script"         ).Edit(scriptList)           .SetConvert(scriptList)        .Default(-1);
-	AddColumn(NOTE              , "Note"           ).Edit(fldTestNote);
-	AddColumn(CONNID            , "Conn"           ).Edit(connList)             .SetConvert(connList)          .Default(-1);
-	AddColumn(TESTTYPID         , "TestType"       ).Edit(testTypList)          .SetConvert(testTypList)       .Default(-1);
-	AddColumn(INVERTCOMPARISON  , "NOT?"           ).Edit(invertCompList)       .SetConvert(invertCompList)    .Default(false);
-	AddColumn(COMPTYPID         , "ComparisonType" ).Edit(compTypList)          .SetConvert(compTypList)       .Default(-1);
-	AddColumn(X                 , "X"              ).Edit(fldCompareUsingX);
-	AddColumn(Y                 , "Y"              ).Edit(fldCompareUsingY);
-	AddColumn(DESIREDOUTCOME    , "Desired Outcome").Edit(desiredOutcomeList)   .SetConvert(desiredOutcomeList).Default("P");  // P)ass or F)ail
-	AddColumn(ACTUALOUTCOME     , "Actual Outcome" ).Edit(actualOutcomeList)    .SetConvert(actualOutcomeList);   // P)ass, F)ail, I)ndeterminate
-	AddColumn(OUTPUTVALUE       , "Output"         );                                          // Result of script, if a single value
-	AddColumn(TASKID            , "Task", 50       );                                          // The task that owns this test
-	AddColumn(PROCESSORDER      , "processorder"   ).Hidden();                                 // Required for ordering
-	AddColumn(ASSIGNTOWHO       , "assgnd to"      ).Edit(assignToWhoList)      .SetConvert(assignToWhoList);
-	AddColumn(LASTRUNWHEN       , "runtime"        ).Edit(fldLastRunWhen)                                                   .NoEditable();
-	AddColumn(STOPBATCHRUNONFAIL, "must pass"      ).Edit(optStopBatchRunOnFail).SetConvert(Single<BoolOptionBackToInt>()).Default(false);
-	AddColumn(IDTEST            , ""               ).Ctrls(MakeTestButton).Fixed(20).SetImage(CtrlImg::go_forward()).CalculatedColumn();
-	// Following line works around bug with images in last column
-	AddColumn(IDTESTDUMMY       , ""               ).Fixed(1)                                                       .CalculatedColumn();
-	if (WhenToolBarNeedsUpdating) WhenToolBarNeedsUpdating(UrpGrid::ADDEDSTRUCTURE);
-	built = true;
 }
 
 //==============================================================================================
@@ -314,94 +399,6 @@ void TestGrid::SaveTest(bool prompt) {
 			}
 		}
 	}
-}
-
-//==============================================================================================
-// Hope someone set the taskId, or all tests will be fetched.
-/*virtual*/ void TestGrid::Load(Connection *pconnection) {
-	Ready(false);
-	if (!loaded) {
-		ConnectedCtrl::Load(pconnection);
-	}
-	
-	desiredOutcomeList.Clear();
-	desiredOutcomeList.Add("P", "Pass");
-	desiredOutcomeList.Add("F", "Fail");
-
-	actualOutcomeList.Clear();
-	actualOutcomeList.Add("P", "Pass");
-	actualOutcomeList.Add("F", "Fail");
-	actualOutcomeList.Add("I", "Indeterminate");
-	
-	invertCompList.Clear();
-	invertCompList.Add(Value((bool)false), "");
-	invertCompList.Add(Value((bool)true), "NOT");
-
-	// Types of comparisons
-	compTypList.Clear();
-	if (connection->SendQueryDataScript("select comptypid, comptypname from comptyps")) {
-		while(connection->Fetch()) {
-			compTypList.Add(connection->Get(0), connection->Get(1));
-		}
-	}
-
-	testTypList.Clear();
-	if (connection->SendQueryDataScript("select testtypid, testtypname from testtyps")) {
-		while(connection->Fetch()) {
-			testTypList.Add(connection->Get(0), connection->Get(1));
-		}
-	}
-
-	// Not scripts really, but the relations which hold the task, script, and connection together
-	scriptList.Clear();
-	if (taskId != UNKNOWN) {
-		String s = Format("select relid, why, scriptplaintext, relconnid, relconnname from tasks_r where taskid = %d order by processorder", taskId);
-		if (connection->SendQueryDataScript(s)) {
-			while(connection->Fetch()) {
-				scriptList.Add(connection->Get(0), connection->Get(1));
-			}
-		}
-	}
-	
-	connList.Clear();
-	if (connection->SendQueryDataScript("select connid, connname from connections order by connname")) {
-		while(connection->Fetch()) {
-			connList.Add(connection->Get(0), connection->Get(1));
-		}
-	}
-
-	ContactGrid::LoadContact(connection, assignToWhoList);
-	ContactGrid::BuildContactList(assignToWhoList);
-	
-	// Load all the tests for current task
-	
-	Clear();
-	
-	SqlSelect s = SqlSelect(THISBACK(FieldLayout)).From(TESTS);
-	SqlBool filter(TESTID >= 0);
-	
-	if (taskId != UNKNOWN) {
-		filter&= TASKID == taskId;
-	}
-	
-	String controlScript = SqlStatement(s.Where(filter).OrderBy(PROCESSORDER)).Get(connection->GetDialect());
-	LOG(controlScript);
-
-	if (connection->SendQueryDataScript(controlScript)) {
-		while(connection->Fetch()) {
-			Add();
-			for (int i = 0; i < GetFloatingColumnCount(); i++) {
-				GridCtrl::ItemRect& ir = GetFloatingColumn(i);
-				if (ir.linkedtodbcol == 1) {
-					Set(GetFloatingColumnId(i), connection->Get((SqlId)GetFloatingColumnId(i)));
-				}
-			}
-		}
-	}
-	
-	Ready(true);
-	loaded = true;
-	if (WhenToolBarNeedsUpdating) WhenToolBarNeedsUpdating(UrpGrid::ADDEDROWSFROMDB);
 }
 
 //==============================================================================================

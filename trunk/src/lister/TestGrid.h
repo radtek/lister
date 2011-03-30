@@ -1,7 +1,6 @@
 #ifndef _TestGrid_h_
 #define _TestGrid_h_
 
-#include "ConnectedCtrl.h"
 #include <lister/Urp/UrpGrid.h>
 #include <lister/Urp/UrpInput.h> // Need BoolOption
 
@@ -49,7 +48,7 @@ class Connection;
 #define COMPTYP_WITHIN_X_OF_Y             16
 
 //==============================================================================================
-class TestGrid : public UrpGrid, ConnectedCtrl {
+class TestGrid : public UrpGrid {
 public:
 	typedef TestGrid CLASSNAME;
 	
@@ -75,8 +74,8 @@ public:
 	
                       TestGrid();
 	                  // Added manually from appending a row.
-	void              Build();
-	virtual void      Load(Connection *pconnection);
+	virtual void      Build(Connection *pconnection);
+	virtual void      Load();
 	void              NewTest();
 	                  // GridCtrl will remove the row if we do not cancel the remove.
 	void              RemoveTest();
