@@ -147,12 +147,7 @@ Lister::Lister() {
 	int ecy = EditField::GetStdHeight();
 	topRightPane.Add(scriptDropDownList.BottomPos(0, ecy).HSizePos(0, 0)); // Cross entire pane
 
-	String s = Script::GetScriptListQuery();
-//	if (controlConnection->SendQueryDataScript(s)) {
-//		while(controlConnection->Fetch()) {
-//			scriptDropDownList.Add(controlConnection->Get(0), controlConnection->Get(1), controlConnection->Get(2));
-//		}
-//	}
+	//String s = Script::GetScriptListQuery();
 
 	// Construct Script Editor
 
@@ -173,12 +168,13 @@ Lister::Lister() {
 	// Construct Connection Grid
 	
 	connGrid.Description("connGrid");
-	connGrid.WhenCtrlsAction = THISBACK(ClickedConnect);
 	topLeftPane.Add(connGrid);
-	connGrid.Build();
-	connGrid.Load(controlConnection); // Grid can create connections
+	connGrid.Build(controlConnection);
+	connGrid.Load(); // Grid can create connections
+	
 	connGrid.SizePos();
-	connGrid.WhenCursor = THISBACK(SelectedConnection); // Call be when user selects a different connection in grid
+	connGrid.WhenCursor      = THISBACK(SelectedConnection); // Call be when user selects a different connection in grid
+	connGrid.WhenCtrlsAction = THISBACK(ClickedConnect);
 
 	// Construct Task Grid
 	
@@ -192,10 +188,10 @@ Lister::Lister() {
 	// Main sets callback so that the scripting toolbar state can be updated to reflect that 
 	// a script can be assigned to this task.
 
-	taskGrid.WhenCursor = THISBACK(ActiveTaskChanged);
-	taskGrid.WhenBar = THISBACK(TaskGridContextMenu);
+	taskGrid.WhenCursor     = THISBACK(ActiveTaskChanged);
+	taskGrid.WhenBar        = THISBACK(TaskGridContextMenu);
 	taskGrid.WhenLeftDouble = THISBACK(OpenTaskDefWin);
-	
+
 	taskDefWin.WhenSaveTask = THISBACK(SaveTaskViaTaskGrid);
 	
 	// Construct Script Grid
@@ -773,7 +769,7 @@ void Lister::CreateTestFromScript() {
 // Open the test grid as a floating window for selection, editing and addition
 void Lister::BrowseTests() {
 	testWin.testGrid.taskId = taskGrid.GetTaskId();
-	testWin.testGrid.Load(controlConnection); // It will filter by taskId if its set
+	testWin.testGrid.Load(); // It will filter by taskId if its set
 	testWin.Open(); 
 	// async
 	ToolBarRefresh();
