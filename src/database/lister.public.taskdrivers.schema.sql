@@ -46,7 +46,8 @@ We''ll get there, but not today.';
 -- Name: COLUMN taskdrivers.drivername; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN taskdrivers.drivername IS 'Must be set.  Otherwise we won''t have a header for grid column.  Must be unique per task id.';
+COMMENT ON COLUMN taskdrivers.drivername IS 'Must be set.  Otherwise we won''t have a header for grid column.  Must be unique per task id.
+Keep short and space free as a column name.';
 
 
 --
