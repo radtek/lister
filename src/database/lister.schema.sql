@@ -294,6 +294,49 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
+-- Name: accounts; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE accounts (
+    accountid integer NOT NULL,
+    accountname character varying(100) NOT NULL,
+    note text,
+    serverid integer
+);
+
+
+ALTER TABLE public.accounts OWNER TO postgres;
+
+--
+-- Name: TABLE accounts; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE accounts IS 'Almost same as logins, except they include groups, roles, owners, and schemas, and I may not have a password for them.
+Also, attached to servers.';
+
+
+--
+-- Name: accounts_accountid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE accounts_accountid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.accounts_accountid_seq OWNER TO postgres;
+
+--
+-- Name: accounts_accountid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE accounts_accountid_seq OWNED BY accounts.accountid;
+
+
+--
 -- Name: actionlog; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -982,7 +1025,8 @@ CREATE TABLE databases (
     dbid integer NOT NULL,
     dbname character varying(100) NOT NULL,
     note text,
-    dbaddress character varying(200)
+    dbaddress character varying(200),
+    serverid integer
 );
 
 
@@ -1508,7 +1552,8 @@ We''ll get there, but not today.';
 -- Name: COLUMN taskdrivers.drivername; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN taskdrivers.drivername IS 'Must be set.  Otherwise we won''t have a header for grid column.  Must be unique per task id.';
+COMMENT ON COLUMN taskdrivers.drivername IS 'Must be set.  Otherwise we won''t have a header for grid column.  Must be unique per task id.
+Keep short and space free as a column name.';
 
 
 --
@@ -1885,6 +1930,47 @@ ALTER TABLE public.procurements_procurid_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE procurements_procurid_seq OWNED BY procurements.procurid;
+
+
+--
+-- Name: products; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE products (
+    productid integer NOT NULL,
+    productname character varying(200),
+    note text
+);
+
+
+ALTER TABLE public.products OWNER TO postgres;
+
+--
+-- Name: TABLE products; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE products IS 'Securitized products that a bank can buy and sell.';
+
+
+--
+-- Name: products_productid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE products_productid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.products_productid_seq OWNER TO postgres;
+
+--
+-- Name: products_productid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE products_productid_seq OWNED BY products.productid;
 
 
 --
@@ -2266,6 +2352,40 @@ ALTER SEQUENCE scripts_scriptid_seq OWNED BY scripts.scriptid;
 
 
 --
+-- Name: searchsites; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE searchsites (
+    searchsiteid integer NOT NULL,
+    searchsiteaddress character varying(1024),
+    note text
+);
+
+
+ALTER TABLE public.searchsites OWNER TO postgres;
+
+--
+-- Name: searchsites_searchsiteid_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE searchsites_searchsiteid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.searchsites_searchsiteid_seq OWNER TO postgres;
+
+--
+-- Name: searchsites_searchsiteid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE searchsites_searchsiteid_seq OWNED BY searchsites.searchsiteid;
+
+
+--
 -- Name: servers; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -2309,7 +2429,12 @@ CREATE TABLE sources (
     sourcename character varying(300) NOT NULL,
     note text,
     briefsummary text,
-    history text
+    history text,
+    acronymexpansion character varying(300),
+    url character varying(500),
+    isdecommissioned boolean,
+    providertype character varying(100),
+    producttype character varying(100)
 );
 
 
@@ -2577,6 +2702,7 @@ CREATE TABLE taskmacros (
     replacewith character varying(200) NOT NULL,
     processorder integer NOT NULL,
     note text,
+    copiedfromtaskmacroid integer,
     CONSTRAINT cktaskmacdiff CHECK (((searchfor)::text <> (replacewith)::text))
 )
 WITH (autovacuum_enabled=true);
@@ -2618,6 +2744,13 @@ COMMENT ON COLUMN taskmacros.replacewith IS 'String that replaces the found inpu
 --
 
 COMMENT ON COLUMN taskmacros.processorder IS 'Order that a script reads through the macros assigned to a task.  This way the output of one can feed the input of another.  Generated automatically when a row is inserted from a grid.  Updated when drag/drop reorders a grid.  That op is buggy, though.';
+
+
+--
+-- Name: COLUMN taskmacros.copiedfromtaskmacroid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN taskmacros.copiedfromtaskmacroid IS 'KLUDGE: This macro was copied from another macro, so maybe we could think of them as linked.  May want to "update" from link at times.  I hate to copy these macros around, but I''d rather that than some sharing table that complicates joins.';
 
 
 --
@@ -2792,7 +2925,7 @@ IMPLEMENTATION:  This has been fairly well implemented from context menu and fil
 --
 
 CREATE VIEW tasks_r AS
-    SELECT r.relid, t.taskid, t.taskname, t.srccode, t.note AS tasknote, t.priorityassigneddate, t.assignedbywho, t.assignedtowho, t.projectname, t.prioritywithinproject, s.scriptid, s.scriptname, s.scriptplaintext, s.note AS scriptnote, s.scriptrichtext, s.addtimestamp, r.why, r.connid AS relconnid, c.connname AS relconnname, r.scripttarget, r.targetname, r.flushtarget, r.fastflushtarget, r.rowlimit, r.processorder FROM (((tasks t JOIN relations r ON (((t.taskid = r.fromid) AND (r.fromtbid = (SELECT listertables.listertbid FROM listertables WHERE ((listertables.listertbname)::text = 'tasks'::text)))))) LEFT JOIN scripts s ON (((r.toid = s.scriptid) AND (r.totbid = (SELECT listertables.listertbid FROM listertables WHERE ((listertables.listertbname)::text = 'scripts'::text)))))) LEFT JOIN connections c ON ((r.connid = c.connid)));
+    SELECT r.relid, t.taskid, t.taskname, t.srccode, t.note AS tasknote, t.priorityassigneddate, t.assignedbywho, t.assignedtowho, t.projectname, t.prioritywithinproject, s.scriptid, s.scriptname, s.scriptplaintext, s.note AS scriptnote, s.scriptrichtext, s.addtimestamp, r.why, r.connid AS relconnid, c.connname AS relconnname, r.scripttarget, r.targetname, r.flushtarget, r.fastflushtarget, r.rowlimit, r.processorder, t.taskdriverid FROM (((tasks t JOIN relations r ON (((t.taskid = r.fromid) AND (r.fromtbid = (SELECT listertables.listertbid FROM listertables WHERE ((listertables.listertbname)::text = 'tasks'::text)))))) LEFT JOIN scripts s ON (((r.toid = s.scriptid) AND (r.totbid = (SELECT listertables.listertbid FROM listertables WHERE ((listertables.listertbname)::text = 'scripts'::text)))))) LEFT JOIN connections c ON ((r.connid = c.connid)));
 
 
 ALTER TABLE public.tasks_r OWNER TO postgres;
@@ -3297,7 +3430,7 @@ ALTER TABLE public.users OWNER TO postgres;
 -- Name: TABLE users; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON TABLE users IS 'unique logins representing a person (contact).  In our company, users CANNOT share logins at this level.  No appids here.';
+COMMENT ON TABLE users IS 'unique OS logins representing a person (contact).  In our company, users CANNOT share logins at this level.  No appids here.';
 
 
 --
@@ -3339,6 +3472,13 @@ COMMENT ON VIEW v_conn IS 'Joins logins and instances together, and a left join 
 Always select distinct against vj views, since history is kept in here, for simplicity.
 Once a joining table is created, its easier to use it to store history, too, rather than to add a history table to link off of it.
 ';
+
+
+--
+-- Name: accountid; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE accounts ALTER COLUMN accountid SET DEFAULT nextval('accounts_accountid_seq'::regclass);
 
 
 --
@@ -3524,6 +3664,13 @@ ALTER TABLE procurements ALTER COLUMN procurid SET DEFAULT nextval('procurements
 
 
 --
+-- Name: productid; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE products ALTER COLUMN productid SET DEFAULT nextval('products_productid_seq'::regclass);
+
+
+--
 -- Name: projectid; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -3563,6 +3710,13 @@ ALTER TABLE roles ALTER COLUMN roleid SET DEFAULT nextval('roles_roleid_seq'::re
 --
 
 ALTER TABLE scripts ALTER COLUMN scriptid SET DEFAULT nextval('scripts_scriptid_seq'::regclass);
+
+
+--
+-- Name: searchsiteid; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE searchsites ALTER COLUMN searchsiteid SET DEFAULT nextval('searchsites_searchsiteid_seq'::regclass);
 
 
 --
@@ -3820,6 +3974,14 @@ ALTER TABLE ONLY environments
 
 
 --
+-- Name: pkaccount; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY accounts
+    ADD CONSTRAINT pkaccount PRIMARY KEY (accountid);
+
+
+--
 -- Name: pkactionlog; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -4043,6 +4205,14 @@ ALTER TABLE ONLY procurements
 
 
 --
+-- Name: pkproduct; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY products
+    ADD CONSTRAINT pkproduct PRIMARY KEY (productid);
+
+
+--
 -- Name: pkproj; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
@@ -4088,6 +4258,14 @@ ALTER TABLE ONLY roles
 
 ALTER TABLE ONLY scripts
     ADD CONSTRAINT pkscript PRIMARY KEY (scriptid);
+
+
+--
+-- Name: pksearchsite; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY searchsites
+    ADD CONSTRAINT pksearchsite PRIMARY KEY (searchsiteid);
 
 
 --
@@ -4294,6 +4472,14 @@ ALTER TABLE ONLY stakeholders
 
 
 --
+-- Name: fkaccountserver; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY accounts
+    ADD CONSTRAINT fkaccountserver FOREIGN KEY (serverid) REFERENCES servers(serverid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
 -- Name: fkanalenv; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4358,6 +4544,14 @@ ALTER TABLE ONLY contactidentifiers
 
 
 --
+-- Name: fkdbserver; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY databases
+    ADD CONSTRAINT fkdbserver FOREIGN KEY (serverid) REFERENCES servers(serverid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
 -- Name: fkholdercontact; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4419,6 +4613,14 @@ ALTER TABLE ONLY taskdrivers
 
 ALTER TABLE ONLY links
     ADD CONSTRAINT fktasklink FOREIGN KEY (taskid) REFERENCES tasks(taskid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: fktaskmacrocopyfromtaskmacro; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY taskmacros
+    ADD CONSTRAINT fktaskmacrocopyfromtaskmacro FOREIGN KEY (copiedfromtaskmacroid) REFERENCES taskmacros(taskmacid) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
