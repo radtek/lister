@@ -1,3 +1,19 @@
+/***********************************************************************************************
+*  lister - MacroHandler.cpp
+*  
+*  Takes script text and transforms any macros into their expanded version based on any rules
+*  currently loaded.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "MacroHandler.h"
 #include "lister/Urp/UrpString.h"
 #include "lister/Urp/UrpTime.h"

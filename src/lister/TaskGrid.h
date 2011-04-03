@@ -86,6 +86,7 @@ public:
 	Date            GetDepExpectSampWhen         (int row = -1);
 	String          GetDepAssignDesc             (int row = -1);
 	String          GetDepFeedback               (int row = -1);
+	int             GetTaskDriverId              (int row = -1);
 	
 	Task            BuildTask(int row);
 	bool            SaveTask(Task &task);

@@ -14,15 +14,28 @@ public:
 	               // Since this is passed to a thread (a window), it is a pointer to the pointer
 	               // to the activeCOnnection (?), so if it is changed from the main window,
 	               // we can hopefully pick it up.
-	,             **lastActiveConnection;
-	ToolBar        toolbar;           // Tools for user to control test processing.
-	ContextMacros *activeContextMacros; // Active for this test window.
+	,            **lastActiveConnection;
+	               // Tools for user to control test processing.
+	ToolBar        toolbar;    
+	               // List of drivers for current task that will control how any test runs
+	               // access the macros and what replacement set is used.    
+	DropGrid       taskDriverList;
+	               // The active task driver as defined in the task table and task window.
+	int            activeTaskDriverId;
+	               // Active for this test window.
+	ContextMacros *activeContextMacros; 
 	Callback       WhenToolBarNeedsUpdating;
+	int            taskId; // Tightly coupled with tasks for now
 	
 	               TestWin();
 	void           Build(Connection *pconnection, Connection **plastActiveConnection, ContextMacros *pactiveContextMacros);
+	               // No load function
 	void           MyToolBar(Bar& bar);
-	void           RunSelectedTask();
+	               // We must set a task at the window level to manage the task driver list dropdown
+	void           SetTaskId(int ptaskId);
+	               // And we must set the active task driver 
+	void           SetActiveTaskDriverId(int ptaskDriverId);
+	void           RunSelectedTest();
 	void           RunAllTestsAsBatch();
 	void           UpdateToolBar(UrpGrid::GridAction gridAction);
 	void           ClickedTest(); // GUI wrapper for RunTest function

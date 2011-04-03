@@ -1,3 +1,23 @@
+/***********************************************************************************************
+*  lister - ConnState.cpp
+*  
+*  Invented to support a colored box on the ConnGrid rows to indicate what the status of the 
+*  last connection attempt (current session) was.
+*
+*  TODO:
+*  - Can't merge with TestState.
+*  - Should be on GridButton (ConnButton) and save a space on the row.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "ConnState.h"
 
 //==============================================================================================

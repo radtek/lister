@@ -17,8 +17,16 @@ public:
 	int                   taskId; // Filter all tests by task id, for manageability
 	                      // Count of fixed columns that are present for all sets
 	int                   driverColumnOffset;
+	                      // Count of driver columns
+	int                   driverColumnsPresent;
+	
+	// List of pointers to EditString objects created on the fly and destroyed in our destructor
+	VectorMap<
+		String, 
+		EditString *>     editors;
 	
                           TaskMacroByDriverGrid       ();
+                         ~TaskMacroByDriverGrid       ();
 	virtual void          Build                       (Connection *pconnection); // Mandatory UrpGrid implementation
 	virtual void          Load                        ();                        // Mandatory UrpGrid implementation
 	                      

@@ -1,3 +1,29 @@
+/***********************************************************************************************
+*  lister - ConnGrid.cpp
+*  
+*  The first grid I created.  The grid of connections is the driver for the entire system. To
+*  analyze data you must connect to sources and pull data from them.  There's not much to it
+*  yet, but eventually there will be better ways to keep a MRU listing, and color codes to tell
+*  which connections are valid, invalid, or stale and dusty.  Eventually I want a scanner to
+*  run through them and validate/invalidate them, listing which ones changed status at the end
+*  with some sort of priority in terms of criticality to my work.  Some connections are more
+*  important than other.
+*
+*  TODO:
+*  - Fix instance creation bugs
+*  - Populate back instance and environment data when an instance is created.
+*  - Fix it so instance and environment columns will update the database when edited from connection grid.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "ConnGrid.h"
 #include "shared_db.h"
 #include <lister/Sql/Sql.h>

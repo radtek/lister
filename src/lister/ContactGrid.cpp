@@ -1,3 +1,19 @@
+/***********************************************************************************************
+*  lister - ContactGrid.cpp
+*  
+*  Example of dynamic grid of contacts.  Brought up from toolbar over script editor on main
+*  window.  Should add to File menu.  Modeless.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "ContactGrid.h"
 #include "Connection.h"
 

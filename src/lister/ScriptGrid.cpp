@@ -1,3 +1,36 @@
+/***********************************************************************************************
+*  lister - ScriptGrid.cpp
+*  
+*  Updated list of Scripts that are assigned to the selected Task.  When a row is selected,
+*  that scripts's text is placed in the script editor.  Multiple scripts can be executed in
+*  series if selected whilst holding the ctrl-key, then pressing CTRL-ALT-F8.  A log window
+*  will show run progress with sounds at each scripts completion.
+*
+*  Scripts can be reordered by drag n drop.
+*
+*  TODO:
+*  - Convert to UrpGrid if I ever get SQL enabled in UrpGrid better.
+*  - Drag n Drop always moves cursor to last row and leaves it selected along with the 
+*    dropped rows.  Sometimes it creates a blank row.
+*  - The script still active in the script editor should remain colored in the script grid somehow
+*    to show user what he is saving to.
+*  - Selecting a new row whilst unsaved text in script editor should give three choices:
+*     1) overwrite, 2) cancel op, 3) Save that text to its home script (tell us which one) and
+*     then overwrite
+*  - When selecting a script that is the same, popup may say "Restore script text to original
+*    or show difference?"
+*  - Selecting 2 or more script rows should give context option to display together, merge.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "ScriptGrid.h"
 #include "Connection.h"
 #include "shared_db.h"

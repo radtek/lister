@@ -88,7 +88,9 @@ public:
 	MenuBar           mainMenu;
 	ContextMacros     activeContextMacros; // input/output from taskmacro table; loaded per task selection.
 	bool              showHiddenTasks; // Get back the tasks we hid
-
+	                  // Set from CopyMacrosFromTask() when creating a popup of tasks
+	                  // so that the WhenLeftClick() callback can grab (quickly) the information.
+	DropGrid         *activeDropGrid;
 	//------------------------------------------------------------------------------------------
 	                  Lister();
 	                 ~Lister();
@@ -101,6 +103,8 @@ public:
 	void              ClickedTest(); // User clicked Test! on the TestGrid.  Run the test.
 	void              TaskGridContextMenu(Bar &bar);
 	void              SelectedAvailableMacro(); // User selected a task macro and wants to insert it into his script
+	void              SelectedTaskToCopyMacrosFrom();
+	void              CopyMacrosFromTask();
 	void              HideSelectedTasks();
 	void              OpenTaskDefWin();
 	void              SaveTaskViaTaskGrid(Task &task); // All writing is done in taskgrid

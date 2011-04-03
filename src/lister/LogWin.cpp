@@ -1,3 +1,24 @@
+/***********************************************************************************************
+*  lister - LogWin.cpp
+*  
+*  During multiple script execution, this window pops up and lists each step of the process.
+*  Connections are made as needed and connection parameters and status are listed.
+*
+*  TODO:
+*  - Get it to open up as a config'd window and remember its position, and be smaller.
+*  - Could be partially transparent if lost focus, depin or pin.
+*  - Auto-move if typing in editor
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "LogWin.h" 
 #include <lister/Urp/UrpEdit.h>
 

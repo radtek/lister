@@ -1,3 +1,19 @@
+/***********************************************************************************************
+*  lister - Element.cpp
+*  
+*  A grid of related "elements" or objects I don't want to create a whole table for.  Usually
+*  created per task.  For example a list of bloomberg transaction types that are missing in a feed.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "ElementGrid.h"
 #include "Connection.h"
 

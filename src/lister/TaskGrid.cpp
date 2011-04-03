@@ -1,3 +1,23 @@
+/***********************************************************************************************
+*  lister - TaskGrid.cpp
+*  
+*  2nd major list that shows all tasks assigned to me.
+*
+*  TODO:
+*  - Convert to UrpGrid if I ever get SQL enabled in UrpGrid better.
+*  - Double-click should work even if in edit mode.
+*  - Up/down arrow should act same as single-click.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "TaskGrid.h"
 #include "Connection.h"
 #include "shared_db.h"
@@ -30,6 +50,7 @@ TaskGrid::TaskGrid() {
 	AddIndex(DEPEXPECTSAMPWHEN);
 	AddIndex(DEPASSIGNDESC);
 	AddIndex(DEPFEEDBACK);
+	AddIndex(TASKDRIVERID);
 	
 	// Construct query objects ONCE to reduce maintenance sync failure risk
 	showVisibleQuery = (IsNull(HIDDEN) || HIDDEN == "0") && TASKID >= 0;
@@ -76,37 +97,30 @@ void TaskGrid::Load(Connection *pconnection) {
 int TaskGrid::GetTaskId(int row/*=-1*/) {
 	return Get(CalcCorrectRow(row), TASKID);
 }
-
 //==========================================================================================	
 String TaskGrid::GetTaskName(int row) {
 	return Get(CalcCorrectRow(row), TASKNAME);
 }
-
 //==========================================================================================	
 String TaskGrid::GetTaskDesc(int row) {
 	return Get(CalcCorrectRow(row), TASKDESC);
 }
-
 //==========================================================================================	
 String TaskGrid::GetSolutionDesc(int row) {
 	return Get(CalcCorrectRow(row), SOLUTIONDESC);
 }
-
 //==========================================================================================	
 String TaskGrid::GetSrcCode(int row) {
 	return Get(CalcCorrectRow(row), SRCCODE);
 }
-
 //==========================================================================================	
 String TaskGrid::GetProjectName(int row) {
 	return Get(CalcCorrectRow(row), PROJECTNAME);
 }
-
 //==========================================================================================	
 String TaskGrid::GetNote(int row) {
 	return Get(CalcCorrectRow(row), NOTE);
 }
-
 //==========================================================================================	
 int TaskGrid::GetAssignedToWho(int row) {
 	return Get(row, ASSIGNEDTOWHO);
@@ -168,6 +182,10 @@ String TaskGrid::GetDepAssignDesc(int row) {
 String TaskGrid::GetDepFeedback(int row) {
 	return Get(CalcCorrectRow(row), DEPFEEDBACK);
 }
+//==========================================================================================	
+int TaskGrid::GetTaskDriverId(int row) {
+	return Get(CalcCorrectRow(row), TASKDRIVERID);
+}
 
 //==========================================================================================	
 Task TaskGrid::BuildTask(int row) {
@@ -194,6 +212,7 @@ Task TaskGrid::BuildTask(int row) {
 			,	GetDepExpectSampWhen     (row)
 			,	GetDepAssignDesc         (row)
 			,	GetDepFeedback           (row)
+			,	GetTaskDriverId          (row)
 	);
 	return task;
 }
@@ -223,6 +242,7 @@ bool TaskGrid::SaveTask(Task &task) {
 	Set(row, DEPEXPECTSAMPWHEN      , task.depExpectSampWhen);
 	Set(row, DEPASSIGNDESC          , task.depAssignDesc);
 	Set(row, DEPFEEDBACK            , task.depFeedback);
+	Set(row, TASKDRIVERID           , task.taskDriverId);
 		
 	Accept();
 	return true;

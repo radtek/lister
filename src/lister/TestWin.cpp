@@ -1,3 +1,18 @@
+/***********************************************************************************************
+*  lister - TestWin.cpp
+*  
+*  Simple container for TestGrid and a toolbar of controls for managing tests.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "TestWin.h"
 #include "Connection.h"
 #include "SoundHandler.h"
@@ -53,14 +68,58 @@ void TestWin::MyToolBar(Bar& bar) {
 	// Run Current Test (I added just for the hot key)
 	
 	bar.Add(testGrid.GetCount() > 0, "File", MyImages::runtoscreen16(), 
-		THISBACK(RunSelectedTask))
+		THISBACK(RunSelectedTest))
 		
-		.Tip("Run selected task")
+		.Tip("Run selected test")
 		.Key(K_CTRL_ENTER);
+		
+	//__________________________________________________________________________________________
+
+	// List of Task Drivers/Execution Paths for any test runs
+	
+	bar.Add(taskDriverList, 250);
+	
 }
 
 //==============================================================================================
-void TestWin::RunSelectedTask() {
+void TestWin::SetTaskId(int ptaskId) {
+	ASSERT_(ptaskId != UNKNOWN, "Cannot set the Test Win to UNKNOWN");
+	testGrid.taskId = taskId = ptaskId;
+	ASSERT_(controlConnection, "Cannot set task id until control connection is available or we can't load the driver list.");
+	
+	activeTaskDriverId = UNKNOWN;
+
+	taskDriverList.Clear();
+
+	if (!controlConnection->SendQueryDataScript(Format("SELECT driverId, driverName FROM taskDrivers WHERE taskId = %d", taskId))) {
+		Exclamation("Unable to fetch a list of drivers");
+		return;
+	}
+	
+	if (controlConnection->GetRowsProcessed() == 0) {
+		return;
+	}
+	
+	while (controlConnection->Fetch()) {
+		taskDriverList.Add(controlConnection->Get(0), controlConnection->Get(1));
+	}
+}
+
+//==============================================================================================
+// When the TestWin is set up, the last task driver is plugged in.  User can change.
+void TestWin::SetActiveTaskDriverId(int ptaskDriverId) {
+	ASSERT_(taskId != UNKNOWN, "Cannot set a task Driver to use without setting a task Id.");
+	testGrid.activeTaskDriverId = activeTaskDriverId = ptaskDriverId;
+	
+	if (!In(activeTaskDriverId, UNKNOWN, INT_NULL)) {
+		taskDriverList.Find(activeTaskDriverId);
+	} else {
+		; // Nothing selected
+	}
+}
+
+//==============================================================================================
+void TestWin::RunSelectedTest() {
 	if (!testGrid.IsCursor()) return;
 	
 	RunTest(testGrid.GetCursor());
@@ -152,7 +211,7 @@ String TestWin::RunTest(int row) {
 	if (!controlConnection->SendQueryDataScript(getScriptText)) {
 		return Null;
 	}
-	
+
 	if (controlConnection->GetRowsProcessed() == 0) {
 		Exclamation("Can't find script # " + testScriptId);
 		return Null;

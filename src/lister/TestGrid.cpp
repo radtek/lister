@@ -1,3 +1,39 @@
+/***********************************************************************************************
+*  lister - TestGrid.cpp
+*  
+*  A later incarnation, copied from ConnGrid.  Very effective for running a batch of tests
+*  Sets entire row red or green based on outcome of test.  Saves and displays last output value,
+*  last runtime.  Allows assignment to a contact for resolution.  Can enter a note and move
+*  tests to new positions in the order of execution.  Window is config'd so it remembers its
+*  position/size.  Hot key is present to execute <CTRL-ENTER> the current row, so helps data
+*  entry.  The script must be one of the scripts attached to the task.
+*
+*  I created a separate test screen to separate the concepts of "scripts attached/related to this
+*  task" and "a chain of scripts that must all pass for this task to change state to 'complete'".
+*
+*  TODO:
+*  - Create test scripts from within the test window, instead of having to go back to the script
+*    grid.
+*  - Arrange tests in tree of grids.  Top tree branch is setup, to be run occasionally when you
+*    need to load a new date.  Middle is the tests, and final is cleanup and reporting?
+*  - Need way to pump a chain of macro values through, like a range of dates, or generate a 
+*    range of dates by testing for row counts.  Could be a range of CUSIPs to check up on in
+*    several systems.
+*  - Way to have environment be a dropdown, and to run a range of environments through.
+*  - Run a 2-dimensional set of params: env x businessdate.
+*  - Save execution time
+*  - View test output as graph
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "TestGrid.h"
 #include <CtrlLib/CtrlLib.h>
 #include "TestState.h"
@@ -91,7 +127,7 @@ void MakeTestState(One<Ctrl>& ctrl) {
 }
 
 //==============================================================================================
-TestGrid::TestGrid() {
+TestGrid::TestGrid() : UrpGrid() {
 	taskId = UNKNOWN; // Clear filter
 }
 
@@ -143,6 +179,7 @@ TestGrid::TestGrid() {
 //==============================================================================================
 // Hope someone set the taskId, or all tests will be fetched.
 /*virtual=0*/ void TestGrid::Load() {
+	ASSERT_(taskId != UNKNOWN && taskId != INT_NULL, "taskId must currently be assigned to use a test grid.");
 	LoadBase();
 	
 	desiredOutcomeList.Clear();

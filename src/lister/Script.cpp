@@ -1,3 +1,23 @@
+/***********************************************************************************************
+*  lister - Script.cpp
+*  
+*  Script details bean.
+*
+*  Many functions and panes need to access the script details without being locked into a 
+*  specific part of the code.  A link to an OutputGrid object is included and is definitely
+*  an example of TMI for a bean, but it can help track the output, especially in visual terms.
+*  I may take it out.
+
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "Script.h"
 #include "shared_db.h"
 

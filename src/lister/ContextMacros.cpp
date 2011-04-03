@@ -1,3 +1,18 @@
+/***********************************************************************************************
+*  lister - ContextMacros.cpp
+*  
+*  A Macro pack used to maintain the current context of compilable macros.  By passing this
+*  around, the clients can be oblivious of the complexity and myriads of macro sources.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
 #include "ContextMacros.h"
 #include "MacroHandler.h"
 #include "Connection.h"

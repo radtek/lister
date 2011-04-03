@@ -1,3 +1,20 @@
+/***********************************************************************************************
+*  lister - TaskMacroGrid.cpp
+*  
+*  Replaced by TaskMacroByDriverGrid.  This version only display a list of macros assigned to
+*  a task.  The new version lists macros down the side as rows, with a column per Driver/
+*  Execution Path.  Each Driver is for a different scenario, different feed, etc.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "TaskMacroGrid.h"
 #include "Connection.h"
 

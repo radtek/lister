@@ -1,3 +1,35 @@
+/***********************************************************************************************
+*  lister - Connection.cpp
+*  
+*  All the heavy connection work is done here. Since the U++ Sql object is inherited, we get
+*  to treat our connection as a Sql object.  I've always felt the connection and sql execution
+*  functions should be in the same object.  This way we can c->connect, c->execute, and c->fetch.
+*  Also we access discrete fetched attributes with c->getters.  Since the connection dictates
+*  the behavior of all this cursor commands, I can't see why not to put them all together.
+*
+*  The session object is also embedded in the connection object, reducing our code more by
+*  not having to keep track of sessions.  The connection is abstracted from the session.
+*  I know I reference connection->session->GetRowsProcessed(), and I need to fix that.  Its still
+*  abstracted since session type is unknown.
+*
+*  A connection factory is used.  I don't use a singleton since I couldn't get a U++ VectorMap
+*  to properly instantiate in a singleton, so I just create it in the main app constructor,
+*  and destruct it in the main app destructor.
+*
+*  Connections are reused from the main cache.
+*
+*  Multiple connections can be done by "Connection newConn(*oldConn)" copy constructor.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "Connection.h"
 #include "CursorHandler.h"
 #include "Script.h"
@@ -12,6 +44,7 @@
 #include <lister/ODBC/ODBC.h>
 #include <lister/Urp/UrpInput.h>
 // http://www.datadirect.com/download.html (Progress??)
+
 //==============================================================================================
 Connection::Connection() {
 	connId                      = UNKNOWN;
@@ -24,6 +57,15 @@ Connection::Connection() {
 	cancelAnyActiveStatements   = 0; // Clear any requests
 	connectErrorMessage         = "";
 }
+
+//==============================================================================================
+Connection::Connection(Connection *conn) {
+	ASSERT(conn);
+	ASSERT(conn->session);
+	ASSERT(conn->session->IsOpen());
+	cn = conn->session->CreateConnection();
+}
+
 
 //==============================================================================================
 // Called from within OCI8Connection in Oci8.cpp Execute() or Fetch() function during
@@ -607,7 +649,7 @@ int Connection::GetInsertedId(String tableName, String columnName) {
 //==============================================================================================
 // Only works for PostgreSQL.
 int Connection::GetPostgreSQLInsertedId(String tableName, String columnName) {
-	String sequenceName = CAT << tableName << "_" << columnName << "_" << "seq";
+	String sequenceName = CAT << tableName << "_" << columnName << "_seq";
 	return GetPostgreSQLInsertedId(sequenceName);
 }
 

@@ -28,6 +28,7 @@ public:
 	Date       depExpectSampWhen;
 	String     depAssignDesc;
 	String     depFeedback;
+	int        taskDriverId;
 	
 		       Task();
 	           Task(
@@ -53,6 +54,7 @@ public:
 	           			,	Date      pdepExpectSampWhen
 	           			,	String    pdepAssignDesc
 	           			,	String    pdepFeedback
+	           			,	int       ptaskDriverId
 	           		);
 	
 };

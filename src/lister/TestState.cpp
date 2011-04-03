@@ -1,3 +1,22 @@
+/***********************************************************************************************
+*  lister - TestState.cpp
+*  
+*  Same as ConnState.  Matches state codes to colors.
+*  Could be rolled up into generic State object that you stuff a keypair vector into, matching
+*  enum codes with colors.
+*  Colors could be generalized to FAIL, SUCCEED always being mapped to RED and GREEN.  That way
+*  the rules could generalize so the same colors across many grids would mean the same thing.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "TestState.h"
 
 //==============================================================================================

@@ -68,8 +68,6 @@ file
 	TaskGrid.cpp,
 	ScriptGrid.h,
 	ScriptGrid.cpp,
-	ConnectedCtrl.h,
-	ConnectedCtrl.cpp,
 	ConnButton.h,
 	ConnButton.cpp,
 	Connection.h,
@@ -111,13 +109,7 @@ file
 	panels.lay,
 	lister.iml,
 	lister.rc,
-	dbenhancementlist.h,
-	srcdoc.tpp,
-	oratypes.7.h,
-	oratypes.8.h,
-	ocidefn.8.h,
-	oci.8.h,
-	dllhell.h;
+	srcdoc.tpp;
 
 mainconfig
 	"" = "GUI MT";

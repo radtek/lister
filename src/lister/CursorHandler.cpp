@@ -1,3 +1,21 @@
+/***********************************************************************************************
+*  lister - CursorHandler.cpp
+*  
+*  Handler for scripts that fetch rows and wish to display or export them.
+*
+*  This is one of the early classes that is the bread and butter of the app.  Currently it
+*  supports SO_SCREEN and SO_TABLE.  In future it may support SO_FLATFILE, SO_EXCEL, etc.
+*  Input of the sob (Script Object) and Job spec are used to control the sort of output that is created.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
 #include "CursorHandler.h"
 #include "SoundHandler.h"
 #include "Connection.h"

@@ -1,3 +1,26 @@
+/***********************************************************************************************
+*  lister - shared.h
+*  
+*  Not much can be shared across the project.  The factories are defined here so all the other
+*  object files can reference them directly.  There is not mutex set up yet, though.
+*  I try to keep this the only place for "using namespace Upp", but didn't succeed.
+*  The UNKNOWN constant is heavily used, but tangled with INT_NULL value usage.  I should probably
+*  pick one or the other.  The problem is database values in integers with NULL come in as INT_NULL
+*  but that means you are dependent on the datatype being a 4-byte signed int.  Any other key value
+*  would be a different value for INT_NULL.  8-byte integer would be INT64_MIN=INT_NULL.  Which
+*  would blow chunks.  Hmm.  -1 is good, but then queries from database have to convert INT_NULL to UNKNOWN.
+*  What to do, what to do...
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #ifndef _shared_h_
 #define _shared_h_
 
