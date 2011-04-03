@@ -41,13 +41,14 @@ class DropGrid : public Convert, public GridDisplay, public Ctrl
 				PopUpGrid();
 		};
 
+		PopUpGrid list; // Made public instead of protected.
+
 	protected:
 
 		int key_col;
 		int find_col;
 		int value_col;
 		Vector<int> value_cols;
-		PopUpGrid list;
 		MultiButtonFrame drop;
 		GridButton clear;
 

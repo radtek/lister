@@ -561,6 +561,7 @@ DropGrid& DropGrid::SearchHideRows(bool b)
 void DropGrid::DoAction(int row, bool action, bool chg)
 {
 	int rid = list.GetRowId(row);
+	// Only triggers the action() if there is actually a change
 	if(rid != (trowid >= -1 ? trowid : rowid))
 	{
 		change = chg;
