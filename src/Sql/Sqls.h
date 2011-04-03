@@ -291,8 +291,9 @@ public:
 		AFTER_EXECUTING
 	};
 
+	virtual SqlConnection        *CreateConnection(); // Just trying it as public.
+
 protected:
-	virtual SqlConnection        *CreateConnection();
 
 	friend class Sql;
 
