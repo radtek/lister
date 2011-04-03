@@ -23,7 +23,8 @@ CREATE TABLE databases (
     dbid integer NOT NULL,
     dbname character varying(100) NOT NULL,
     note text,
-    dbaddress character varying(200)
+    dbaddress character varying(200),
+    serverid integer
 );
 
 
@@ -70,6 +71,14 @@ ALTER TABLE databases ALTER COLUMN dbid SET DEFAULT nextval('dbs_dbid_seq'::regc
 
 ALTER TABLE ONLY databases
     ADD CONSTRAINT pkdb PRIMARY KEY (dbid);
+
+
+--
+-- Name: fkdbserver; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY databases
+    ADD CONSTRAINT fkdbserver FOREIGN KEY (serverid) REFERENCES servers(serverid) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
