@@ -91,6 +91,7 @@ protected:
 	void        ConnectThread(TopWindow *topWindow);
 
 public:
+	            Connection(Connection *conn);
 	SqlSession &GetSession();
 	String      PrepTextDataForSend(const String &textData);
 	            // Oracle breaks with odd aposts in line comments

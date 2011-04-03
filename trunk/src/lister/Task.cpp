@@ -1,3 +1,23 @@
+/***********************************************************************************************
+*  lister - Task.cpp
+*  
+*  Task detail packet for passing around.
+*
+*  This allows the Task database code be embedded in the TaskGrid.cpp.  All activity around tasks
+*  is funnelled through here in case the GUI needs to be updated.
+*  Possibly, task SQL could be moved to Task.cpp and referenced from TaskGrid.  That way the task
+*  logic could be used without instantiating a grid.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "Task.h"
 
 //==============================================================================================
@@ -29,6 +49,7 @@ Task::Task(
 		,	Date      pdepExpectSampWhen
 		,	String    pdepAssignDesc
 		,	String    pdepFeedback
+		,	int       ptaskDriverId
 	)
 {
 	taskId                = ptaskId;
@@ -53,4 +74,5 @@ Task::Task(
 	depExpectSampWhen     = pdepExpectSampWhen;
 	depAssignDesc         = pdepAssignDesc;
 	depFeedback           = pdepFeedback;
+	taskDriverId          = ptaskDriverId;
 }

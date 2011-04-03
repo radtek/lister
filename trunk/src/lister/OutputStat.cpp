@@ -1,3 +1,19 @@
+/***********************************************************************************************
+*  lister - TestWin.cpp
+*  
+*  Simple panel that sits next to the OutputGrid (mainGrid) on the main app screen.  Displays
+*  stats about the last run.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "OutputStat.h"
 #include "lister/Urp/UrpString.h"
 #include "shared.h"

@@ -71,6 +71,7 @@ public:
 	;
 	BoolOption        optStopBatchRunOnFail; // returns a bool instead of a damn number
 	int               taskId; // Filter all tests by task id, for manageability
+	int               activeTaskDriverId;
 	
                       TestGrid();
 	                  // Added manually from appending a row.

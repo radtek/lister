@@ -1,3 +1,22 @@
+/***********************************************************************************************
+*  lister - database.sch
+*  
+*  Very awsome idea.  Generated manually to match the database, the control database only.
+*  This allows use of a U++ Sql construction tool that traps object spelling errors at compile
+*  time, instead of getting lost til execution time.
+*  For dynamic scripts I don't use this as much, but you can get pretty dynamic with the Sql
+*  builder, and still retain compile-time syntax checking.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 TABLE_(ENVIRONMENTS)
    INT_     (ENVID) PRIMARY_KEY
    STRING_  (ENVNAME, 200)
@@ -50,6 +69,7 @@ TABLE_(TASKS)
    STRING_  (DEPASSIGNDESC, 400)
    STRING_  (DEPFEEDBACK, 1000)
    BOOL_    (HIDDEN)
+   INT_     (TASKDRIVERID)
 END_TABLE
 
 TABLE_(PROJECTS)
@@ -107,6 +127,7 @@ TABLE_(TASKS_R)
    STRING_  (CAUSE, 400)
    INT_     (PROCESSORDER)
    STRING_  (OUTPUTTOMACRO, 300)
+   INT      (TASKDRIVERID)
 END_TABLE
 
 TABLE_(CONTACTS)
@@ -244,6 +265,7 @@ TABLE_(TESTS)
    STRING_  (TESTMACROS, 1000)
    TIME_    (LASTRUNWHEN)
    BOOL_    (STOPBATCHRUNONFAIL)
+   INT      (TASKDRIVERID)
 END_TABLE
 
 TABLE_(TASKMACROSBYDRIVER)

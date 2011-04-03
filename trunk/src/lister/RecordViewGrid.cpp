@@ -1,3 +1,23 @@
+/***********************************************************************************************
+*  lister - RecordViewGrid.cpp
+*  
+*  Simple popup from within RecordViewWin that supports record vertical view from an OutputGrid.
+*  Useful for cut n paste straight to HTML paste for Outlook.  Can rapidly be search/filtered
+*  for value or column name.  Sortable by value or column name.
+*
+*  TODO:
+*  - Lookup metadata about a column.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "RecordViewGrid.h"
 #include <CtrlLib/CtrlLib.h>
 #include "Connection.h"
@@ -12,28 +32,13 @@ Id IDColumnWidth("Width");
 using namespace Upp;
 
 //==============================================================================================
+// UrpGrid sets up all the grid behavior to be consistent across the app.
 RecordViewGrid::RecordViewGrid() : UrpGrid() {
-	Indicator(); // Critical.  Sizing of columns will be distorted without this.
-	MultiSelect();
-	MultiSorting();
-	ColorRows();
-	Dragging();
-	Absolute(); // Critical.  Columns will be scrunched to 2 bits without this.
-	Clipboard();
-	SearchDisplay();
-	Searching();
-	Moving();
-	MovingCols();
-	MovingRows();
-	AskRemove(false);
-	Hiding();
-	SelectRow(false);
-	FixedPaste();
-	Navigating();
-	LiveCursor(true);
+	Description("recordViewGrid");
 }
 
 //==============================================================================================
+// Mandatory implementation
 /*virtual=0*/void RecordViewGrid::Build(Connection *pconnection) {
 	BuildBase(pconnection);
 	

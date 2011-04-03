@@ -1,3 +1,19 @@
+/***********************************************************************************************
+*  lister - SoundHandler.cpp
+*  
+*  Supports playing short audio files asynchronously.  Good for alerting users about script
+*  success or failure, connection success/failure.
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "SoundHandler.h"
 
 /*

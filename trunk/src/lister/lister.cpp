@@ -1,3 +1,58 @@
+/***********************************************************************************************
+*  lister - lister.cpp
+*  
+*  Main Window
+*  
+*  This GUI screen is the entry point for the user into the application. Called from main.cpp.
+*
+*  The current perspective supports 6 panes, with a 7th currently empty.
+*  The screen is divided top to bottom into 2 halfs. The top half is divided into 4 panes. The
+*  bottom half is divided into 3, with the bottom-left pane currently undefined.
+*
+*  The top-left pane is a list of connections created and maintained by the user.  By clicking
+*  on the button to the right of each connection line, the user can open that connection.
+*  Asynchronously, the app will try to connect to server instance defined in the connection
+*  details.  Upon success or failure, an icon to the left of the connection line is colored
+*  green or red accordingly.
+*  The mid-left pane is a list of tasks created and maintained by the user.  Each task can
+*  be edited in place, or it can be opened into a task editor upon double-clicking.
+*  The mid-right pane is the list of scripts attached and owned by the currently selected task.
+*  It changes as tasks are selected.  Each script can have a connection assigned to it, and 
+*  when a script is selected, its connection in the left pane will be highlighted (but not connected
+*  to).  Each script can either target a database table or the screen grid.  When a script is
+*  selected, all the macros attached to its parent task are constructed based on the connection
+*  assigned to the selected script.  Also, upon selection, the text of the script is loaded
+*  into the right-hand script editor window pane.  If you are editing a script already, the
+*  app will ask if its ok to overwrite it.
+*  If the connection for this script is open (green) or an open connection is selected in the 
+*  Connection pane, a button on the toolbar over the script text will be available to run the
+*  script.  It always runs to the screen from here.  It attempts to run asynchronously.
+
+*  On the bottom half of the screen, the middle pane is where the script output is drawn as
+*  a grid of rows and columns.  The pane to the right of the output will list execution time,
+*  start/stop time, status of the run, rows and columns count.
+*
+*  Over each pane there is usually a context menu with options specific to that pane.
+*  
+*  Author: Jeff Humphreys
+*  
+*  TODO: Move all grid-specific code to their specific grid code files.
+*  Move key handlers that are isolated to one pane to that pane's code file.
+*  Improve load time.
+*  Add support for pane movement, like perspectives in Eclipse.
+*  Allow each pane to temporarily zoom.
+*  Create method to toggle between output grid and script.
+*  Convert all grids to UrpGrid for search filtering.
+*  Add tabs for output grids and script text.  How to manage?
+*
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "lister.h"
 #include "Script.h"
 #include "ContactGrid.h"
@@ -18,9 +73,11 @@
 #include <Draw/iml_header.h>
 
 #include "image_shared.h"
+// Only can occur in one object file, so I picked the main app file
 #include <Draw/iml_source.h>
 
 #define SCHEMADIALECT <PostgreSQL/PostgreSQLSchema.h>
+// Only can occur in one object file, so I picked the main app file
 #include "Sql/sch_source.h"
 
 // see shared.h for the extern ref
@@ -40,6 +97,7 @@ Lister::Lister() {
 	CtrlLayout(*this, "Lister - A SQL Connection and Execution Tool");
 	showHiddenTasks = false;
 	activeConnection = NULL;
+	activeDropGrid = NULL;
 	
 	//		To create such a hotkey, do this:
 	//		
@@ -333,7 +391,132 @@ void Lister::SelectedAvailableMacro() {
 void Lister::TaskGridContextMenu(Bar &bar) {
 	bar.Add("Edit Task Detail", THISBACK(OpenTaskDefWin));
 	bar.Add("Hide", THISBACK(HideSelectedTasks));
+	bar.Add("Copy Macros From Another Task", THISBACK(CopyMacrosFromTask));
 	taskGrid.StdBar(bar); // Pickup standards
+}
+
+//==============================================================================================	
+// Only callable from dynamic DropGrid created in CopyMacrosFromTask when item is clicked.
+void Lister::SelectedTaskToCopyMacrosFrom() {
+	ASSERT_(activeDropGrid, "No active drop grid is set, not a proper callback");
+	
+	
+	// Copy over macs.
+	
+	int selectedTaskId = activeDropGrid->GetKey(); // Assume a row was selected
+	int targetedTaskId = taskGrid.GetTaskId();
+	
+	if (!controlConnection->SendQueryDataScript(Format("SELECT taskMacId, searchFor, ReplaceWith, ProcessOrder, Note FROM TaskMacros WHERE taskId = %d", selectedTaskId))) {
+		Exclamation("Error trying find the task to copy macros from");
+		return;
+	}
+	
+	if (controlConnection->GetRowsProcessed() == 0) {
+		Exclamation("Nothing to copy");
+		return;
+	}
+	
+	// For now, we ASS-U-ME that the target is clean.
+	// If SearchFor value exists, it will choke (I think)
+	
+	int macrosInserted = 0;
+	
+	// Create a separate connection so as not to break our fetch cursor (Will destruct)
+	Connection insertConn(controlConnection);
+	
+	while (controlConnection->Fetch()) {
+		int fromTaskMacroId = controlConnection->Get("TASKMACID");
+		String script = Format("INSERT INTO TaskMacros(taskId, searchFor, replaceWith, processOrder, note, copiedFromTaskMacroId)"
+		                       " VALUES(%s, %s, %s, %s, %s, %s)"
+		                       , ToSQL(targetedTaskId)
+		                       , ToSQL(controlConnection->Get("SEARCHFOR"))
+		                       , ToSQL(controlConnection->Get("REPLACEWITH"))
+		                       , ToSQL(controlConnection->Get("PROCESSORDER")) // May conflict with existing macros for this task
+		                       , ToSQL(controlConnection->Get("NOTE"))
+		                       , ToSQL(controlConnection->Get("TASKMACID"))
+		                       );
+		int toTaskMacroId = UNKNOWN;
+		
+		if (insertConn.SendQueryDataScript(script, NULL, true/*silent*/)) { // Don't care about dups
+			macrosInserted++;
+			toTaskMacroId = insertConn.GetInsertedId("taskmacros", "taskmacid");
+
+			// Note that task drivers are not cloned, but shared.  Changes to one will affect the other(!)
+			
+		} else {
+			// Need to fetch if it was a collide on dup searchFor
+			String searchFor = controlConnection->Get("SEARCHFOR");
+			script = Format("SELECT taskMacId FROM TaskMacros WHERE taskId = %s AND searchFor = %s"
+		                       , ToSQL(targetedTaskId)
+		                       , ToSQL(controlConnection->Get("SEARCHFOR"))
+		                       );
+			
+			if (insertConn.SendQueryDataScript(script)) {
+				ASSERT(insertConn.GetRowsProcessed() == 1);
+				insertConn.Fetch();
+				toTaskMacroId == insertConn.Get(0);
+				
+				// Update other attributes?
+			} else {
+				continue; // Can't get a key in place, skip to next
+			}
+			
+		}
+
+		// Then we merge the replacements with the existing one, or else we can't do updates
+		
+		script = Format("INSERT INTO TaskMacroDriverReplacement(taskMacroId,  ReplaceWith, note, taskDriverId)"
+		                       " SELECT %$1d, a.ReplaceWith, a.note, a.taskDriverId"
+		                       " FROM TaskMacroDriverReplacement a"
+		                       " WHERE a.taskMacroId = %$2d"
+		                       // Avoid collisions if this target macro already exists with some replacements
+		                       " AND (%$1d, a.ReplaceWith) NOT IN (SELECT taskMacroId, ReplaceWith)"
+		                       , toTaskMacroId, fromTaskMacroId)
+		;
+
+		if (!insertConn.SendQueryDataScript(script)) {
+			// Update ReplaceWith value
+		}
+	}
+	
+	Exclamation(Format("Cloned %d macros into this task", macrosInserted));
+}
+
+//==============================================================================================	
+void Lister::CopyMacrosFromTask() {
+	// Constructs a window that manages its own configuration
+	String script = "SELECT taskId, taskName FROM Tasks WHERE Hidden IS NULL OR Hidden = false ORDER BY taskName";
+	
+	if (!controlConnection->SendQueryDataScript(script)) {
+		Exclamation("Failed to fetch list of tasks");
+		return;
+	}
+	
+	UrpConfigWindow *w = windowFactory->Open(this, "copymacrosfromtask");
+	if (w->wasCreatedNew) {
+		w->Title("Select task to copy macros from");
+		//w->Icon(MyImages::contacts16());
+		
+		DropGrid *g = new DropGrid();
+		activeDropGrid = g;
+		Button *b = new Button();
+		b->SetLabel("Ok");
+		g->SetKeyColumn(0);
+		g->SetValueColumn(1);
+		b->WhenPush = THISBACK(SelectedTaskToCopyMacrosFrom);
+		while (controlConnection->Fetch()) {
+			g->Add(controlConnection->Get(0), controlConnection->Get(1));
+		}
+		
+		w->AddCtrl(g);
+		
+		g->LeftPosZ(2, 260).TopPosZ(4, 20); // Size it or it will take over the screen.
+		w->AddCtrl(b);
+		b->LeftPosZ(30, 50).TopPosZ(30, 20);
+	}
+	
+	w->OpenWithConfig();
+	
 }
 
 //==============================================================================================	
@@ -768,7 +951,13 @@ void Lister::CreateTestFromScript() {
 //==============================================================================================
 // Open the test grid as a floating window for selection, editing and addition
 void Lister::BrowseTests() {
-	testWin.testGrid.taskId = taskGrid.GetTaskId();
+	// We must assign a task Id or the test grid will be unfiltered. (Already built)
+	int taskId = taskGrid.GetTaskId();
+	testWin.SetTaskId(taskGrid.GetTaskId());
+	// Set task driver after we set task
+	int taskDriverId = taskGrid.GetTaskDriverId();
+	testWin.SetActiveTaskDriverId(taskGrid.GetTaskDriverId());
+	
 	testWin.testGrid.Load(); // It will filter by taskId if its set
 	testWin.Open(); 
 	// async
