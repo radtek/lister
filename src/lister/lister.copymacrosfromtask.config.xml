@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE lister>
+<lister>
+	<Upp::DropGrid type="int" value="66"/>
+	<Upp::Button type="serialized_binary">6461746101656e640009000000</Upp::Button>
+	<x value="179"/>
+	<y value="198"/>
+	<cx value="1254"/>
+	<cy value="724"/>
+</lister>
