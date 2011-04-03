@@ -242,6 +242,7 @@ String StripWrapper(const String& str, const String& wrapper, const String &wrap
 }
 
 //==============================================================================================
+// Taken from SQL functions that are useful
 Value IfNull(Value in, Value defval) {
 	if (in.IsNull()) {
 		return defval;
@@ -251,12 +252,12 @@ Value IfNull(Value in, Value defval) {
 
 //==============================================================================================
 bool IsNull(int in) {
-	return (in == INT_MIN);
+	return (in == INT_NULL);
 }
 
 //==============================================================================================
 int IfNull(int in, int defval) {
-	if (in == INT_MIN) {
+	if (in == INT_NULL) {
 		return defval;
 	}
 	return in;
@@ -284,32 +285,9 @@ int ToInt(String in, int defval) {
 }
 
 //==============================================================================================
+// I know U++ has a function, but ToString works better for me.
 String ToString(int in) {
 	return Format("%d", in);
-}
-
-//==============================================================================================
-String ToSQLxx(String in) {
-	if (in.IsVoid() || in == "" || in == "NULL") {
-		return "NULL";
-	}
-	
-	return Format("'%s'", in);
-}
-
-//==============================================================================================
-String ToSQL(int in) {
-	if (in == INT_MIN) {
-		return "NULL";
-	}
-	
-	return ToString(in);
-}
-
-//==============================================================================================
-String ToSQLx(bool in) {
-	return (in? "'1'" : "'0'");
-	// No way to detect null with a bool
 }
 
 //==============================================================================================
@@ -322,13 +300,14 @@ String ToSQL(const Value &in, int dialect /*=PGSQL*/, bool nestedconstant /*=fal
 		case STRING_V: 
 			if (in.ToString().IsEmpty()) return "NULL";
 			if (nestedconstant)
-				return Format("\"%s\"", in);
+				return CAT << "E\"" << UrpString::ReplaceInWhatWith(UrpString::ReplaceInWhatWith(in.ToString(), "\\", "\\\\'"), "'", "\\'") << "\"";
 			else
-				return Format("'%s'", in);
+				// E escapes slashes and such
+				return CAT << "E'" << UrpString::ReplaceInWhatWith(UrpString::ReplaceInWhatWith(in.ToString(), "\\", "\\\\'"), "'", "\\'") << "'";
 			break;
 		case INT_V:
 			if (in == INT_NULL) return "NULL";
-			return in;
+			return in.ToString();
 			break;
 		case BOOL_V:
 			if (dialect == PGSQL)
@@ -340,7 +319,7 @@ String ToSQL(const Value &in, int dialect /*=PGSQL*/, bool nestedconstant /*=fal
 				return (in? "1" : "0");
 		case INT64_V:
 			if (in == INT64_NULL) return "NULL";
-			return in;
+			return in.ToString();
 			break;
 		
 		case DATE_V: {
@@ -365,7 +344,7 @@ String ToSQL(const Value &in, int dialect /*=PGSQL*/, bool nestedconstant /*=fal
 
 		case DOUBLE_V:
 			if (in == DOUBLE_NULL) return "NULL";
-			return in;
+			return in.ToString();
 			
 		// May not work for multidimensional 
 		
