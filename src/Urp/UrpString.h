@@ -46,12 +46,9 @@ int                 AsInt(Value in, Value defval);
 int                 ToInt(String in, String defval = "0");
 int                 ToInt(String in, int defval);
 String              ToString(int in);
-					// If input is empty string, stuff as NULL
-					// If populated, wrap in apostrophies for me
-String              ToSQLxx(String in);
-String              ToSQL(int in);
-String              ToSQLx(bool in);
-                    // The mother of helpers
+
+                    // The mother of helpers, format values that can be patched into a Format
+                    // function that generates SQL with single printf specifier "%s".  Makes like easy.
 String              ToSQL(const Value &in, int dialect = PGSQL, bool nestedconstant = false);
                     // For my lazy bones, just strip the string and return the rest, please
 String              RestOf(const String &startwith, const String &skipthis);
