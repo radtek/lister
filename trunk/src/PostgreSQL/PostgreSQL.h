@@ -46,9 +46,9 @@ public:
 	virtual Vector<String>        EnumPrimaryKey(String database, String table);
 	virtual String                EnumRowID(String database, String table);
 	virtual Vector<String>        EnumReservedWords();
+	virtual SqlConnection *CreateConnection(); // Moved to public(!)
 
 protected:
-	virtual SqlConnection *CreateConnection();
 
 private:
 	PGconn               *conn;
