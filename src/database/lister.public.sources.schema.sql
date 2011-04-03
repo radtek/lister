@@ -24,7 +24,12 @@ CREATE TABLE sources (
     sourcename character varying(300) NOT NULL,
     note text,
     briefsummary text,
-    history text
+    history text,
+    acronymexpansion character varying(300),
+    url character varying(500),
+    isdecommissioned boolean,
+    providertype character varying(100),
+    producttype character varying(100)
 );
 
 
