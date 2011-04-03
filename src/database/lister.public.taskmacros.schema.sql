@@ -26,6 +26,7 @@ CREATE TABLE taskmacros (
     replacewith character varying(200) NOT NULL,
     processorder integer NOT NULL,
     note text,
+    copiedfromtaskmacroid integer,
     CONSTRAINT cktaskmacdiff CHECK (((searchfor)::text <> (replacewith)::text))
 )
 WITH (autovacuum_enabled=true);
@@ -67,6 +68,13 @@ COMMENT ON COLUMN taskmacros.replacewith IS 'String that replaces the found inpu
 --
 
 COMMENT ON COLUMN taskmacros.processorder IS 'Order that a script reads through the macros assigned to a task.  This way the output of one can feed the input of another.  Generated automatically when a row is inserted from a grid.  Updated when drag/drop reorders a grid.  That op is buggy, though.';
+
+
+--
+-- Name: COLUMN taskmacros.copiedfromtaskmacroid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN taskmacros.copiedfromtaskmacroid IS 'KLUDGE: This macro was copied from another macro, so maybe we could think of them as linked.  May want to "update" from link at times.  I hate to copy these macros around, but I''d rather that than some sharing table that complicates joins.';
 
 
 --
@@ -118,6 +126,14 @@ ALTER TABLE ONLY taskmacros
 
 ALTER TABLE ONLY taskmacros
     ADD CONSTRAINT pktaskmac PRIMARY KEY (taskmacid);
+
+
+--
+-- Name: fktaskmacrocopyfromtaskmacro; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY taskmacros
+    ADD CONSTRAINT fktaskmacrocopyfromtaskmacro FOREIGN KEY (copiedfromtaskmacroid) REFERENCES taskmacros(taskmacid) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
