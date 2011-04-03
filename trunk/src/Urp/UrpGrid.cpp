@@ -8,6 +8,7 @@
 
 //==============================================================================================
 UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
+	Indicator(); // Critical.  Sizing of columns will be distorted without this.
 	Appending();
 	Removing();
 	Editing();
@@ -22,28 +23,35 @@ UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
 	Hiding();
 	Duplicating();
 	Canceling();
-	AskRemove();
+	AskRemove(false); // Can be a bear if opened a row then try to exit app
 	Duplicating();
 	Searching();
 	SearchDisplay();
 	SearchImmediate();
 	SearchHideRows();
 	SearchMoveCursor();
+	SelectRow(false);  // Always start out with cell selection
 	Closing();
 	Inserting();
 	RowChanging();
 	ResizingRows();
-	LiveCursor();
+	// Rows are highlighted as you pass over them.  I like it, but It can be annoying.
+	LiveCursor();            
 	RejectNullRow(false);
 	Clipboard();
 	Proportional();
 	ColorRows(true);
 	FixedPaste();
 	CopyColumnNames(true);
+	Navigating();
+	Absolute();             // Critical for proper column width export/import
+
 	WhenMenuBar           = THISBACK(StdMenuBar);
 	WhenMovedRows         = THISBACK(MovedRows);
+
 	built     = false;
 	loaded    = false;
+
 }
 
 //==============================================================================================
