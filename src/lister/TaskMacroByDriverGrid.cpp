@@ -1,12 +1,42 @@
+/***********************************************************************************************
+*  lister - TaskMacroByDriverGrid.cpp
+*  
+*  Replaces TaskMacroGrid.  Displays a grid with macros listed vertically (as TaskGrid did),
+*  and Drivers or Execution Paths listed horizontally.  Internally a crosstab query joins 
+*  several tables to make it appear this way.  Since the column count varies depending on
+*  how many drivers are assigned to a task, this can't be stored as a simple table or view. 
+*
+*  Author: Jeff Humphreys
+*  
+*  2011
+*  http://code.google.com/p/lister/
+*  http://lister.googlecode.com/svn/trunk/ lister-read-only
+*  I used http://sourceforge.net/projects/win32svn/
+*  I recommend http://tortoisesvn.tigris.org/ for SVN Client use from Windows Explorer
+*
+***********************************************************************************************/
+
 #include "TaskMacroByDriverGrid.h"
 #include "Connection.h"
 #include "shared_db.h"
 #include <lister/Urp/UrpString.h>
 
+#define SUFFIX_DRIVERID "_driverid"
+#define SUFFIX_TASKMACRODRIVERREPLID "_taskmacrodriverreplacementid"
 //==============================================================================================
-TaskMacroByDriverGrid::TaskMacroByDriverGrid() {
+TaskMacroByDriverGrid::TaskMacroByDriverGrid() : UrpGrid() {
 	taskId = UNKNOWN; // Clear filter
 	driverColumnOffset = 0;
+}
+
+//==============================================================================================
+// Clean up any memory allocated for EditString objects for the replacements per driver column.
+TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
+	for (int i = 0; i < editors.GetCount(); i++) {
+		delete editors[i];
+	}
+
+	editors.Clear(); // Flush all pointers (no real memory)
 }
 
 //==============================================================================================
@@ -79,9 +109,14 @@ TaskMacroByDriverGrid::TaskMacroByDriverGrid() {
 	
 	// This first piece fetches mainly the searchfor string for a task macro and its default replacewith text
 	String script =
-		"SELECT tm.taskmacid, tm.taskid, tm.note, tm.searchfor, tm.replacewith, \n"
-		"	replacewith_1, tskmacdrvrepid_1, driverid_1, \n"
-		"	replacewith_2, tskmacdrvrepid_2, driverid_2 -- Construct in grid.\n"
+		"SELECT tm.taskmacid, tm.taskid, tm.note, tm.searchfor, tm.replacewith \n";
+	
+	// Construct the supra-dynamic portion, driver columns generated in crosstab	
+	for (int i = 1; i <= driverCount; i++) {
+		script+= Format(",	replacewith_%1$d, tskmacdrvrepid_%1$d, driverid_%1$d \n", i);
+	}
+	
+	script+=
 		" FROM taskmacros tm\n"
 		"-- By using the crosstab module, we can bring sparsely populated normalized data into an easy grid format.\n"
 		"-- The grid loader will have to use Load to construct columns at the time of query, not before, since the columns vary.\n"
@@ -172,22 +207,36 @@ TaskMacroByDriverGrid::TaskMacroByDriverGrid() {
 		" ON tm.taskmacid = driverids.taskmacid\n"
 		;
 
-	int driverColumnsPresent = GetFloatingColumnCount() - driverColumnOffset;
+	driverColumnsPresent = GetFloatingColumnCount() - driverColumnOffset;
 	ASSERT (driverColumnsPresent >= 0);
 	
 	// Remove all driver columns so we can start fresh
 	RemoveColumn(driverColumnOffset, driverColumnsPresent);
 	
-	VectorMap<String, EditString *> editors;
+	// Clear up and previous Editors
+	
+	for (int i = 0; i < editors.GetCount(); i++) {
+		delete editors[i];
+	}
+
+	editors.Clear(); // Flush all pointers (no real memory)
 	
 	// Fetch our column headers (we already counted them) for all POSSIBLE drivers currently defined
+	
 	if (connection->SendQueryDataScript(Format("SELECT driverName FROM TaskDrivers WHERE taskId = %d ORDER BY processOrder", taskId))) {
 		while (connection->Fetch()) {
 			String newColumnName = connection->Get(0);
 			editors.Add(newColumnName, new EditString());
 			AddColumn(newColumnName).Edit(*(editors.Get(newColumnName)));
+			// Add our invisible support columns for linking us back to updates/deletes
+			Id driveridcol(newColumnName + SUFFIX_DRIVERID);
+			AddIndex(driveridcol); // U++ prefers Ids rather than strings :(
+			Id taskmacrodriverreplidcol(newColumnName + SUFFIX_TASKMACRODRIVERREPLID);
+			AddIndex(taskmacrodriverreplidcol);
 		}
 	}
+	
+	const Vector<String> &driverNames = editors.GetKeys();
 	
 	if (connection->SendQueryDataScript(Format(script, taskId))) {
 		while (connection->Fetch()) {
@@ -204,7 +253,23 @@ TaskMacroByDriverGrid::TaskMacroByDriverGrid() {
 			for (int i = 1; i <= driverCount; i++) {
 				String getColumnName = Format("REPLACEWITH_%d", i); // Case sensitive; must be upper even though displays in pgadmin as lower (duh!)
 				String replwithval = connection->Get(getColumnName);
-				Set(targetColumnNo++, replwithval);
+				String setColumnName = driverNames[i-1];
+				// Write our crosstabbed value to the proper column
+				EditString *es = editors.Get(setColumnName);
+				es->SetText(replwithval);
+
+				// Now get the task driver id (a little repetitive, same each row)
+				getColumnName = Format("DRIVERID_%d", i); // Case sensitive; must be upper even though displays in pgadmin as lower (duh!)
+				int taskdriverid = connection->Get(getColumnName); // Should never be null
+				ASSERT_(taskdriverid != INT_NULL, "taskdriverid in our crosstab was null");
+				Id driveridcol(driverNames[i-1] + SUFFIX_DRIVERID);
+				Set(driveridcol, taskdriverid);
+				
+				// Now get the all important task macro driver replacement id, which is often null
+				getColumnName = Format("TSKMACDRVREPID_%d", i); // Case sensitive; must be upper even though displays in pgadmin as lower (duh!)
+				int taskmacrodriverreplacementid = connection->Get(getColumnName); // Should never be null
+				Id taskmacrodriverreplidcol(driverNames[i-1] + SUFFIX_TASKMACRODRIVERREPLID);
+				Set(taskmacrodriverreplidcol, taskmacrodriverreplacementid);
 			}
 		}
 	} else {
@@ -244,13 +309,18 @@ void TaskMacroByDriverGrid::RemoveRow() {
 	int row = GetCursor();
 	int id = Get(row, TASKMACID);
 	
-	String deleteDependentsScript = Format("DELETE FROM TaskMacros WHERE taskMacroId = %d", id);
+	String deleteDependentsScript = Format("DELETE FROM TaskMacroDriverReplacement WHERE taskMacroId = %d", id);
 	String controlScript = Format("DELETE FROM TaskMacros WHERE taskMacroId = %d", id);
 	
-	int rsp = PromptOKCancel(CAT << "Remove Row from control database: " << controlScript);
+	int rsp = PromptOKCancel(CAT << "Remove Row from control database: " << controlScript << ", " << deleteDependentsScript);
 	if (rsp == 1) {
+		if (!connection->SendRemoveDataScript(deleteDependentsScript)) {
+			CancelRemove();
+			return;
+		}
 		if (!connection->SendRemoveDataScript(controlScript)) {
 			CancelRemove();
+			return;
 		}
 	} else {
 		CancelRemove(); // Prevent GridCtrl from removing the row from screen.
@@ -304,6 +374,7 @@ void TaskMacroByDriverGrid::FieldLayout(FieldOperator& fo) {
 }
 
 //==============================================================================================
+// Write this row of the grid to the database, either a new row or a modified row.
 void TaskMacroByDriverGrid::Save(bool prompt) {
 	ASSERT(connection);
 	ASSERT(connection->session->IsOpen());
@@ -325,73 +396,94 @@ void TaskMacroByDriverGrid::Save(bool prompt) {
 	} else {
 		// if any TaskMacro attributes changed, update TaskMacro table
 		if (!IsModifiedRow()) return; // No change
+		int taskMacroId = Get(row, TASKMACID);
 		if (
 			IsModified(NOTE)
 		||	IsModified(SEARCHFOR)
 		||	IsModified(REPLACEWITH)
 		) {
-			int taskMacroId = Get(row, TASKMACID);
 			String updateScript = Format("UPDATE TaskMacros SET NOTE = %s, SEARCHFOR = %s, REPLACEWITH = %s WHERE TASKMACID = %d"
 							, ToSQL(Get(row, NOTE))
 							, ToSQL(Get(row, SEARCHFOR))
 							, ToSQL(Get(row, REPLACEWITH))
 							, taskMacroId);
-			if (connection->SendChangeDataScript(updateScript)) {
-				Exclamation("Updated TaskMacro portion");
+			if (!connection->SendChangeDataScript(updateScript)) {
+				Exclamation("Failed to update TaskMacro portion");
 			}
 		}
+
+		const Vector<String> &driverNames = editors.GetKeys();
 		
 		// Check for any modified driver column values
-		// If empty to non-empty, insert
-		// If non-empty to empty, delete
-		// If non-empty to non-empty, update
-		;
+		
+		for (int i = 0; i < driverColumnsPresent; i++) {
+			EditString *es = editors.operator[](i);
+			ASSERT_(es, "No editor defined for this driver column");
+			if (es->IsModified()) {
+				
+				// We should have a taskmacrodriverreplacement column populated
+				
+				String getColumnName = driverNames[i];
+				getColumnName << SUFFIX_TASKMACRODRIVERREPLID;
+				int taskmacrodriverreplacementid = Get(row, (const char *)getColumnName);
+				// Lets see what changed, shall we?
+				const WString &ws = (const WString &)es;
+				if (ws.ToString().IsEmpty()) {
+					// The user is trying to delete this replacement, and we don't support nulling a macrovalue :(
+					
+					// If we have a valid id to the replacement...
+					if (!In(taskmacrodriverreplacementid, INT_NULL, UNKNOWN)) {
+						//...then we will attempt to delete it from the db
+						String deleteRepl = Format("DELETE FROM TaskMacroDriverReplacement WHERE TskMacDrvRepId = %d", taskmacrodriverreplacementid);
+						if (!connection->SendChangeDataScript(deleteRepl)) {
+							Exclamation("Failed to delete a driver replacement value");
+							// Leave the id in the grid in case we want to update it, since it failed to delete
+						} else {
+							// We deleted it, so we make sure we don't accidentally try to delete it
+							Set(row, (const char *)getColumnName, INT_NULL);
+						}
+					}
+				}
+				
+				// The user either inserted a value, or edited a value
+				else {
+					String newReplValue = ToSQL(ws.ToString());
+					if (!In(taskmacrodriverreplacementid, INT_NULL, UNKNOWN)) {
+						// A key value is there, so we'll try to update it with the new string
+						// Note that we don't trim it.  Spaces are a valid macrotization
+						String updateRepl = Format("UPDATE TaskMacroDriverReplacement SET ReplaceWith = %s WHERE TskMacDrvRepId = %d", newReplValue, taskmacrodriverreplacementid);
+
+						if (!connection->SendChangeDataScript(updateRepl)) {
+							Exclamation("Failed to update a driver replacement value");
+							// Leave the id in the grid in case we want to update it, since it failed to delete
+						} else {
+							// We deleted it, so we make sure we don't accidentally try to delete it (The Load() should take care of it)
+							Set(row, (const char *)getColumnName, INT_NULL);
+						}
+					}
+					
+					// User is inserting a new replacement value
+					else {
+						int taskdriverid = Get(row, (const char *)(driverNames[i] + SUFFIX_DRIVERID));
+						String addRepl = Format("INSERT INTO TaskMacroDriverReplacement(TaskMacroId, ReplaceWith, TaskDriverId) SET ReplaceWith = %s "
+								"VALUES(%s, %s, %s)", ToSQL(taskMacroId), ToSQL(newReplValue), ToSQL(taskdriverid));
+
+						if (!connection->SendChangeDataScript(addRepl)) {
+							Exclamation("Failed to add a driver replacement value");
+							
+						} else {
+							// We added it.  Since below we Load() the grid over, we don't have to fetch the new key and stuff it in
+							// cuz the load will do that.  The key must be there so if the user edits the value, it recognizes it as an update
+							// and doesn't try to insert a new one.
+						}
+					}
+				}
+			}
+		}
 	}
-//	if (IsNewRow()) {
-//		Set(PROCESSORDER, GetNextProcessOrder());
-//		sts = SqlStatement(SqlInsert(TASKMACROSBYDRIVER)(THISBACK(FieldLayout), true /*nokey, let database generate from sequence */));
-//		if (WhenToolBarNeedsUpdating) WhenToolBarNeedsUpdating(UrpGrid::USERADDEDROW);
-//
-//	// Updating an existing task macro, and possibly updating and/or deleting several existing drivers
-//			
-//	} else {
-//		sts = SqlStatement(SqlUpdate(TESTS)(THISBACK(FieldLayout)).Where(TESTID == Get(TESTID)));
-//		if (WhenToolBarNeedsUpdating) WhenToolBarNeedsUpdating(UrpGrid::USERCHANGEDDATA);
-//	}
-//	
-//	// Wrap in a SqlStatement object, which will somehow either call the SqlUpdate or
-//	// SqlInsert operator SqlStatement() const, which then constructs a string and forms
-//	// the constructor "explicit SqlStatement(const String& s) : text(s) {}", and so
-//	// sets the text member.  I don't know what the explicit command means.
-//	
-//	
-//	// Transform to proper Sql; Sql will not be properly formed until the dialect of the 
-//	// connection is determined, in this case PGSQL.  Do not use GetText().
-//	// This calls SqlCompile(dialect, text) to finalize the "text" member contents.
-//	String controlScript = sts.Get(connection->GetDialect());
-//
-//	LOG(controlScript);
-//	int rsp = 1;
-//	
-//	if (prompt) {		
-//		rsp = PromptOKCancel(CAT << "Script being applied: " << controlScript);
-//	}		
-//	
-//	if (rsp == 1) {
-//		if (!connection->SendAddDataScript(controlScript)) {
-//			// Beep
-//			return;
-//		}
-//		
-//		if (IsNewRow()) {
-//			if (connection->GetRowsProcessed() > 0) {		
-//				int testid = connection->GetInsertedId("tests", "testid");
-//				if (testid >= 0) {
-//					SetTestId(row, testid);
-//				}
-//			}
-//		}
-//	}
+	
+	// Reload the grid so we can see if it worked.
+	Load();
 }
 
 //==============================================================================================
