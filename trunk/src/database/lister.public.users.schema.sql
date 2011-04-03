@@ -34,7 +34,7 @@ ALTER TABLE public.users OWNER TO postgres;
 -- Name: TABLE users; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON TABLE users IS 'unique logins representing a person (contact).  In our company, users CANNOT share logins at this level.  No appids here.';
+COMMENT ON TABLE users IS 'unique OS logins representing a person (contact).  In our company, users CANNOT share logins at this level.  No appids here.';
 
 
 --
