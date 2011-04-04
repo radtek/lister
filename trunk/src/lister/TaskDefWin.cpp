@@ -33,11 +33,7 @@
 #include "Connection.h"
 #include "ContactGrid.h"
 #include "image_shared.h"
-#include <Draw/iml_header.h>
-
-// Only in lister.cpp
-//#include "image_shared.h"
-//#include <Draw/iml_source.h>
+#include <Draw/iml_header.h> // See lister.cpp for <Draw/iml_source.h>
 
 //==============================================================================================
 TaskDefWin::TaskDefWin() {

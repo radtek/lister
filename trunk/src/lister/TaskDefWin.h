@@ -11,19 +11,32 @@ class Connection;
 //==============================================================================================
 class TaskDefWin : public WithTaskDefWinLayout<UrpConfigWindow> {
 public:
-	typedef TaskDefWin CLASSNAME; // THISBACK won't work without this
+	typedef TaskDefWin   CLASSNAME; // THISBACK won't work without this
 	
 	Connection          *connection;
-	Task                 task;         // Define only one task at one time.  Create Id BEFORE opening this window.
-    Callback1<Task&>     WhenSaveTask; // Let main program call TaskGrid
+	
+	                  // Define only one task at one time.  Create Id BEFORE opening this window.
+	Task                 task;
+	
+	                  // Let main program call TaskGrid
+    Callback1<Task&>     WhenSaveTask; 
     
-	                     TaskDefWin();
-    virtual void         Open();
-    virtual void         Open(Ctrl *owner);
-	void                 Build(Connection *pconnection);
-	void                 Load(Task &ptask);
-	void                 SaveTask();
-	virtual void         Xmlize(XmlIO xml); // Hack in Ctrl class to make Xmlize virtual
+ 	                  // List of drivers for current task that will control how any test runs
+	                  // access the macros and what replacement set is used.    
+	DropGrid             taskDriverList;
+    
+	                     TaskDefWin        ();
+    virtual 
+    void                 Open              ();
+    virtual 
+    void                 Open              (Ctrl *owner);
+	void                 Build             (Connection *pconnection);
+	void                 Load              (Task &ptask);
+	void                 SaveTask          ();
+	
+	                  // Hack in Ctrl class required to make Xmlize virtual or this function
+	                  // will never be called.
+	virtual void         Xmlize            (XmlIO xml); 
 };
 
 #endif
