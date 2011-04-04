@@ -23,8 +23,8 @@
 #include "shared_db.h"
 #include "TaskDefWin.h"
 #include "Task.h"
-
 #include <CtrlLib/CtrlLib.h>
+
 //==========================================================================================	
 TaskGrid::TaskGrid() {
 	SetTable(TASKS);
