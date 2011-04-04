@@ -46,20 +46,8 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 	WhenRemoveRow   = THISBACK(RemoveRow);
 	WhenAcceptedRow = THISBACK(SavePrompt);   // Build/Run SQL to save data
 
-	// SizePos(); GRIDCTRL BUG: // Cannot SizePos in TestGrid.Build() or Graphics will cycle onto all cells (see SetImage(CtrlImg::go_forward())
-	// Make the dropgrids of values extend past the width of the column they are for, to improve readability without wasting grid space.
-	
-//	connList   .SearchHideRows().Resizeable().Width(200);
-//	scriptList .SearchHideRows().Resizeable().Width(200);
-//	testTypList.SearchHideRows().Resizeable().Width(200);
-//	compTypList.SearchHideRows().Resizeable().Width(200);
-	
-	// Set a display controller to help user see statuses of tests easily
-	//SetDisplay(Single<TestGraphicalStatusDisplay>());
-//	SetDisplay(Single<TestGraphicalStatusDisplay>());
-	
 	AddColumn(TASKID            , "Task",  50      ).NoEditable().Hidden();
-	AddColumn(TASKMACID         , "Name", 100      ).NoEditable();
+	AddColumn(TASKMACID         , "Id", 100      ).NoEditable();
 	AddColumn(SEARCHFOR         , "SrchFor"        ).Edit(fldSearchFor);
 	AddColumn(REPLACEWITH       , "ReplWith"       ).Edit(fldReplaceWith); // Common to all driver value
 	AddColumn(NOTE              , "Note"           ).Edit(fldNote);
@@ -80,7 +68,7 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 	
 	Clear();
 	
-	int driverCount = 0;
+	driverCount = 0;
 	
 	// Construct massively wacky script to crosstab all the drivers or alternate paths for the
 	// task set of macros.  It works.
@@ -89,7 +77,6 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 		connection->Fetch();
 		driverCount = connection->Get(0);
 		if (driverCount == 0) {
-			Exclamation("No drivers yet for this task");
 			return;
 		}
 	} else {
@@ -109,7 +96,7 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 	
 	// This first piece fetches mainly the searchfor string for a task macro and its default replacewith text
 	String script =
-		"SELECT tm.taskmacid, tm.taskid, tm.note, tm.searchfor, tm.replacewith \n";
+		"SELECT tm.taskmacid, tm.taskid, tm.note, tm.searchfor, tm.replacewith, tm.processorder\n";
 	
 	// Construct the supra-dynamic portion, driver columns generated in crosstab	
 	for (int i = 1; i <= driverCount; i++) {
@@ -140,12 +127,14 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 		"  -- Note: Don't build this if no rows found, or error: ERROR: provided \"categories\" SQL must return 1 column of at least one row SQL state: 42601\n"
 		", 'select processorder from taskdrivers where taskid = %1$d order by processorder') AS\n"
 		"  taskmacros(taskmacid integer\n"
-		"		, replacewith_1 character varying -- Note that datatype is always varchar since its a macro. Construct these in grid.\n"
-		"		, replacewith_2 character varying\n"
-		"		, replacewith_3 character varying\n"
-		"		, replacewith_4 character varying\n"
-		"		, replacewith_5 character varying\n"
-		"		, replacewith_6 character varying\n"
+		;
+
+		for (int i = 1; i <= driverCount; i++) {
+			// Note that datatype is always varchar since its a macro.
+			script+= Format(",	replacewith_%1$d character varying\n", i);
+		}
+		
+		script+=
 		"	)\n"
 		") driverreplacewith\n"
 		" ON tm.taskmacid = driverreplacewith.taskmacid\n"
@@ -169,13 +158,14 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 		"  ORDER BY 1,2'\n"
 		", 'select processorder from taskdrivers where taskid = %1$d order by processorder') AS\n"
 		"  taskmacros(taskmacid integer\n"
-		"		, tskmacdrvrepid_1 integer -- datatype is now int since its a key. Construct these in grid.\n"
-		"		, tskmacdrvrepid_2 integer\n"
-		"		, tskmacdrvrepid_3 integer\n"
-		"		, tskmacdrvrepid_4 integer\n"
-		"		, tskmacdrvrepid_5 integer\n"
-		"		, tskmacdrvrepid_6 integer\n"
-		"	)"
+		;
+		
+		for (int i = 1; i <= driverCount; i++) {
+			script+= Format(",	tskmacdrvrepid_%1$d integer\n", i);
+		}
+
+		script+=
+		"	)\n"
 		") tskmacdrvrepids\n"
 		" ON tm.taskmacid = tskmacdrvrepids.taskmacid\n"
 		;
@@ -196,15 +186,18 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 		"  ORDER BY 1,2'\n"
 		", 'select processorder from taskdrivers where taskid = %1$d order by processorder') AS\n"
 		"  taskmacros(taskmacid integer\n"
-		"		, driverid_1 integer -- datatype is now int since its a key. Construct these in grid.\n"
-		"		, driverid_2 integer\n"
-		"		, driverid_3 integer\n"
-		"		, driverid_4 integer\n"
-		"		, driverid_5 integer\n"
-		"		, driverid_6 integer\n"
+		;
+
+		// We have to loop these columns for the crosstab() function not to choke		
+		for (int i = 1; i <= driverCount; i++) {
+			script+= Format(",	driverid_%1$d integer\n", i);
+		}
+
+		script+=
 		"	)\n"
 		") driverids\n"
 		" ON tm.taskmacid = driverids.taskmacid\n"
+		" ORDER BY processorder\n"
 		;
 
 	driverColumnsPresent = GetFloatingColumnCount() - driverColumnOffset;
@@ -227,12 +220,15 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 		while (connection->Fetch()) {
 			String newColumnName = connection->Get(0);
 			editors.Add(newColumnName, new EditString());
-			AddColumn(newColumnName).Edit(*(editors.Get(newColumnName)));
+			Id replwithcolid(newColumnName);
+			AddColumn(replwithcolid).Edit(*(editors.Get(newColumnName)))
+				// You must set a converter or you can't set values!
+				.SetConvert(*(editors.Get(newColumnName)));
 			// Add our invisible support columns for linking us back to updates/deletes
 			Id driveridcol(newColumnName + SUFFIX_DRIVERID);
-			AddIndex(driveridcol); // U++ prefers Ids rather than strings :(
+			AddColumn(driveridcol).Hidden(); // U++ prefers Ids rather than strings :(
 			Id taskmacrodriverreplidcol(newColumnName + SUFFIX_TASKMACRODRIVERREPLID);
-			AddIndex(taskmacrodriverreplidcol);
+			AddColumn(taskmacrodriverreplidcol).Hidden();
 		}
 	}
 	
@@ -246,19 +242,23 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 			Set(NOTE       , connection->Get(NOTE       ));
 			Set(SEARCHFOR  , connection->Get(SEARCHFOR  ));
 			Set(REPLACEWITH, connection->Get(REPLACEWITH));
+			Set(PROCESSORDER, connection->Get(PROCESSORDER));
 
 			int targetColumnNo = driverColumnOffset;
 
 			// Populate driver columns from our crosstab
 			for (int i = 1; i <= driverCount; i++) {
+				
+				// First column fetched is the replace with value, which may not be set
+				
 				String getColumnName = Format("REPLACEWITH_%d", i); // Case sensitive; must be upper even though displays in pgadmin as lower (duh!)
 				String replwithval = connection->Get(getColumnName);
 				String setColumnName = driverNames[i-1];
-				// Write our crosstabbed value to the proper column
-				EditString *es = editors.Get(setColumnName);
-				es->SetText(replwithval);
-
+				Id replwithcolid(setColumnName);
+				Set(replwithcolid, replwithval);
+				
 				// Now get the task driver id (a little repetitive, same each row)
+				
 				getColumnName = Format("DRIVERID_%d", i); // Case sensitive; must be upper even though displays in pgadmin as lower (duh!)
 				int taskdriverid = connection->Get(getColumnName); // Should never be null
 				ASSERT_(taskdriverid != INT_NULL, "taskdriverid in our crosstab was null");
@@ -266,6 +266,7 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 				Set(driveridcol, taskdriverid);
 				
 				// Now get the all important task macro driver replacement id, which is often null
+				
 				getColumnName = Format("TSKMACDRVREPID_%d", i); // Case sensitive; must be upper even though displays in pgadmin as lower (duh!)
 				int taskmacrodriverreplacementid = connection->Get(getColumnName); // Should never be null
 				Id taskmacrodriverreplidcol(driverNames[i-1] + SUFFIX_TASKMACRODRIVERREPLID);
@@ -342,6 +343,14 @@ void TaskMacroByDriverGrid::SaveNoPrompt() {
 /*virtual*/ void TaskMacroByDriverGrid::SaveRow(int row, int newProcessOrder) {
 	SetCursor(row);
 	Set(row, PROCESSORDER, newProcessOrder);
+	// Boy, this code is a mother-fucker!  Trying to get the grid to think I've set a value that I
+	// want propagated back to the database is near impossible.
+	// The following lines need to be pushed to an attribute of Set or SetWithExtremePrejudice.
+	row_modified = 1; // Force it to update.
+	Item &it = items[vitems[rowidx].id][aliases.Get(PROCESSORDER)];
+	it.modified = 1;
+	bool x0 = IsModifiedRow();
+	bool x1 = IsModified(PROCESSORDER);
 	SaveNoPrompt();
 }
 
@@ -401,11 +410,13 @@ void TaskMacroByDriverGrid::Save(bool prompt) {
 			IsModified(NOTE)
 		||	IsModified(SEARCHFOR)
 		||	IsModified(REPLACEWITH)
+		||  IsModified(PROCESSORDER) // Don't forget this one!
 		) {
-			String updateScript = Format("UPDATE TaskMacros SET NOTE = %s, SEARCHFOR = %s, REPLACEWITH = %s WHERE TASKMACID = %d"
+			String updateScript = Format("UPDATE TaskMacros SET NOTE = %s, SEARCHFOR = %s, REPLACEWITH = %s, PROCESSORDER = %s WHERE TASKMACID = %d"
 							, ToSQL(Get(row, NOTE))
 							, ToSQL(Get(row, SEARCHFOR))
 							, ToSQL(Get(row, REPLACEWITH))
+							, ToSQL(Get(row, PROCESSORDER)) // Don't forget this or reordering stuff won't take any affect
 							, taskMacroId);
 			if (!connection->SendChangeDataScript(updateScript)) {
 				Exclamation("Failed to update TaskMacro portion");
@@ -416,74 +427,71 @@ void TaskMacroByDriverGrid::Save(bool prompt) {
 		
 		// Check for any modified driver column values
 		
-		for (int i = 0; i < driverColumnsPresent; i++) {
-			EditString *es = editors.operator[](i);
-			ASSERT_(es, "No editor defined for this driver column");
-			if (es->IsModified()) {
+		for (int i = 0; i < driverCount; i++) {
+			Id driverColId(driverNames[i]);
+			if (IsModified(row, driverColId)) {
 				
 				// We should have a taskmacrodriverreplacement column populated
 				
-				String getColumnName = driverNames[i];
-				getColumnName << SUFFIX_TASKMACRODRIVERREPLID;
-				int taskmacrodriverreplacementid = Get(row, (const char *)getColumnName);
+				Id taskMacroDriverReplColId(driverNames[i] + SUFFIX_TASKMACRODRIVERREPLID);
+				int taskMacroDriverReplacementId = Get(row, taskMacroDriverReplColId);
 				// Lets see what changed, shall we?
-				const WString &ws = (const WString &)es;
-				if (ws.ToString().IsEmpty()) {
+				String newReplValue = Get(row, driverColId);
+				
+				if (newReplValue.IsEmpty()) {
 					// The user is trying to delete this replacement, and we don't support nulling a macrovalue :(
 					
 					// If we have a valid id to the replacement...
-					if (!In(taskmacrodriverreplacementid, INT_NULL, UNKNOWN)) {
+					if (!In(taskMacroDriverReplacementId, INT_NULL, UNKNOWN)) {
 						//...then we will attempt to delete it from the db
-						String deleteRepl = Format("DELETE FROM TaskMacroDriverReplacement WHERE TskMacDrvRepId = %d", taskmacrodriverreplacementid);
+						String deleteRepl = Format("DELETE FROM TaskMacroDriverReplacement WHERE TskMacDrvRepId = %d", taskMacroDriverReplacementId);
 						if (!connection->SendChangeDataScript(deleteRepl)) {
 							Exclamation("Failed to delete a driver replacement value");
 							// Leave the id in the grid in case we want to update it, since it failed to delete
 						} else {
 							// We deleted it, so we make sure we don't accidentally try to delete it
-							Set(row, (const char *)getColumnName, INT_NULL);
+							Set(row, taskMacroDriverReplColId, INT_NULL);
 						}
+					} else {
+						; // Not sure what state this is, so ignore
 					}
 				}
 				
 				// The user either inserted a value, or edited a value
 				else {
-					String newReplValue = ToSQL(ws.ToString());
-					if (!In(taskmacrodriverreplacementid, INT_NULL, UNKNOWN)) {
+					if (!In(taskMacroDriverReplacementId, INT_NULL, UNKNOWN)) {
 						// A key value is there, so we'll try to update it with the new string
 						// Note that we don't trim it.  Spaces are a valid macrotization
-						String updateRepl = Format("UPDATE TaskMacroDriverReplacement SET ReplaceWith = %s WHERE TskMacDrvRepId = %d", newReplValue, taskmacrodriverreplacementid);
+						String updateRepl = Format("UPDATE TaskMacroDriverReplacement SET ReplaceWith = %s WHERE TskMacDrvRepId = %d", ToSQL(newReplValue), taskMacroDriverReplacementId);
 
 						if (!connection->SendChangeDataScript(updateRepl)) {
 							Exclamation("Failed to update a driver replacement value");
-							// Leave the id in the grid in case we want to update it, since it failed to delete
-						} else {
-							// We deleted it, so we make sure we don't accidentally try to delete it (The Load() should take care of it)
-							Set(row, (const char *)getColumnName, INT_NULL);
+							// Leave the id in the grid in case we want to update it, since it failed to update
 						}
 					}
 					
 					// User is inserting a new replacement value
 					else {
-						int taskdriverid = Get(row, (const char *)(driverNames[i] + SUFFIX_DRIVERID));
-						String addRepl = Format("INSERT INTO TaskMacroDriverReplacement(TaskMacroId, ReplaceWith, TaskDriverId) SET ReplaceWith = %s "
-								"VALUES(%s, %s, %s)", ToSQL(taskMacroId), ToSQL(newReplValue), ToSQL(taskdriverid));
+						// Fetch which driver # this is for by constructing the column name
+						Id taskDriverColId(driverNames[i] + SUFFIX_DRIVERID);
+						int taskDriverId = Get(row, taskDriverColId);
+						// Insert a row to support the new value that will link back into the crosstab
+						String addRepl = Format("INSERT INTO TaskMacroDriverReplacement(TaskMacroId, ReplaceWith, TaskDriverId) "
+								"VALUES(%s, %s, %s)", ToSQL(taskMacroId), ToSQL(newReplValue), ToSQL(taskDriverId));
 
 						if (!connection->SendChangeDataScript(addRepl)) {
 							Exclamation("Failed to add a driver replacement value");
 							
 						} else {
-							// We added it.  Since below we Load() the grid over, we don't have to fetch the new key and stuff it in
-							// cuz the load will do that.  The key must be there so if the user edits the value, it recognizes it as an update
-							// and doesn't try to insert a new one.
+							int newTaskMacroDriverReplacementId = connection->GetInsertedId("taskmacrodriverreplacement", "tskmacdrvrepid");
+							ASSERT_(newTaskMacroDriverReplacementId >= 0, "Insert did not return a key for newTaskMacroDriverReplacementId, check database");
+							Set(row, taskMacroDriverReplColId, newTaskMacroDriverReplacementId);
 						}
 					}
 				}
 			}
 		}
 	}
-	
-	// Reload the grid so we can see if it worked.
-	Load();
 }
 
 //==============================================================================================
