@@ -17,8 +17,9 @@ public:
 	int                   taskId; // Filter all tests by task id, for manageability
 	                      // Count of fixed columns that are present for all sets
 	int                   driverColumnOffset;
-	                      // Count of driver columns
+	                      // Count of driver columns (currently 3 x the drivers
 	int                   driverColumnsPresent;
+	int                   driverCount;
 	
 	// List of pointers to EditString objects created on the fly and destroyed in our destructor
 	VectorMap<
