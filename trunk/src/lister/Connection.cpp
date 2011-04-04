@@ -56,6 +56,8 @@ Connection::Connection() {
 	topWindow                   = NULL;
 	cancelAnyActiveStatements   = 0; // Clear any requests
 	connectErrorMessage         = "";
+	isAClone                    = false;
+	clonedFrom = NULL;
 }
 
 //==============================================================================================
@@ -63,7 +65,23 @@ Connection::Connection(Connection *conn) {
 	ASSERT(conn);
 	ASSERT(conn->session);
 	ASSERT(conn->session->IsOpen());
+	instanceType        = conn->instanceType;
+	instanceAddress     = conn->instanceAddress;
+	connId              = conn->connId;
+	connName            = conn->connName;
+	loginPwd            = conn->loginPwd;
+	loginStr            = conn->loginStr;
+	dbName              = conn->dbName;
+	enumConnState       = conn->enumConnState;
+	envLetter           = conn->envLetter;
+	informationalOnly   = conn->informationalOnly;
+	instanceTypeName    = conn->instanceTypeName;
+	portNo              = conn->portNo;
+	topWindow           = conn->topWindow;
+	//session             = conn->session;
 	cn = conn->session->CreateConnection();
+	isAClone                     = true;
+	clonedFrom = conn;
 }
 
 

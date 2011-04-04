@@ -60,6 +60,8 @@ public:
 	String                       portNo;
 	String                       envLetter; // Letter that gets stuffed in as [[ENV]] when active connection changes
 	bool                         isOSAuth;
+	bool                         isAClone;
+	Connection                  *clonedFrom;
 	Thread                       connectThread;
 	TopWindow                   *topWindow;
     bool                         informationalOnly; // Not actually connected; just informational
