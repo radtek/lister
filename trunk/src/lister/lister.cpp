@@ -452,9 +452,10 @@ void Lister::SelectedTaskToCopyMacrosFrom() {
 		                       );
 			
 			if (insertConn.SendQueryDataScript(script)) {
+				int rowsProcessed = insertConn.GetRowsProcessed();
 				ASSERT(insertConn.GetRowsProcessed() == 1);
 				insertConn.Fetch();
-				toTaskMacroId == insertConn.Get(0);
+				toTaskMacroId = insertConn.Get(0);
 				
 				// Update other attributes?
 			} else {
@@ -466,11 +467,11 @@ void Lister::SelectedTaskToCopyMacrosFrom() {
 		// Then we merge the replacements with the existing one, or else we can't do updates
 		
 		script = Format("INSERT INTO TaskMacroDriverReplacement(taskMacroId,  ReplaceWith, note, taskDriverId)"
-		                       " SELECT %$1d, a.ReplaceWith, a.note, a.taskDriverId"
+		                       " SELECT %1$d, a.ReplaceWith, a.note, a.taskDriverId"
 		                       " FROM TaskMacroDriverReplacement a"
-		                       " WHERE a.taskMacroId = %$2d"
+		                       " WHERE a.taskMacroId = %2$d"
 		                       // Avoid collisions if this target macro already exists with some replacements
-		                       " AND (%$1d, a.ReplaceWith) NOT IN (SELECT taskMacroId, ReplaceWith)"
+		                       " AND (%1$d, a.ReplaceWith) NOT IN (SELECT taskMacroId, ReplaceWith)"
 		                       , toTaskMacroId, fromTaskMacroId)
 		;
 
