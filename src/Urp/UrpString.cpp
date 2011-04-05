@@ -2,6 +2,7 @@
 
 //==============================================================================================
 // Crazy idea: Function name maps to the parameters, especially their order.
+//==============================================================================================
 /*static*/ String UrpString::ReplaceInWhatWith(const String in, const String what, const String with, int *replacementCount /*= NULL*/) {
 	if (replacementCount) *replacementCount = 0;
 	if (what.IsEmpty()) return in;
@@ -59,6 +60,7 @@
 
 //==============================================================================================
 // Trim x number of characters off the end, (IN PLACE)
+//==============================================================================================
 /*static*/ void UrpString::TrimOff(String &in, int cnt) {
 	int l = in.GetLength();
 	in.Trim(l - cnt);
@@ -135,6 +137,7 @@
 // should try and convert it, and not error out inexplicably.  So, I didn't change Value,
 // I just added my own function.  I decided I should always pass both types.  Should be a
 // template with specialization.
+//==============================================================================================
 /*static*/ bool UrpString::FromTo(const Value &in, int &out) {
 	if (IsString(in)) {
 		return FromTo(in.ToString(), out);
@@ -152,6 +155,7 @@
 
 //==============================================================================================
 // Support char *in since string constants won't convert to "&" String type.
+//==============================================================================================
 /*static*/ bool UrpString::FromTo(const char *in, int &out) {
 	out = atoi(in);
 	return true;
@@ -159,6 +163,7 @@
 
 //==============================================================================================
 // Use "&" to avoid a string copy op.
+//==============================================================================================
 /*static*/ bool UrpString::FromTo(const String &in, int &out) {
 	out = atoi(in.ToString());
 	return true;
@@ -166,6 +171,7 @@
 
 //==============================================================================================
 // This allows function calls to be completely oblivious to data types
+//==============================================================================================
 /*static*/ bool UrpString::FromTo(const int in, int &out) {
 	out = in;
 	return true;
@@ -173,6 +179,7 @@
 
 //==============================================================================================
 // This should work, right?
+//==============================================================================================
 /*static*/ bool UrpString::FromTo(const byte in, int &out) {
 	out = in;
 	return true;
@@ -181,6 +188,7 @@
 //==============================================================================================
 // Ok, most cases this works without an annoying warning!  int is the default for flags
 // that store 1 and 0, for christ's sake!
+//==============================================================================================
 /*static*/ bool UrpString::FromTo(const unsigned int in, int &out) {
 	if (in < INT_MAX / 2 && in > INT_MIN / 2) {
 		out = in;
@@ -224,6 +232,7 @@ String Trim(const String& str) {
 
 //==============================================================================================
 // Fun function to strip things like wrapping apostrophes, quotes, spaces, brackets, tabs, etc.
+//==============================================================================================
 String StripWrapper(const String& str, const String& wrapper, const String &wrapperRight) {
 	String lwrapperRight = wrapperRight;
 	if (lwrapperRight.IsEmpty()) { 
@@ -242,7 +251,8 @@ String StripWrapper(const String& str, const String& wrapper, const String &wrap
 }
 
 //==============================================================================================
-// Taken from SQL functions that are useful
+// Taken from SQL functions that are useful in code.
+//==============================================================================================
 Value IfNull(Value in, Value defval) {
 	if (in.IsNull()) {
 		return defval;
@@ -286,17 +296,22 @@ int ToInt(String in, int defval) {
 
 //==============================================================================================
 // I know U++ has a function, but ToString works better for me.
+//==============================================================================================
 String ToString(int in) {
 	return Format("%d", in);
 }
 
 //==============================================================================================
+// Very useful function that takes the U++ Value class and expands it with a way to convert
+// natural output from Value Getters to SQL String compliant parameters.
 // To be used when build in SQL scripts with a Format command.
-// 99% of time for internal control tables, so PGSQL support for bool
+// 99% of time for internal control tables, so PGSQL is the expectation for most code.
+//==============================================================================================
 String ToSQL(const Value &in, int dialect /*=PGSQL*/, bool nestedconstant /*=false*/) {
 	if (in.IsNull()) return "NULL";
 	
 	switch (in.GetType()) {
+		//--------------------------------------------------------------------------------------
 		case STRING_V: 
 			if (in.ToString().IsEmpty()) return "NULL";
 			if (nestedconstant)
@@ -304,11 +319,13 @@ String ToSQL(const Value &in, int dialect /*=PGSQL*/, bool nestedconstant /*=fal
 			else
 				// E escapes slashes and such
 				return CAT << "E'" << UrpString::ReplaceInWhatWith(UrpString::ReplaceInWhatWith(in.ToString(), "\\", "\\\\'"), "'", "\\'") << "'";
-			break;
+
+		//--------------------------------------------------------------------------------------
 		case INT_V:
 			if (in == INT_NULL) return "NULL";
 			return in.ToString();
-			break;
+			
+		//--------------------------------------------------------------------------------------
 		case BOOL_V:
 			if (dialect == PGSQL)
 				if (nestedconstant) // We are building a value array insert, so values are quotes instead of aposts
@@ -317,11 +334,13 @@ String ToSQL(const Value &in, int dialect /*=PGSQL*/, bool nestedconstant /*=fal
 					return (in? "'1'" : "'0'"); // Postrgres flips when you stuff numerics in, unless I suppose I make a cast converter.  Might be best.
 			else 
 				return (in? "1" : "0");
+			
+		//--------------------------------------------------------------------------------------
 		case INT64_V:
 			if (in == INT64_NULL) return "NULL";
 			return in.ToString();
-			break;
 		
+		//--------------------------------------------------------------------------------------
 		case DATE_V: {
 			Date d = in;	
 			if (d.year == 1900 && d.month == 1 && d.day == 1) return NULL; 
@@ -337,17 +356,20 @@ String ToSQL(const Value &in, int dialect /*=PGSQL*/, bool nestedconstant /*=fal
 				return Format("'%02d-%02d-%04d'", d.month, d.day, d.year);
 		}
 		
+		//--------------------------------------------------------------------------------------
 		case TIME_V: {
 			Time t = in;	
 			return Format("'%02d:%02d:%02d'", t.hour, t.minute, t.second);
 		}
 
+		//--------------------------------------------------------------------------------------
 		case DOUBLE_V:
 			if (in == DOUBLE_NULL) return "NULL";
 			return in.ToString();
 			
 		// May not work for multidimensional 
 		
+		//--------------------------------------------------------------------------------------
 		case VALUEARRAY_V: {
 			ValueArray va = in;
 			String vastr;
@@ -359,9 +381,12 @@ String ToSQL(const Value &in, int dialect /*=PGSQL*/, bool nestedconstant /*=fal
 			}
 			vastr << "}";
 			if (!nestedconstant) vastr << "'";
-			break;
+			return Value(vastr);
 		}
+
+		//--------------------------------------------------------------------------------------
 		case WSTRING_V:
+		{
 			// For PGSQL, U&"\0441\043B\043E\043D" = Russian word "slon" (elephant) in Cyrillic letters
 			WString ws = in;
 			String s = "U&\"";
@@ -372,19 +397,23 @@ String ToSQL(const Value &in, int dialect /*=PGSQL*/, bool nestedconstant /*=fal
 			}
 			s << "\"";
 			return s;
-			break;
-			
+		}
+		
+		
 		//case TIMESTAMP_V??
 		//case VALUEMAP_V:
 		// INTERVAL_V??
 		// MILLISECONDS??
 		// Time zone, epoch, microseconds, doy, dow, millenium, century , weekofyear, weekofmonth
+		default:
+			throw Exc(Format("Unrecognized value type %lu", (int)in.GetType())); // unsigned long
 	}
 }
 
 //==============================================================================================
 // Trim off a specific string at the beginning of a string.  A convenience function only.
 // So RestOf("CatHouse", "Cat") returns "House", so you don't have to deal with lengths.
+//==============================================================================================
 String RestOf(const String &startwith, const String &skipthis) {
 	if (startwith.StartsWith(skipthis)) {
 		return startwith.Mid(skipthis.GetLength());
@@ -395,6 +424,7 @@ String RestOf(const String &startwith, const String &skipthis) {
 
 //==============================================================================================
 // Tired of the "To" prefix :)  U++ function is ToUpper.
+//==============================================================================================
 String Upper(const String& s) {
 	return(ToUpper(s));
 }
