@@ -45,6 +45,7 @@ UrpGrid::UrpGrid() : GridCtrl(), UrpGridCommon() {
 	CopyColumnNames(true);
 	Navigating();
 	Absolute();             // Critical for proper column width export/import
+	ResizePaintMode(1); // Defaults to 2, and we get big blank spaces when we hide columns, so lets try 1.
 
 	WhenMenuBar           = THISBACK(StdMenuBar);
 	WhenMovedRows         = THISBACK(MovedRows);
@@ -90,8 +91,21 @@ void UrpGrid::LoadComplete() {
 void UrpGrid::MovedRows() {
 	Ready(false); // Prevent flicker
 	int currentRow = GetCurrentRow();
+	
+	int newProcessOrder = 0; // Start with zero
+	
 	for (int i = 0; i < GetCount(); i++) {
-		SaveRow(i, i); // If implementor (See testgrid) implemented, this will be persisted somewhere.
+		int currentProcessOrder = GetProcessOrder(i);
+		// If the current order is within 20 of our target, we'll leave it
+		if (WithinOffset(currentProcessOrder, newProcessOrder, 20)) {
+			// No need to update this row, its already in the right order; save some db time
+			newProcessOrder = currentProcessOrder + 1;
+		} else {
+			newProcessOrder = GetNextFreeProcessOrder(i, newProcessOrder);
+			SaveRow(i, newProcessOrder); // If implementor (See testgrid) implemented, this will be persisted somewhere.
+			// We know this one's taken
+			newProcessOrder++;
+		}
 	}
 	
 	// Set our cursor back to where it was.  Did we scrol?
@@ -102,6 +116,16 @@ void UrpGrid::MovedRows() {
 }
 
 //==============================================================================================
+// Called from context menu when over a column.
+//==============================================================================================
+void UrpGrid::HideColumnUnderMouse() {
+	// curpos is storing the row numbers, not the mouse position of the last RightDown mouse click.	
+	int colno = GetCursorPos().x; // Not really a point, even though using Point class.
+	if (colno == -1) return;
+	HideFloatingColumn(colno);
+}
+
+//==============================================================================================
 void UrpGrid::SaveRow(int row, int newProcessOrder) {
 	// Do nothing; for implementor it they want to write processorder to db.
 }
@@ -109,6 +133,8 @@ void UrpGrid::SaveRow(int row, int newProcessOrder) {
 //==============================================================================================
 void UrpGrid::StdMenuBar(Bar &bar) {
 	GridCtrl::StdMenuBar(bar);
+	bar.Add(true, "Hide Column", THISBACK(HideColumnUnderMouse)).Tip("Hide selected column");
+	// Hide Row?
 	bar.Add(true, "Shrink any columns over 1000 width", THISBACK(NormalizeColumnWidth)).Tip("Caused by config corruption");
 }
 
@@ -123,7 +149,7 @@ int UrpGrid::CalcCorrectRow(int row) {
 					return i; // Can't force visible since this may be part of an informational lookup
 				}
 			}
-			// Error if here
+			throw Exc("Internal error: IsSelection() says a selection exists, but no rows are flagged in IsSelected()");
 		} else {
 			return -1;
 		}
@@ -153,7 +179,25 @@ int UrpGrid::GetMaxProcessOrder() {
 
 //==============================================================================================
 int UrpGrid::GetNextProcessOrder() {
-	return GetMaxProcessOrder() + 1;
+	return GetMaxProcessOrder() + 10; // Gap it so that renumbering is easier
+}
+
+//==============================================================================================
+int UrpGrid::GetNextFreeProcessOrder(int startAfterRow, int startAtProcessOrder) {
+	int freeone = startAtProcessOrder; // May be a good order, we don't know
+	Index<int> ordersTaken;
+	
+	// Always send us the row you are trying to fill since we skip that one assuming it will be overwritten
+	// Plus, the MovedRows() function checks if it can use the current row's order already.
+	for (int i = startAfterRow + 1; i < GetCount(); i++) {
+		int v = GetProcessOrder(i);
+		ordersTaken.Add(v);
+	}
+	
+	// increment until we don't find it
+	while (FindIndex(ordersTaken, freeone) != -1) freeone++;
+	
+	return freeone;
 }
 
 //==============================================================================================
@@ -199,33 +243,48 @@ int UrpGrid::GetFloatingColumnCount() {
 }
 
 //==============================================================================================
-void UrpGrid::UnhideFloatingColumnSilently(int i) {
-	// Does NOT take into account fixed colunmns
-	ShowColumn(i + fixed_cols, false /* Don't Repaint */);
+void UrpGrid::UnhideFloatingColumnSilently(int colno) {
+	// U++ function does NOT take into account fixed colunmns, so we created wrapper
+	ShowColumn(colno + fixed_cols, false /* Don't Repaint */);
 }
 
 //==============================================================================================
-void UrpGrid::HideFloatingColumn(int i) {
+void UrpGrid::HideFloatingColumn(int colno) {
 	// Does NOT take into account fixed colunmns
-	HideColumn(i + fixed_cols, true /* Repaint */);
+	HideColumn(colno + fixed_cols, true /* Repaint */);
 }
 
 //==============================================================================================
-void UrpGrid::SetFloatingColumnWidth(int i, int w) {
+void UrpGrid::SetFloatingColumnWidth(int colno, int w) {
 	// Does NOT take into account fixed colunmns
-	SetColWidth(i + fixed_cols, w, true /* Let's try not recalcing */);
+	SetColWidth(colno + fixed_cols, w, true /* Let's try not recalcing */);
 }
 
 //==============================================================================================
-Id UrpGrid::GetFloatingColumnId(int n) const {
+Id UrpGrid::GetFloatingColumnId(int colno) const {
+	// U++ function does take into account the fixed columns
+	return GetColumnId(colno);
+}
+
+//==============================================================================================
+int UrpGrid::GetFloatingColumnNo(Id id) {
+	// Find returns the physical index so we must strip the floating portion off
+	int colno = aliases.Find(id);
+	
+	if (colno == -1) {
+		return colno;
+	} else {
+		colno-= fixed_cols;
+		ASSERT_(colno >= 0, "A floating column number cannot be negative");
+		return colno;
+	}
+}
+
+
+//==============================================================================================
+GridCtrl::ItemRect& UrpGrid::GetFloatingColumn(int colno) {
 	// Takes into account the fixed columns
-	return GetColumnId(n);
-}
-
-//==============================================================================================
-GridCtrl::ItemRect& UrpGrid::GetFloatingColumn(int n) {
-	// Takes into account the fixed columns
-	return GetColumn(n);
+	return GetColumn(colno);
 }
 
 //==============================================================================================
@@ -263,6 +322,21 @@ void UrpGrid::Xmlize(XmlIO xml) {
 		
 		xml("columnwidths", floatingColumnWidths); // Read from store
 		for (int i = 0; i < GetFloatingColumnCount(); i++) {
+			// Allow developer to build/load dynamic columns that he doesn't want Xmlize
+			// trying to display or hide, depending on whether this grid was saved with columns
+			// X,Y,Z or A,B,C,D.  That way, when xml widths for X,Y,Z is zapped when the last open
+			// grid shows A,B,C,D, X,Y,Z doesn't come all flying back from the dead next time
+			// an A-B-C grid is generated.
+			// Next solution might be to have a template name that is saved and reloaded.
+			
+			if (GetColumn(i).alwayshidden) {
+				continue;
+			}
+			
+			// if GetColumn(i).istemplatized then colIdName = Get ColumnGenericName()
+			// Note that several columns in the same grid could refer to the same generic col name.
+			// if GetColumn(i).ifnoxmlfoundthenhide?
+			
 			String colIdName = GetFloatingColumnId(i).ToString();
 			int colWidth = 0;
 			
