@@ -25,6 +25,7 @@ TaskMacroGrid::TaskMacroGrid() : UrpSqlGrid() {
 
 //==============================================================================================
 // Called from WhenStartEdit from inside StartEdit	
+//==============================================================================================
 void TaskMacroGrid::UpdatingRow() {
 	if (IsInsert()) { // Not IsInserting, this checks insertmode
 		// Make sure we stay linked to the active task in the taskgrid.
@@ -34,6 +35,7 @@ void TaskMacroGrid::UpdatingRow() {
 
 //==============================================================================================
 // Trick to ask DB (Postgresql) to populate with its default function
+//==============================================================================================
 struct ForceDBDefaultConvert : public Convert {
 	Value Format(const Value& v) const {
 		if (IsNull(v))
@@ -45,6 +47,7 @@ struct ForceDBDefaultConvert : public Convert {
 
 //==============================================================================================
 // Build columns
+//==============================================================================================
 void TaskMacroGrid::Build(Connection *pconnection) {
 	connection = pconnection;
 	SetTable(TASKMACROS);
@@ -67,6 +70,7 @@ void TaskMacroGrid::Build(Connection *pconnection) {
 //==============================================================================================
 // Make sure the process order gets a default value that should be unique. Return true to
 // signify accept and post to db.
+//==============================================================================================
 bool TaskMacroGrid::CompleteNewRow() {
 	Value currProcessOrder = Get(PROCESSORDER); // Perhaps they set it manually?
 	if (currProcessOrder.IsNull()) { // Nope.
@@ -78,6 +82,7 @@ bool TaskMacroGrid::CompleteNewRow() {
 
 //==============================================================================================
 // Must be set or this will show everything.
+//==============================================================================================
 void TaskMacroGrid::SetTaskId(int ptaskId) {
 	taskId = ptaskId;
 	SetWhere((TASKID == taskId));
@@ -97,6 +102,7 @@ void TaskMacroGrid::Load() {
 //==============================================================================================
 // Called from others who want a task macro grid.  By placing here we can hopefully 
 // share some related SQL.
+//==============================================================================================
 /*static */void TaskMacroGrid::LoadTaskMacro(Connection *connection, DropGrid &dropGrid) {
 	
 	// OOPS! Buggy!
