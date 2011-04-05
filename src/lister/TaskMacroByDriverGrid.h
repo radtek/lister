@@ -20,7 +20,7 @@ public:
 	                      // Count of driver columns (currently 3 x the drivers
 	int                   driverColumnsPresent;
 	int                   driverCount;
-	
+
 	// List of pointers to EditString objects created on the fly and destroyed in our destructor
 	VectorMap<
 		String, 
@@ -35,6 +35,9 @@ public:
 	
 	                      // Added manually from appending a row.
 	void                  EnterNewRow                 (); // New generic name
+
+                          // Completed a new row and you want to save it
+	void                  CompleteNewRow();
 	                      
 	                      // GridCtrl will remove the row if we do not cancel the remove.
 	void                  RemoveRow                   ();

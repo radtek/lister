@@ -23,6 +23,7 @@
 
 #define SUFFIX_DRIVERID "_driverid"
 #define SUFFIX_TASKMACRODRIVERREPLID "_taskmacrodriverreplacementid"
+
 //==============================================================================================
 TaskMacroByDriverGrid::TaskMacroByDriverGrid() : UrpGrid() {
 	taskId = UNKNOWN; // Clear filter
@@ -31,6 +32,7 @@ TaskMacroByDriverGrid::TaskMacroByDriverGrid() : UrpGrid() {
 
 //==============================================================================================
 // Clean up any memory allocated for EditString objects for the replacements per driver column.
+//==============================================================================================
 TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 	for (int i = 0; i < editors.GetCount(); i++) {
 		delete editors[i];
@@ -42,10 +44,22 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 //==============================================================================================
 /*virtual=0*/void TaskMacroByDriverGrid::Build(Connection *pconnection) {
 	BuildBase(pconnection);
+	
+	// User opened edit mode in a new/existing row; we want to focus them on the first valid
+	// column to enter data in.
+	
 	WhenNewRow      = THISBACK(EnterNewRow);    // At the creation of a new row; pre-populate fields
 	WhenRemoveRow   = THISBACK(RemoveRow);
-	WhenAcceptedRow = THISBACK(SavePrompt);   // Build/Run SQL to save data
+	
+	// User requesting approval and new process order by leaving row
+	
+	WhenInsertRow   = THISBACK(CompleteNewRow);
 
+	// New/changed row accepted, now writing it to database
+	
+	WhenAcceptedRow = THISBACK(SavePrompt);   // Build/Run SQL to save data
+	
+	
 	AddColumn(TASKID            , "Task",  50      ).NoEditable().Hidden();
 	AddColumn(TASKMACID         , "Id", 100      ).NoEditable();
 	AddColumn(SEARCHFOR         , "SrchFor"        ).Edit(fldSearchFor);
@@ -63,6 +77,7 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 //==============================================================================================
 // Load the macros, their search fors and all the various replacewith values by driver path.
 // Note that this cannot be a view due to the complexity of crosstabbing variance across tasks.
+//==============================================================================================
 /*virtual=0*/ void TaskMacroByDriverGrid::Load() {
 	LoadBase();
 	
@@ -226,9 +241,13 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 				.SetConvert(*(editors.Get(newColumnName)));
 			// Add our invisible support columns for linking us back to updates/deletes
 			Id driveridcol(newColumnName + SUFFIX_DRIVERID);
-			AddColumn(driveridcol).Hidden(); // U++ prefers Ids rather than strings :(
+			// U++ prefers Ids rather than strings :(
+			// Don't set Hidden() here; it is overwritten since in OpenTaskDefWin(), first it calls Build(), then OpenWithConfig(), which blows away the column widths here. 
+			// Created AlwaysHidden that Xmlize() in UrpGrid checks, and, whether there's
+			// a config ref or not, it stays hidden.
+			AddColumn(driveridcol).AlwaysHidden(); 
 			Id taskmacrodriverreplidcol(newColumnName + SUFFIX_TASKMACRODRIVERREPLID);
-			AddColumn(taskmacrodriverreplidcol).Hidden();
+			AddColumn(taskmacrodriverreplidcol).AlwaysHidden();
 		}
 	}
 	
@@ -237,11 +256,11 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 	if (connection->SendQueryDataScript(Format(script, taskId))) {
 		while (connection->Fetch()) {
 			Add();
-			Set(TASKMACID  , connection->Get(TASKMACID  ));
-			Set(TASKID     , connection->Get(TASKID     ));
-			Set(NOTE       , connection->Get(NOTE       ));
-			Set(SEARCHFOR  , connection->Get(SEARCHFOR  ));
-			Set(REPLACEWITH, connection->Get(REPLACEWITH));
+			Set(TASKMACID   , connection->Get(TASKMACID   ));
+			Set(TASKID      , connection->Get(TASKID      ));
+			Set(NOTE        , connection->Get(NOTE        ));
+			Set(SEARCHFOR   , connection->Get(SEARCHFOR   ));
+			Set(REPLACEWITH , connection->Get(REPLACEWITH ));
 			Set(PROCESSORDER, connection->Get(PROCESSORDER));
 
 			int targetColumnNo = driverColumnOffset;
@@ -252,7 +271,7 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 				// First column fetched is the replace with value, which may not be set
 				
 				String getColumnName = Format("REPLACEWITH_%d", i); // Case sensitive; must be upper even though displays in pgadmin as lower (duh!)
-				String replwithval = connection->Get(getColumnName);
+				String replwithval   = connection->Get(getColumnName);
 				String setColumnName = driverNames[i-1];
 				Id replwithcolid(setColumnName);
 				Set(replwithcolid, replwithval);
@@ -286,12 +305,14 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 
 //==============================================================================================
 // Must be set or this will show everything.
+//==============================================================================================
 void TaskMacroByDriverGrid::SetTaskId(int ptaskId) {
 	taskId = ptaskId;
 }
 
 //==============================================================================================
 // Added manually from appending a row.
+//==============================================================================================
 void TaskMacroByDriverGrid::EnterNewRow() {
 	if (taskId != UNKNOWN) {
 		Set(TASKID, taskId);
@@ -299,6 +320,17 @@ void TaskMacroByDriverGrid::EnterNewRow() {
 
 	GoTo(GetCurrentRow(), 2); // Move to 2nd coloumn, past the color status
 	StartEdit(); // Puts you into editmode so you can start typing the instance name right away.
+}
+
+//==============================================================================================
+// Make sure the process order gets a default value that should be unique. Return true to
+// signify accept and post to db.
+//==============================================================================================
+void TaskMacroByDriverGrid::CompleteNewRow() {
+	Value currProcessOrder = Get(PROCESSORDER); // Perhaps they set it manually?
+	if (currProcessOrder.IsNull()) { // Nope.
+		Set(PROCESSORDER, GetNextProcessOrder()); // Scan all the available orders and grab the next #
+	}
 }
 
 //==============================================================================================
@@ -340,6 +372,7 @@ void TaskMacroByDriverGrid::SaveNoPrompt() {
 
 //==============================================================================================
 // Implement a simple save so UrpGrid can attempt to call when reordering
+//==============================================================================================
 /*virtual*/ void TaskMacroByDriverGrid::SaveRow(int row, int newProcessOrder) {
 	SetCursor(row);
 	Set(row, PROCESSORDER, newProcessOrder);
@@ -358,7 +391,7 @@ void TaskMacroByDriverGrid::SaveNoPrompt() {
 // Easily transform all grid columns to SQL Db columns if flagged as linked to db.
 // This is a callback as defined "SqlInsert& operator()(Fields f, bool nokey = false);"
 // Where Fields is just a sneaky "typedef Callback1<FieldOperator&> Fields;" in sqlexp.h!
-// This is also used for 
+//==============================================================================================
 void TaskMacroByDriverGrid::FieldLayout(FieldOperator& fo) {
 	for (int i = 0; i < GetFloatingColumnCount(); i++) {
 		GridCtrl::ItemRect& ir = GetFloatingColumn(i);
@@ -384,6 +417,7 @@ void TaskMacroByDriverGrid::FieldLayout(FieldOperator& fo) {
 
 //==============================================================================================
 // Write this row of the grid to the database, either a new row or a modified row.
+//==============================================================================================
 void TaskMacroByDriverGrid::Save(bool prompt) {
 	ASSERT(connection);
 	ASSERT(connection->session->IsOpen());
@@ -394,6 +428,25 @@ void TaskMacroByDriverGrid::Save(bool prompt) {
 	// Inserting a new task macro, with 0 to n new drivers
 
 	if (IsNewRow()) {
+		String addScript = Format("INSERT INTO TaskMacros("
+			" NOTE, SEARCHFOR, REPLACEWITH, PROCESSORDER, TASKID)"
+			" VALUES(%s, %s, %s, %s, %s)"
+			, ToSQL(Get(row, NOTE))
+			, ToSQL(Get(row, SEARCHFOR))
+			, ToSQL(Get(row, REPLACEWITH))
+			, ToSQL(Get(row, PROCESSORDER)) // Don't forget this or reordering stuff won't take any affect
+			, ToSQL(Get(row, TASKID))
+			);
+			
+		if (!connection->SendChangeDataScript(addScript)) {
+			Exclamation("Failed to add");
+		} else {
+			// Get the newly created key from database sequencer
+			int newTaskMacroId = connection->GetInsertedId("taskmacros", "taskmacid");
+			ASSERT_(newTaskMacroId >= 0, "Insert did not return a key for new taskmacro, check database");
+			// Stuff it in the user user's grid so future actions update this row
+			Set(row, TASKMACID, newTaskMacroId);
+		}
 		// Fetch the new searchFor string
 		// Is it unique?
 		// Generate a new process order
