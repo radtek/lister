@@ -16,6 +16,7 @@ public:
 			,	cellPhoneNo
 			,	personalEmailAddress
 			,	note
+			,	bridgeLine
 	;
 	
 	Connection *connection; // Our metadata about the query we will be running
