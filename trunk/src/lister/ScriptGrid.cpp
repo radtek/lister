@@ -179,6 +179,7 @@ void ScriptGrid::GetScriptOb(int row, Script *psob) {
 	psob->fastFlushTarget = GetFastFlushTarget  (CalcCorrectRow(row));
 	psob->rowLimit        = GetRowLimit         (CalcCorrectRow(row)); // Important for testing
 	psob->processOrder    = GetProcessOrder     (CalcCorrectRow(row));
+	psob->connId          = GetConnId           (CalcCorrectRow(row));
 }
 
 //==============================================================================================
