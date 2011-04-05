@@ -1682,9 +1682,10 @@ GridCtrl::ItemRect& GridCtrl::AddColumn(const char *name, int size, bool idx)
 	else
 		total_rows = 1;
 
-	Item &it = items[0].Add();
+	Item &it = items[0].Add(); // items are the actual rows of Column data
+	// Set column heading string (first row (0) is items[0]
 	it.val = name;
-
+	
 	ItemRect &ib = hitems.Add();
 
 	ib.parent = this;
@@ -3333,7 +3334,15 @@ GridCtrl::CurState GridCtrl::SetCursor0(Point p, int opt, int dirx, int diry)
 		tmpcur = p;
 
 	// Jeff added 3/11/11: Negative values when empty set(no rows) and try to scroll (lot of columns)
-	if (tmpcur.x == -1 || tmpcur.y == -1) return cs;
+	if (tmpcur.x == -1) {
+		//return cs;
+		tmpcur.x = 0; // returning here leaves curid unset, so we must carry on
+	}
+	
+	// Just put a value in.
+	if (tmpcur.y == -1) {
+		tmpcur.x = 0;
+	}
 	
 	Point oldcur = highlight ? livecur : curpos;
 
@@ -5931,6 +5940,8 @@ int GridCtrl::GetCursor(int uid) const
 	return -1;
 }
 
+// Very naughty design!  Developer is using Point to pass the colno/rowno pair, BUT Point is for mouse coor
+// dinates, not grid coordinates.  Another U++ Dopism.
 Point GridCtrl::GetCursorPos() const
 {
 	return valid_cursor ? Point(curpos.x - fixed_cols, curpos.y - fixed_rows) : Point(-1, -1);
@@ -7448,9 +7459,13 @@ GridCtrl& GridCtrl::HideColumn(int n, bool refresh)
 	if(hitems[n].hidden)
 		return *this;
 	hitems[n].hidden = true;
+	// Save the current size in case the user un
 	hitems[n].tsize = hitems[n].size;
+	
+	hitems[n].size = 0; // This line was missing in U++ original code.
 	if(refresh)
-		Repaint(true, false);
+		//Repaint(true, false);
+		Repaint(true, false, RP_UPDCTRLS);
 
 	return *this;
 }
@@ -7478,7 +7493,7 @@ void GridCtrl::ShowRows(bool repaint)
 		{
 			change = true;
 			vitems[i].hidden = false;
-			vitems[i].size = vitems[i].tsize;
+			vitems[i].size = vitems[i].tsize; // Ah! restore size to saved size when we hid it.
 		}
 	if(change || repaint)
 		Repaint(false, true, UC_SCROLL);
@@ -7489,7 +7504,8 @@ void GridCtrl::MenuHideColumn(int n)
 	if(hitems[n].hidden)
 		ShowColumn(n);
 	else
-		HideColumn(n);
+		//HideColumn(n); // ?? I don't repaint!
+		HideColumn(n, true); // Let's try repaint to see if big Absolute gaps get filled in.
 }
 
 int GridCtrl::ShowMatchedRows(const WString &f)
@@ -7767,7 +7783,14 @@ Point GridCtrl::GetBarOffset()
 void GridCtrl::ClearModified()
 {
 	row_modified = 0;
+	
+	// Jeff trying to fix bug:
+	if (curid.y == -1) {
+		// I don't know why, but shiftpos had the right x/y position when -1 occured.  This thing needs a major refacto.
+		curid.y = shiftpos.y; // Fixed bug for now.
+	}
 	for(int i = 0; i < total_cols; ++i)
+		// ERROR: curid set to -1, -1: Default values, but not working here
 		items[curid.y][i].modified = false;
 }
 
