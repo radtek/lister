@@ -2,7 +2,8 @@
 *  lister - TestWin.cpp
 *  
 *  Simple panel that sits next to the OutputGrid (mainGrid) on the main app screen.  Displays
-*  stats about the last run.
+*  stats about the last run.  Also used in test runs to get row count and fetch time.
+*  Sometimes Execute implementations don't set row counts.  So we track.
 *
 *  Author: Jeff Humphreys
 *  
@@ -23,6 +24,7 @@
 OutputStat::OutputStat() {
 	CtrlLayout(*this);
 	startedWhen = NULL;
+	rowCount = -1;
 }
 
 //==============================================================================================
@@ -41,6 +43,7 @@ String OutputStat::PrepOutputValue(String in) {
 
 //==============================================================================================
 void OutputStat::SetRowCount(int prowCount) {
+	rowCount = prowCount;
 	String srowcount;
 	
 	if (prowCount == 0) {
@@ -50,6 +53,11 @@ void OutputStat::SetRowCount(int prowCount) {
 	}
 	
 	dispRowCount.SetQTF(PrepOutputValue(srowcount));
+}
+
+//==============================================================================================
+int OutputStat::GetRowCount() {
+	return rowCount;
 }
 
 //==============================================================================================
@@ -64,8 +72,14 @@ void OutputStat::SetConnName(String pconnName) {
 
 //==============================================================================================
 void OutputStat::SetFetchTime(Interval ptime) {
+	fetchTime = ptime;
 	String stime = ptime.ToString();
 	dispFetchTime.SetQTF(PrepOutputValue(stime));
+}
+
+//==============================================================================================
+Interval OutputStat::GetFetchTime() {
+	return fetchTime;
 }
 
 //==============================================================================================
