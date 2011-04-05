@@ -9,9 +9,55 @@
 #define K_ALT_CTRL          K_ALT|K_CTRL
 #define K_ALT_SHIFT         K_ALT|K_SHIFT
 #define K_ALT_SHIFT_CTRL    K_ALT|K_SHIFT|K_CTRL
+
+#define K_ALT_CTRL_F1       K_ALT_CTRL|K_F1
+#define K_ALT_CTRL_F2       K_ALT_CTRL|K_F2
+#define K_ALT_CTRL_F3       K_ALT_CTRL|K_F3
+#define K_ALT_CTRL_F4       K_ALT_CTRL|K_F4
+#define K_ALT_CTRL_F5       K_ALT_CTRL|K_F5
+#define K_ALT_CTRL_F6       K_ALT_CTRL|K_F6
+#define K_ALT_CTRL_F7       K_ALT_CTRL|K_F7
 #define K_ALT_CTRL_F8       K_ALT_CTRL|K_F8
-#define K_ALT_SHIFT_CTRL_F8 K_ALT_SHIFT_CTRL|K_F8
+#define K_ALT_CTRL_F9       K_ALT_CTRL|K_F9
+#define K_ALT_CTRL_F10      K_ALT_CTRL|K_F10
+#define K_ALT_CTRL_F11      K_ALT_CTRL|K_F11
+#define K_ALT_CTRL_F12      K_ALT_CTRL|K_F12
+
+#define K_ALT_SHIFT_CTRL_F1  K_ALT_SHIFT_CTRL|K_F1
+#define K_ALT_SHIFT_CTRL_F2  K_ALT_SHIFT_CTRL|K_F2
+#define K_ALT_SHIFT_CTRL_F3  K_ALT_SHIFT_CTRL|K_F3
+#define K_ALT_SHIFT_CTRL_F4  K_ALT_SHIFT_CTRL|K_F4
+#define K_ALT_SHIFT_CTRL_F5  K_ALT_SHIFT_CTRL|K_F5
+#define K_ALT_SHIFT_CTRL_F6  K_ALT_SHIFT_CTRL|K_F6
+#define K_ALT_SHIFT_CTRL_F7  K_ALT_SHIFT_CTRL|K_F7
+#define K_ALT_SHIFT_CTRL_F8  K_ALT_SHIFT_CTRL|K_F8
+#define K_ALT_SHIFT_CTRL_F9  K_ALT_SHIFT_CTRL|K_F9
+#define K_ALT_SHIFT_CTRL_F10 K_ALT_SHIFT_CTRL|K_F10
+#define K_ALT_SHIFT_CTRL_F11 K_ALT_SHIFT_CTRL|K_F11
+#define K_ALT_SHIFT_CTRL_F12 K_ALT_SHIFT_CTRL|K_F12
+
+#define K_ALT_SHIFT_F1      K_ALT_SHIFT|K_F1
+#define K_ALT_SHIFT_F2      K_ALT_SHIFT|K_F2
+#define K_ALT_SHIFT_F3      K_ALT_SHIFT|K_F3
+#define K_ALT_SHIFT_F4      K_ALT_SHIFT|K_F4
+#define K_ALT_SHIFT_F5      K_ALT_SHIFT|K_F5
+#define K_ALT_SHIFT_F6      K_ALT_SHIFT|K_F6
+#define K_ALT_SHIFT_F7      K_ALT_SHIFT|K_F7
 #define K_ALT_SHIFT_F8      K_ALT_SHIFT|K_F8
+#define K_ALT_SHIFT_F9      K_ALT_SHIFT|K_F9
+#define K_ALT_SHIFT_F10     K_ALT_SHIFT|K_F10
+#define K_ALT_SHIFT_F11     K_ALT_SHIFT|K_F11
+#define K_ALT_SHIFT_F12     K_ALT_SHIFT|K_F12
+
+#define K_CTRL_0            K_CTRL|K_0
+#define K_CTRL_1            K_CTRL|K_1
+#define K_CTRL_2            K_CTRL|K_2
+#define K_CTRL_3            K_CTRL|K_3
+#define K_CTRL_4            K_CTRL|K_4
+#define K_CTRL_5            K_CTRL|K_5
+#define K_CTRL_6            K_CTRL|K_6
+#define K_CTRL_7            K_CTRL|K_7
+#define K_CTRL_8            K_CTRL|K_8
 #define K_CTRL_9            K_CTRL|K_9
 
 // From CtrlCore\Win32Keys.i
