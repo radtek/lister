@@ -27,7 +27,8 @@ CREATE TABLE contacts (
     workphoneno character varying(30),
     homephoneno character varying(30),
     cellphoneno character varying(30),
-    nonworkemailaddress character varying(100)
+    nonworkemailaddress character varying(100),
+    bridgeline character varying(100)
 );
 
 
@@ -38,6 +39,13 @@ ALTER TABLE public.contacts OWNER TO postgres;
 --
 
 COMMENT ON TABLE contacts IS 'Includes users with syslogins and externals, like BB support people, their email, etc.';
+
+
+--
+-- Name: COLUMN contacts.bridgeline; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN contacts.bridgeline IS 'Bridge line: Dial in + key assigned to that user.';
 
 
 --
