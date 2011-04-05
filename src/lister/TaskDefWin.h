@@ -21,17 +21,13 @@ public:
 	                  // Let main program call TaskGrid
     Callback1<Task&>     WhenSaveTask; 
     
- 	                  // List of drivers for current task that will control how any test runs
-	                  // access the macros and what replacement set is used.    
-	DropGrid             taskDriverList;
-    
 	                     TaskDefWin        ();
     virtual 
     void                 Open              ();
     virtual 
-    void                 Open              (Ctrl *owner);
+    void                 Open              (Ctrl       *owner);
 	void                 Build             (Connection *pconnection);
-	void                 Load              (Task &ptask);
+	void                 Load              (Task       &ptask);
 	void                 SaveTask          ();
 	
 	                  // Hack in Ctrl class required to make Xmlize virtual or this function

@@ -139,6 +139,28 @@ void TaskDefWin::Load(Task &ptask) {
 	fldDepExpectSampWhen     .SetData(task.depExpectSampWhen);
 	fldDepAssignDesc         .SetData(task.depAssignDesc);
 	fldDepFeedback           .SetData(task.depFeedback);
+
+	//fldActiveDriver	
+
+	taskDriverList.Clear();
+
+	if (!connection->SendQueryDataScript(Format("SELECT driverId, driverName FROM taskDrivers WHERE taskId = %d ORDER BY processOrder", taskId))) {
+		Exclamation("Unable to fetch a list of drivers");
+		return;
+	}
+
+	while (connection->Fetch()) {
+		taskDriverList.Add(connection->Get(0), connection->Get(1));
+	}
+
+	// Sets the active driver list for this task
+	taskDriverList.SetData(task.taskDriverId);
+		
+//	int r = taskDriverList.list.Find("BBMLUK", 1);
+//	if (r >= 0) {
+//		int key = taskDriverList.list.Get(r, 0);
+//		taskDriverList.SetData(key);
+//	}
 }
 
 //==============================================================================================
@@ -165,6 +187,7 @@ void TaskDefWin::SaveTask() {
 	task.depExpectSampWhen     = fldDepExpectSampWhen     .GetData();
 	task.depAssignDesc         = fldDepAssignDesc         .GetData();
 	task.depFeedback           = fldDepFeedback           .GetData();
+	task.taskDriverId          = taskDriverList           .GetData();
 	
 	if (WhenSaveTask) WhenSaveTask(task);
 	Close();
@@ -172,6 +195,7 @@ void TaskDefWin::SaveTask() {
 
 //==============================================================================================	
 // Dependendent on HACK in Ctrl class to make Xmlize virtual
+//==============================================================================================
 /*virtual*/ void TaskDefWin::Xmlize(XmlIO xml) {
 	// Use generic names internally to xml with numbers so if splitters added/moved, we can 
 	// retain users setting if lucky
