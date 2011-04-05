@@ -86,11 +86,14 @@ void TestGraphicalStatusDisplay::Paint(Draw &w, int x, int y, int cx, int cy, co
 	
 	// Coordinates come in that are off the grid, so trap
 	if (row >= 0 && row < parent->GetCount()) {
+		bool isPartOfSetup = parent->Get(row, ISPARTOFSETUP);
 		
 		// Paint entire row according to outcome code
 		String outcome = parent->Get(row, ACTUALOUTCOME);
 		
-	    if        (outcome == "P") { // Test Passed
+		if        (isPartOfSetup)  { // Not really a test, a setup action
+			nbg = Brown();
+	    } else if (outcome == "P") { // Test Passed
     		nbg = LtGreen();
 	    } else if (outcome == "F") { // Test Failed
 	    	nbg = LtRed();
@@ -169,6 +172,7 @@ TestGrid::TestGrid() : UrpGrid() {
 	AddColumn(ASSIGNTOWHO       , "assgnd to"      ).Edit(assignToWhoList)      .SetConvert(assignToWhoList);
 	AddColumn(LASTRUNWHEN       , "runtime"        ).Edit(fldLastRunWhen)                                                   .NoEditable();
 	AddColumn(STOPBATCHRUNONFAIL, "must pass"      ).Edit(optStopBatchRunOnFail).SetConvert(Single<BoolOptionBackToInt>()).Default(false);
+	AddColumn(ISPARTOFSETUP     , "setup"          ).Edit(optIsPartOfSetup)     .SetConvert(Single<BoolOptionBackToInt>()).Default(false);
 	AddColumn(IDTEST            , ""               ).Ctrls(MakeTestButton).Fixed(20).SetImage(CtrlImg::go_forward()).CalculatedColumn();
 	// Following line works around bug with images in last column
 	AddColumn(IDTESTDUMMY       , ""               ).Fixed(1)                                                       .CalculatedColumn();
@@ -327,6 +331,7 @@ String  TestGrid::GetActualOutcome     (int row)        		 { return          Get
 String  TestGrid::GetOutputValue       (int row)          		 { return          Get(row, OUTPUTVALUE     ); }
 int     TestGrid::GetTaskId            (int row)                 { return          Get(row, TASKID          ); }
 int     TestGrid::GetProcessOrder      (int row)                 { return          Get(row, PROCESSORDER    ); }
+bool    TestGrid::GetIsPartOfSetup     (int row)                 { return          Get(row, ISPARTOFSETUP   ); }
 
 // Setters
 void    TestGrid::SetTestId            (int row, int    ptestId       )   {        Set(row, TESTID       , ptestId       ); }

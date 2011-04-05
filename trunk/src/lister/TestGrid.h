@@ -69,7 +69,11 @@ public:
 	,                 compTypList
 	,                 assignToWhoList
 	;
-	BoolOption        optStopBatchRunOnFail; // returns a bool instead of a damn number
+	                  // If set, any batch run of tests will stop if this test fails
+	BoolOption        optStopBatchRunOnFail // returns a bool instead of a damn number
+	                  // If set, will only run if the Setup button is clicked on the toolbar
+	,                 optIsPartOfSetup
+	;
 	int               taskId; // Filter all tests by task id, for manageability
 	int               activeTaskDriverId;
 	
@@ -106,6 +110,7 @@ public:
 	void              SetOutputValue      (int row, String poutputValue);
 	int               GetTaskId           (int row);
 	int               GetProcessOrder     (int row);
+	bool              GetIsPartOfSetup    (int row);
 	void              SetLastRunWhen      (int row, Time plastRunWhen);
 	bool              MeaningfulDataChange();
 	bool              WasTestRequested();
