@@ -55,11 +55,19 @@ GridCtrl::ItemRect& GridCtrl::ItemRect::Name(String &s)
 	return *this;
 }
 
+GridCtrl::ItemRect& GridCtrl::ItemRect::AlwaysHidden(bool b)
+{
+	alwayshidden = b; // Flag to xmlize to not try and expand or hide.
+	return Hidden(b);
+}
+
+
 GridCtrl::ItemRect& GridCtrl::ItemRect::Hidden(bool b)
 {
 	hidden = b;
-	if(hidden)
+	if(hidden) {
 		size = 0;
+	}
 	return *this;
 }
 
