@@ -17,21 +17,22 @@ public:
 		,	SO_TABLE 
 	};
 	
-	int                     scriptId // key from scripts table
-	,                       originalScriptId; // Should populate so original script can bne updated when shift key is held down
+	int                     scriptId                // key from scripts table
+	,                       originalScriptId;       // Should populate so original script can bne updated when shift key is held down
 	int                     taskScriptId;           // If taken from taskscript grid, remember for updating.
-	ScriptTarget            scriptTarget; // Screen or table?
-	String                  targetName; // Table name if target is a table
-	String                  scriptPlainText; // text
-	String                  scriptQTFText; // Pre-RichText, which includes font information
-	RichText                scriptRichText; // display with RichText embedded
-	bool                    fastFlushTarget; // set to true if truncate target first
-	OutputGrid             *outputGrid; // For screen output
+	ScriptTarget            scriptTarget;           // Screen or table?
+	String                  targetName;             // Table name if target is a table
+	String                  scriptPlainText;        // text
+	String                  scriptQTFText;          // Pre-RichText, which includes font information
+	RichText                scriptRichText;         // display with RichText embedded
+	bool                    fastFlushTarget;        // set to true if truncate target first
+	OutputGrid             *outputGrid;             // For screen output
 	int                     rowLimit;
-	int						processOrder; // Order to process and list scripts in per task
+	int						processOrder;           // Order to process and list scripts in per task
 	bool                    addSepToOutput;
 	String                  outFldSepWhenValChange; // Name of the field to watch when streaming rows out to screen
-	int                     sepRowCount; // How many blank rows? between groups of rows with same value
+	int                     sepRowCount;            // How many blank rows? between groups of rows with same value
+	int                     connId;
 	
 	Script();
 	Script(OutputGrid *poutputGrid);
@@ -48,12 +49,17 @@ public:
 	,	String                    pfldSepWhenChange
 	,	int                       psepRowCount
 	,	int                       ptaskScriptId = UNKNOWN // Not always set if not dealing with a taskscript grid.
+	,   int                       pconnId = UNKNOWN
 	);
 
-	static String          GetScriptListQuery();
-	static String          GetScriptDetailByIdQuery(int scriptId);
-    static String          GetRelScriptDetailByIdQuery(int relId);
-	static String          FindScriptByPlainTextQuery(String pscriptPlainText);
+                                  // Load script sob details from the task_r view of relations and scripts table
+                                  // Must pass a valid relid.  Used for Test execution.
+	bool                          LoadFromDb(Connection *connection, int relationid);
+
+	static String                 GetScriptListQuery();
+	static String                 GetScriptDetailByIdQuery(int scriptId);
+    static String                 GetRelScriptDetailByIdQuery(int relId);
+	static String                 FindScriptByPlainTextQuery(String pscriptPlainText);
 };
 
 #endif
