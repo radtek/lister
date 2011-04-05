@@ -29,6 +29,7 @@ ContactGrid::ContactGrid() : UrpSqlGrid() {
 	AddColumn(CELLPHONENO, "cell", 100).Edit(cellPhoneNo);
 	AddColumn(NONWORKEMAILADDRESS, "personal email", 100).Edit(personalEmailAddress);
 	AddColumn(NOTE, "note", 200).Edit(note);
+	AddColumn(BRIDGELINE, "bridgeline", 150).Edit(bridgeLine);
 }
  
 //==============================================================================================
