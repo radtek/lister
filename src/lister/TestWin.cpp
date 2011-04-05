@@ -18,6 +18,10 @@
 #include "SoundHandler.h"
 #include "image_shared.h"
 #include <Draw/iml_header.h>
+#include "KeyHandler.h"
+#include "JobSpec.h"
+#include "Script.h"
+#include "OutputStat.h"
 
 // Only in lister.cpp
 //#include "image_shared.h"
@@ -55,13 +59,23 @@ void TestWin::MyToolBar(Bar& bar) {
 
 	//__________________________________________________________________________________________
 
+	// Setup necessary pre-existing components and data for tests
+	
+	bar.Add(testGrid.GetCount() > 0, "File", MyImages::runbatchsetup16(), 
+		THISBACK(SetupTestSupportingData))
+		
+		.Tip("Setup necessary pre-existing components and data for tests")
+		.Key(K_ALT_CTRL_F9);
+
+	//__________________________________________________________________________________________
+
 	// Run all Tests as Batch
 	
 	bar.Add(testGrid.GetCount() > 0, "File", MyImages::runbatch16(), 
 		THISBACK(RunAllTestsAsBatch))
 		
 		.Tip("Run all the tests for this task in order")
-		.Key(K_SHIFT_CTRL_F8);
+		.Key(K_ALT_CTRL_F8);
 
 	//__________________________________________________________________________________________
 
@@ -91,7 +105,7 @@ void TestWin::SetTaskId(int ptaskId) {
 
 	taskDriverList.Clear();
 
-	if (!controlConnection->SendQueryDataScript(Format("SELECT driverId, driverName FROM taskDrivers WHERE taskId = %d", taskId))) {
+	if (!controlConnection->SendQueryDataScript(Format("SELECT driverId, driverName FROM taskDrivers WHERE taskId = %d ORDER BY processOrder", taskId))) {
 		Exclamation("Unable to fetch a list of drivers");
 		return;
 	}
@@ -116,6 +130,8 @@ void TestWin::SetActiveTaskDriverId(int ptaskDriverId) {
 	} else {
 		; // Nothing selected
 	}
+	
+	taskDriverList.SetData(activeTaskDriverId);
 }
 
 //==============================================================================================
@@ -126,16 +142,44 @@ void TestWin::RunSelectedTest() {
 }
 
 //==============================================================================================
+// Construct raw localized tabes and a days worth of test data.
+//==============================================================================================
+void TestWin::SetupTestSupportingData() {
+	// Traverse all rows and call tester, highlight each one.
+	for (int i = 0; i < testGrid.GetCount(); i++) {
+		// Highlight the running row
+		testGrid.SetCursor(i);
+		bool isPartOfSetup = testGrid.GetIsPartOfSetup(i);
+		if (!isPartOfSetup) {
+			continue;
+		}
+		// Let Paint event run
+		ProcessEvents();
+		String actualOutcome = RunTest(i, true /*batchmode*/);
+		if (actualOutcome != "P" && testGrid.Get(STOPBATCHRUNONFAIL)) {
+			Exclamation(Format("Batch failed on must pass test <%s>", testGrid.GetTestName(i)));
+			break;
+		}
+	}
+}
+
+//==============================================================================================
 // From toolbar, User requests run all batches regardless of selection.  Fail on flagged as
 // must pass.
+//==============================================================================================
 void TestWin::RunAllTestsAsBatch() {
 	// Traverse all rows and call tester, highlight each one.
 	for (int i = 0; i < testGrid.GetCount(); i++) {
 		// Highlight the running row
 		testGrid.SetCursor(i);
+		bool isPartOfSetup = testGrid.GetIsPartOfSetup(i);
+		if (isPartOfSetup) {
+			continue;
+		}
 		// Let Paint event run
 		ProcessEvents();
-		String actualOutcome = RunTest(i);
+		// Run in batch mode so no dialogs
+		String actualOutcome = RunTest(i, true /*batchmode*/);
 		if (actualOutcome != "P" && testGrid.Get(STOPBATCHRUNONFAIL)) {
 			Exclamation(Format("Batch failed on must pass test <%s>", testGrid.GetTestName(i)));
 			break;
@@ -145,12 +189,14 @@ void TestWin::RunAllTestsAsBatch() {
 
 //==============================================================================================
 // Strange way to reload...
+//==============================================================================================
 void TestWin::UpdateToolBar(UrpGrid::GridAction gridAction) {
 	toolbar.Set(THISBACK(MyToolBar));
 }
 
 //==============================================================================================	
 // User clicked Test! on the TestGrid. Execute the test script against the connection.
+//==============================================================================================
 void TestWin::ClickedTest() { 
 	int row = testGrid.GetCursor();
 	
@@ -172,7 +218,7 @@ void TestWin::Close() {
 
 
 //==============================================================================================	
-String TestWin::RunTest(int row) { 	
+String TestWin::RunTest(int row, bool isPartOfBatch/*=false*/) { 	
 	// Get test connection
 	
 	int    testConnId       = testGrid.GetTestConnId      (row);
@@ -194,41 +240,44 @@ String TestWin::RunTest(int row) {
 		return Null;
 	}
 
-	String getRelScriptText = Script::GetRelScriptDetailByIdQuery(testRelId);
+	// Create an outputstat so we can capture rowcount somewhere
+	OutputStat outputStat; // Only need temp copy
+	JobSpec jspec;
+	jspec.outputStat = &outputStat;
+	
+	jspec.log = false;
+	jspec.batchMode = isPartOfBatch;
+	jspec.testMode = false; // test mode here just means a reduced set of rows.  Should be Trial or Demo
+	jspec.executingSelection = false;
+	
+//	if (jspec.log) {
+//		ActivateLogging();
+//		OpenLogWin(); // User can close if they want to, later.
+//	}
 
-	if (!controlConnection->SendQueryDataScript(getRelScriptText)) {
+	Script sob;
+
+	// Fetch all script attributes as single object to reduce points of attribute listing
+	
+	if (!sob.LoadFromDb(controlConnection, testRelId)) {
+		Exclamation("Can't load script detail");
 		return Null;
 	}
-	
-	controlConnection->Fetch();
-	
-	int testScriptId = controlConnection->Get(SCRIPTID);
-	int testRelConnId = controlConnection->Get(RELCONNID);
-	
+
+	// Scratch out any screen output
+	if (sob.scriptTarget == Script::SO_SCREEN) sob.scriptTarget = Script::SO_UNDEF;
+		
+	int testScriptId = sob.scriptId;
+	int testRelConnId = sob.connId;
+	jspec.outputStat->SetScriptId(testScriptId); // Just for shits n Grins, no known referencer
+
 	// Get the script SQL to fetch the script attributes
-	String getScriptText = Script::GetScriptDetailByIdQuery(testScriptId);
 	
-	if (!controlConnection->SendQueryDataScript(getScriptText)) {
-		return Null;
-	}
-
-	if (controlConnection->GetRowsProcessed() == 0) {
-		Exclamation("Can't find script # " + testScriptId);
-		return Null;
-	}
+	String getScriptText = sob.scriptPlainText;
 	
 	bool testCompCorrect = false; // Not same as Passed!
 	bool testCompApplied = false;
 	
-	controlConnection->Fetch();
-	String testScript = controlConnection->Get(0); // == SCRIPTPLAINTEXT
-
-	if (testScript.IsEmpty()) {
-		// TODO: IS TESTTYPE = "query text length"?  Length empty is a test value
-		Exclamation("Empty script");
-		return Null;
-	}
-
 	// Either a specific connection was assigned to this test, or we'll use the one
 	// assigned in the relation (preferred).
 
@@ -240,11 +289,11 @@ String TestWin::RunTest(int row) {
 			testConnId = testRelConnId;
 		}
 	}
+
+	// Sync up our sob object before passing with a possibly overridden connection
 	
-	// Build macros based on current task and environment of selected connection
-	
-	activeContextMacros->RebuildMacros(testConnId, activeContextMacros, controlConnection, *lastActiveConnection);
-	
+	sob.connId = testConnId;
+
 	// Connect or get a similar connection
 	Connection * testConn = connectionFactory->Connect(this, testConnId);
 	
@@ -252,11 +301,16 @@ String TestWin::RunTest(int row) {
 		Exclamation("Can't get a test connection");
 		return Null;
 	}
+
+	jspec.outputStat->SetConnName(testConn->connName); // Just for shits n Grins, no known referencer
 	
+	// Build macros based on current task and environment of selected connection
+	
+	activeContextMacros->RebuildMacros(testConnId, activeTaskDriverId, activeContextMacros, controlConnection, *lastActiveConnection);
+
 	// Execute script
-	
-	if (!testConn->SendQueryDataScript(testScript, activeContextMacros, false /* not silent */, true /* expandmacros */)) {
-		// TODO: IS TESTTYPE
+
+	if (!testConn->ProcessQueryDataScript(sob, jspec, activeContextMacros)) {
 		return Null;
 	}
 
@@ -269,7 +323,9 @@ String TestWin::RunTest(int row) {
 	} else {
 		if (testTypId == TESTTYP_RETURNED_ROW_COUNT) {
 			int targetRowCount = atoi(testX);
-			int actualRowCount = testConn->GetRowsProcessed();
+			int actualRowCount = outputStat.GetRowCount();
+			testResult = actualRowCount;
+			
 			// Comparison rule to use
 			if (testCompTypId == COMPTYP_GREATER_THAN_X) {
 				testCompCorrect = (actualRowCount > targetRowCount);
