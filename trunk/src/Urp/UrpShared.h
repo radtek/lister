@@ -97,6 +97,9 @@ bool In(int i, int in1, int in2, int in3, int in4, int in5, int in6, int in7, in
 template <typename T>
 bool Between(T i, T lower, T upper) { return (i >= lower && i <= upper); }
 
+template <typename T>
+bool WithinOffset(T i, T lower, T offset) { return (i >= lower && i <= lower + offset); }
+
 bool None(bool b1, bool b2);
 bool None(bool b1, bool b2, bool b3);
 bool None(bool b1, bool b2, bool b3, bool b4);
