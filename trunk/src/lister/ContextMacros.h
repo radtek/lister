@@ -37,7 +37,9 @@ public:
 	
 	     ContextMacros(); 
 	void UpdateAvailableMacros(DropGrid &macrosAvailableList, ContextMacros *activeContextMacros);
-	void RebuildMacros(int connId, ContextMacros *activeContextMacros, Connection *controlConnection, Connection *lastActiveConnection, DropGrid *macrosAvailableList = NULL);
+	void RebuildMacros(int connId, int driverId, ContextMacros *activeContextMacros, 
+		Connection *controlConnection, Connection *lastActiveConnection, 
+		DropGrid *macrosAvailableList = NULL);
 };
 
 

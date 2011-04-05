@@ -44,7 +44,14 @@ void ContextMacros::UpdateAvailableMacros(DropGrid &macrosAvailableList, Context
 }
 
 //==============================================================================================	
-void ContextMacros::RebuildMacros(int connId, ContextMacros *activeContextMacros, Connection *controlConnection, Connection *lastActiveConnection, DropGrid *macrosAvailableList/*=NULL*/) {
+void ContextMacros::RebuildMacros(
+	  int            connId
+	, int            driverId
+	, ContextMacros *activeContextMacros
+	, Connection    *controlConnection
+	, Connection    *lastActiveConnection
+	, DropGrid      *macrosAvailableList/*=NULL*/
+) {
 	String loadedEnvLetter;
 
 	if (connId != UNKNOWN) {		
@@ -75,10 +82,41 @@ void ContextMacros::RebuildMacros(int connId, ContextMacros *activeContextMacros
 		// Alter macro function to rerun macros in CurrentTaskMacroList, then macros in current script.
 		activeContextMacros->taskMacros.Clear();
 		
-		if (controlConnection->SendQueryDataScript(SqlStatement(SqlSelect(SEARCHFOR, REPLACEWITH).From(TASKMACROS).Where(TASKID==taskId).OrderBy(PROCESSORDER)).GetText())) {
+		// Dup a connection for other lookups during the loop
+		Connection driverConn(controlConnection);
+		
+		if (controlConnection->SendQueryDataScript(SqlStatement(SqlSelect(SEARCHFOR, REPLACEWITH, TASKMACID).From(TASKMACROS).Where(TASKID==taskId).OrderBy(PROCESSORDER)).GetText())) {
 			while(controlConnection->Fetch()) {
-				String searchFor = controlConnection->Get(0);
-				String replaceWith = controlConnection->Get(1);
+				String searchFor = controlConnection->Get(SEARCHFOR);
+				// Default replaceWith value (non-driver specific)
+				String replaceWith = controlConnection->Get(REPLACEWITH);
+				// If there's a custom driver for this task and a replaceWith string then it will override the default
+				int taskMacroId = controlConnection->Get(TASKMACID);
+				
+				String driverReplaceWith = Null;
+				
+				// There are drivers for this task and one was selected for this task or this batch run or singular run
+				if (!In(driverId, INT_NULL, UNKNOWN)) {
+					// Check if there is a replacement
+					String driverReplScript = Format(
+						"SELECT replaceWith FROM TaskMacroDriverReplacement "
+						"WHERE taskMacroId = %d "
+						"AND taskDriverId = %d", taskMacroId, driverId);
+					if (driverConn.SendQueryDataScript(driverReplScript)) {
+						int driverMatchCount = driverConn.GetRowsProcessed();
+						ASSERT_(driverMatchCount < 2, "Found more than 1 driver custom replaceWith value, which I can't handle here");
+						
+						if (driverMatchCount > 0) {
+							driverConn.Fetch();
+							driverReplaceWith = driverConn.Get(0);
+						}
+					}
+				}
+				
+				// If there is a custom driver replacement, that overrides the default macros replacement
+				if (!driverReplaceWith.IsEmpty()) {
+					replaceWith = driverReplaceWith;
+				}
 				
 				// Expand the output with any previous macros in task list, as well as the standard hardcoded ones
 				String expansion = ExpandMacros(replaceWith, activeContextMacros);
