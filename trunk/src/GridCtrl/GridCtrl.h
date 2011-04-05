@@ -280,7 +280,7 @@ class GridCtrl : public Ctrl
 			GCS_EXCELXML // Not the perfect format from Excel 2003 when MS was being open
 		};
 		
-	private:
+	public:
 
 		enum GridCursor
 		{
@@ -439,7 +439,7 @@ class GridCtrl : public Ctrl
 				void SetDisplay(GridDisplay& display);
 				void NoDisplay();
 
-			private:
+			public:
 
 				bool InvertSelect() { return BitInverse(style, GD::SELECT); }
 				bool IsSelect() { return style & GD::SELECT; }
@@ -496,9 +496,9 @@ class GridCtrl : public Ctrl
 					id  = uid = n = 0;
 					prop = 1;
 					size = nsize = 0;
-					tsize = 0;
+					tsize = 0;  // Sort of a saved size when a column is hidden?
 					sortmode = 0;
-					hidden = false;
+					alwayshidden = hidden = false;
 					index = false;
 					convertion = true;
 					editable = true;
@@ -568,6 +568,7 @@ class GridCtrl : public Ctrl
 				int sop;
 				String sopfrm;
 
+				bool alwayshidden;
 				bool hidden;
 				bool index;
 				bool convertion;
@@ -668,6 +669,7 @@ class GridCtrl : public Ctrl
 				ItemRect& Alias(const char * s);
 				ItemRect& Name(String &s);
 				ItemRect& Name(const char * s);
+				ItemRect& AlwaysHidden(bool b = true);
 				ItemRect& Hidden(bool b = true);
 				ItemRect& Width(int n);
 				ItemRect& Height(int n);
@@ -790,8 +792,8 @@ class GridCtrl : public Ctrl
 		typedef Vector<ItemRect> HItems;
 
 		typedef GridCtrl CLASSNAME;
-
-		Items  items;
+		public:
+		Items  items; 
 		HItems hitems;
 		VItems vitems;
 		
@@ -1754,8 +1756,8 @@ class GridCtrl : public Ctrl
 
 		Callback WhenCreateRow;
 
-		Callback WhenAcceptRow;
-		Callback WhenAcceptedRow;
+		Callback WhenAcceptRow;      // User leaving a new/changed record, you want to check it and fill in the blanks
+		Callback WhenAcceptedRow;    // After an accepted state reached, you want to write it out
 
 		Callback WhenInsertRow;
 		Callback WhenUpdateRow;
