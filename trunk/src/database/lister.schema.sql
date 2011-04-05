@@ -983,7 +983,8 @@ CREATE TABLE contacts (
     workphoneno character varying(30),
     homephoneno character varying(30),
     cellphoneno character varying(30),
-    nonworkemailaddress character varying(100)
+    nonworkemailaddress character varying(100),
+    bridgeline character varying(100)
 );
 
 
@@ -994,6 +995,13 @@ ALTER TABLE public.contacts OWNER TO postgres;
 --
 
 COMMENT ON TABLE contacts IS 'Includes users with syslogins and externals, like BB support people, their email, etc.';
+
+
+--
+-- Name: COLUMN contacts.bridgeline; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN contacts.bridgeline IS 'Bridge line: Dial in + key assigned to that user.';
 
 
 --
@@ -3034,7 +3042,8 @@ CREATE TABLE tests (
     testmacros character varying(1000),
     lastrunwhen timestamp with time zone,
     stopbatchrunonfail boolean,
-    taskdriverid integer
+    taskdriverid integer,
+    ispartofsetup boolean DEFAULT false NOT NULL
 );
 
 
@@ -3204,6 +3213,15 @@ IMPLEMENTATION: Settible from checkbox in test grid.  Complete.  Code checks whe
 --
 
 COMMENT ON COLUMN tests.taskdriverid IS 'This is the driver (Path) that this test was run for.  R/O from the test grid.  Only set when the active driver for the test suite is selected at the task editor level and then the tests are run.';
+
+
+--
+-- Name: COLUMN tests.ispartofsetup; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN tests.ispartofsetup IS 'Is this a part of the setup required for these tests to run?
+Primarily, creation of tables and loading a day''s worth, or localizing reference data (yuk!)
+For stuff shared with other test suites/batches, we''ll have to come up with another column so that tables aren''t dropped, but that might be part of the relation (task_r) along with targettable, etc.';
 
 
 --
@@ -3939,6 +3957,14 @@ ALTER TABLE ONLY taskdrivers
 
 ALTER TABLE ONLY taskmacros
     ADD CONSTRAINT aktaskmac_taskidprocord UNIQUE (taskid, processorder);
+
+
+--
+-- Name: aktaskmac_taskidsearchfor; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY taskmacros
+    ADD CONSTRAINT aktaskmac_taskidsearchfor UNIQUE (taskid, searchfor);
 
 
 --
