@@ -121,6 +121,14 @@ ALTER TABLE ONLY taskmacros
 
 
 --
+-- Name: aktaskmac_taskidsearchfor; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY taskmacros
+    ADD CONSTRAINT aktaskmac_taskidsearchfor UNIQUE (taskid, searchfor);
+
+
+--
 -- Name: pktaskmac; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
 --
 
