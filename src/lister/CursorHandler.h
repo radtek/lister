@@ -20,9 +20,9 @@ public:
 
 protected:
 	// Internal support functions for the Run function
-	void RebuildTableFromConnection(String schema, String outputTable, JobSpec &jobSpec, ContextMacros *contextMacros);
-	int LoadIntoTableFromConnectionPREP(String schema, String outputTable, int rowLimit, JobSpec &jobSpec);
-	int LoadIntoTableFromConnectionCOPY(String schema, String outputTable, int rowLimit, JobSpec &jobSpec, String &copyerr);
+	void RebuildTableFromConnection(String outputTable, JobSpec &jobSpec, ContextMacros *contextMacros);
+	int LoadIntoTableFromConnectionPREP(String outputTable, int rowLimit, JobSpec &jobSpec);
+	int LoadIntoTableFromConnectionCOPY(String outputTable, int rowLimit, JobSpec &jobSpec, String &copyerr);
 	int LoadIntoScreenGridFromConnection(OutputGrid *outputGrid, JobSpec &jobSpec, Script &sob);
 
 public:
