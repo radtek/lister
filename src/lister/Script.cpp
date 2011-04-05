@@ -20,6 +20,7 @@
 
 #include "Script.h"
 #include "shared_db.h"
+#include "Connection.h"
 
 //==============================================================================================
 Script::Script() {
@@ -27,7 +28,9 @@ Script::Script() {
 }
 
 //==============================================================================================
-// Script sob(pscriptTarget, (fastFlushTargetList.GetData() == "1"), &mainGrid, scriptId, lscriptText, GetFieldInt(fldRowLimit), targetNameList.GetData());}
+// Script sob(pscriptTarget, (fastFlushTargetList.GetData() == "1"), &mainGrid, scriptId, lscriptText, 
+// GetFieldInt(fldRowLimit), targetNameList.GetData());}
+//==============================================================================================
 Script::Script(
 		ScriptTarget              pscriptTarget
 	,	bool                      pfastFlushTarget
@@ -41,6 +44,7 @@ Script::Script(
 	,	String                    poutFldSepWhenValChange
 	,	int                       psepRowCount
 	,	int                       ptaskScriptId/* = UNKNOWN*/ // Not always set if not dealing with a taskscript grid.
+	,   int                       pconnId/* = UNKNOWN*/
 	)
 {
 	scriptTarget                = pscriptTarget;
@@ -54,6 +58,7 @@ Script::Script(
 	outFldSepWhenValChange      = poutFldSepWhenValChange;
 	sepRowCount                 = psepRowCount;
 	taskScriptId                = ptaskScriptId;
+	connId                      = pconnId;
 }
 
 //==============================================================================================
@@ -62,6 +67,39 @@ Script::Script(OutputGrid *poutputGrid) {
 	scriptId                    = UNKNOWN;
 	taskScriptId                = UNKNOWN;
 	outputGrid                  = poutputGrid; // Can be null.  Connection object will break if executed and this is not set and Script Target is screen
+}
+
+//==============================================================================================
+// Construct a script object directly from the db instead of going through the Script Grid.
+// Created for the Test Grid/TestWin in order to run tests without ScriptGrid visibility.
+// Running the Setup "tests" requires detail about target, mostly that it is a TABLE and
+// what tablename.
+//==============================================================================================
+bool Script::LoadFromDb(Connection *connection, int relationid) {
+	// Fetch all detail from task_r view
+	String script = Format("SELECT SCRIPTPLAINTEXT, SCRIPTRICHTEXT, SCRIPTID, SCRIPTTARGET, TARGETNAME, FASTFLUSHTARGET, ROWLIMIT, PROCESSORDER, RELCONNID"
+	              " FROM TASKS_R WHERE RELID = %d", relationid);
+
+	if (!connection->Execute(script)) {
+		return false;
+	}
+	
+	if (!connection->GetRowsProcessed() == 1) {
+		return false;
+	}
+	
+	connection->Fetch();
+	
+	scriptPlainText = connection->Get(SCRIPTPLAINTEXT);
+	scriptRichText  = AsRichText(WString(connection->Get(SCRIPTRICHTEXT)));
+	scriptId        = connection->Get(SCRIPTID);
+	scriptTarget    = (ScriptTarget)IfNull((int)connection->Get(SCRIPTTARGET), Script::SO_SCREEN);
+	targetName      = connection->Get(TARGETNAME);
+	fastFlushTarget = connection->Get(FASTFLUSHTARGET);
+	rowLimit        = connection->Get(ROWLIMIT);
+	processOrder    = connection->Get(PROCESSORDER);
+	connId          = connection->Get(RELCONNID);
+	return true;
 }
 
 //==============================================================================================
