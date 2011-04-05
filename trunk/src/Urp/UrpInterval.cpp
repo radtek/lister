@@ -2,16 +2,29 @@
 #include "UrpString.h"
 
 //==============================================================================================
+Interval::Interval() {
+	day = month = hour = minute = second = 0;
+	year = 0;
+	int64 ti = 0l;
+	Set(ti);
+	isnull = true;
+}
+
+//==============================================================================================
 Interval::Interval(Time startTime, Time stopTime) {
 	day = month = hour = minute = second = 0;
 	year = 0;
 	int64 ti = (stopTime - startTime);
 	Set(ti);
+	isnull = false;
 }
 
 
 //==============================================================================================
 /*virtual */String Interval::ToString() {
+	
+	if (isnull) return Null;
+	
 	String out;
 	
 	if (year > 0) {

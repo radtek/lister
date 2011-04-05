@@ -5,6 +5,8 @@
 
 class Interval : public Time {
 public:
+              bool isnull;
+                   Interval();
                    Interval(Time startTime, Time stopTime);
 	virtual String ToString();
 	
