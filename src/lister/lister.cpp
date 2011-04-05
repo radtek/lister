@@ -780,6 +780,7 @@ void Lister::SelectedScriptFromDropDown() {
 }
 
 //==============================================================================================
+// Called from Key() handler, with key code.
 void Lister::ProcessSelectedTaskScripts(dword key) {
 	
 	// Pick off the list of selected script rows (should pick ids)
@@ -1062,7 +1063,7 @@ void Lister::ActiveTaskChanged() {
 			connId = UNKNOWN; // Let RebuildMacros use the active connection
 		}
 		
-		activeContextMacros.RebuildMacros(connId, &activeContextMacros, controlConnection, activeConnection, &macrosAvailableList);
+		activeContextMacros.RebuildMacros(connId, taskGrid.GetTaskDriverId(), &activeContextMacros, controlConnection, activeConnection, &macrosAvailableList);
 	}
 }
 
@@ -1099,7 +1100,7 @@ void Lister::ActiveTaskScriptChanged() {
 	}
 
 	// We pass activeMacros to itself for future case when we need alternate macro control sets (It's gonna get hairy)	
-	activeContextMacros.RebuildMacros(connId, &activeContextMacros, controlConnection, activeConnection, &macrosAvailableList);
+	activeContextMacros.RebuildMacros(connId, taskGrid.GetTaskDriverId(), &activeContextMacros, controlConnection, activeConnection, &macrosAvailableList);
 	
 	ToolBarRefresh();
 	
