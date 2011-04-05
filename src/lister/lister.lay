@@ -92,6 +92,7 @@ LAYOUT(TaskDefWinLayout, 1896, 796)
 	ITEM(Label, lblTaskMacrosByDriver, SetLabel(t_("Macros per Path")).SetInk(Color(85, 42, 200)).LeftPosZ(1048, 84).VCenterPosZ(19, -8))
 	ITEM(TaskMacroGrid, taskMacroGrid, LeftPosZ(1128, 344).TopPosZ(40, 316))
 	ITEM(TaskMacroByDriverGrid, taskMacroByDriverGrid, LeftPosZ(1128, 764).TopPosZ(360, 384))
+	ITEM(DropGrid, taskDriverList, LeftPosZ(1476, 196).TopPosZ(336, 19))
 END_LAYOUT
 
 LAYOUT(AssignmentDefWinLayout, 860, 532)
