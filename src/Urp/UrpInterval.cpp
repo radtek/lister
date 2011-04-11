@@ -28,16 +28,16 @@ Interval::Interval(Time startTime, Time stopTime) {
 	String out;
 	
 	if (year > 0) {
-		out << year << "y";
-		out << month << "mo"; // Always set to 1 if year is zero, fyi
-		out << day << "d";
+		out << UrpString::ToString(year) << "y";
+		out << UrpString::ToString(month) << "mo"; // Always set to 1 if year is zero, fyi
+		out << UrpString::ToString(day) << "d";
 	}
 	if (hour > 0) {
-		out << hour << "h";
+		out << UrpString::ToString(hour) << "h";
 	}
 	
 	if (minute > 0) {
-		out << minute << "m";
+		out << UrpString::ToString(minute) << "m";
 	}
 	
 	if (second > 0) {
