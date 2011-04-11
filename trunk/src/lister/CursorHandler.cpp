@@ -155,7 +155,9 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec, ContextMacros *contextMac
 				jobSpec.outputStat->SetStatus("Rebuilding target");
 			}
 			LogLine(CAT << "Rebuilding target: " << outputTable);
-			RebuildTableFromConnection(outputTable, jobSpec, contextMacros);
+			if (!RebuildTableFromConnection(outputTable, jobSpec, contextMacros)) {
+				return false;
+			}
 		}
 		
 		LogLine(CAT << "Beginning load into " << outputTable << " using Postgres COPY command");
@@ -391,7 +393,7 @@ int CursorHandler::LoadIntoTableFromConnectionPREP(String outputTable, int rowLi
 }
 
 //==============================================================================================
-void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobSpec, ContextMacros *contextMacros) {
+bool CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobSpec, ContextMacros *contextMacros) {
 	String script = Format("drop table %s", outputTable);
 	controlConnection->SendChangeStructureScript(script, contextMacros, RUN_SILENT); // ignore errors
 	
@@ -434,11 +436,19 @@ void CursorHandler::RebuildTableFromConnection(String outputTable, JobSpec &jobS
 			datadef = Format("character varying(%d)", actualwidth);
 		}
 		
-		script << ci.name << " " << datadef <<"\n";
+		String colName = ci.name;
+		
+		// If the column SQL was an expression, Sybase ODBC won't generate a column name
+		// so we have to make up something or crash
+		if (colName.IsEmpty()) {
+			colName = Format("TEMPX_%d", i);
+		}
+			
+		script << colName << " " << datadef <<"\n";
 	}
 	script << ")";
 	
-	controlConnection->SendChangeStructureScript(script);
+	return (controlConnection->SendChangeStructureScript(script));
 }
 
 //==============================================================================================
