@@ -96,6 +96,12 @@ void UrpGrid::MovedRows() {
 	
 	for (int i = 0; i < GetCount(); i++) {
 		int currentProcessOrder = GetProcessOrder(i);
+		if (currentProcessOrder == -1) {
+			// This grid probably doesn't have a PROCESSORDER column, since the dev has to put
+			// it in.  For an OutputGrid there isn't such a concept.
+			break;
+		}
+		
 		// If the current order is within 20 of our target, we'll leave it
 		if (WithinOffset(currentProcessOrder, newProcessOrder, 20)) {
 			// No need to update this row, its already in the right order; save some db time
@@ -160,6 +166,9 @@ int UrpGrid::CalcCorrectRow(int row) {
 
 //==============================================================================================
 int UrpGrid::GetProcessOrder(int row) {
+	// Grid creator may not have created a PROCESSORDER column
+	if (FindCol(Id("PROCESSORDER")) == -1) return -1;
+	
 	return Upp::max((int)Get(CalcCorrectRow(row), "PROCESSORDER"), (int)-1);
 }
 
