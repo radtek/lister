@@ -234,9 +234,15 @@ TaskMacroByDriverGrid::~TaskMacroByDriverGrid() {
 	if (connection->SendQueryDataScript(Format("SELECT driverName FROM TaskDrivers WHERE taskId = %d ORDER BY processOrder", taskId))) {
 		while (connection->Fetch()) {
 			String newColumnName = connection->Get(0);
-			editors.Add(newColumnName, new EditString());
+			EditString *es = new EditString();
+			es->AlignRight();
+			editors.Add(newColumnName, es);
 			Id replwithcolid(newColumnName);
-			AddColumn(replwithcolid).Edit(*(editors.Get(newColumnName)))
+			AddColumn(replwithcolid)
+				// Align our new macro replace values to the right since the meaningful
+				// part of the string tends to be on the tail of a bunch of setup macros.
+				.AlignRight()
+				.Edit(*(editors.Get(newColumnName)))
 				// You must set a converter or you can't set values!
 				.SetConvert(*(editors.Get(newColumnName)));
 			// Add our invisible support columns for linking us back to updates/deletes
