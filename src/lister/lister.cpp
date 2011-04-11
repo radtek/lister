@@ -390,7 +390,7 @@ void Lister::SelectedAvailableMacro() {
 // Task Grid Options (context menu)
 void Lister::TaskGridContextMenu(Bar &bar) {
 	bar.Add("Edit Task Detail", THISBACK(OpenTaskDefWin));
-	bar.Add("Hide", THISBACK(HideSelectedTasks));
+	bar.Add(showHiddenTasks? "Show" : "Hide", THISBACK(ToggleHiddenSelectedTasks));
 	bar.Add("Copy Macros From Another Task", THISBACK(CopyMacrosFromTask));
 	taskGrid.StdBar(bar); // Pickup standards
 }
@@ -521,15 +521,15 @@ void Lister::CopyMacrosFromTask() {
 }
 
 //==============================================================================================	
-void Lister::HideSelectedTasks() {
-	Vector<int> tasksToHide;
+void Lister::ToggleHiddenSelectedTasks() {
+	Vector<int> tasksToToggleHidden;
 	if (taskGrid.IsSelection()) {
 		int lastSelectedTask = -1;
 		
 		for (int i = taskGrid.GetCount() - 1; i >= 0; i--) {
 			if (taskGrid.IsSelected(i)) {
 				int taskId = taskGrid.GetTaskId(i);
-				tasksToHide.Add(taskId);
+				tasksToToggleHidden.Add(taskId);
 				taskGrid.Remove(i);
 				lastSelectedTask = i; // Save place so we can reposition cursor on same physical location on grid (different task)
 			}
@@ -540,14 +540,19 @@ void Lister::HideSelectedTasks() {
 		}
 	}
 
-	if (tasksToHide.GetCount() == 0) return;
+	if (tasksToToggleHidden.GetCount() == 0) return;
 	
 	String controlScript;
 	
-	controlScript = "update tasks set hidden = true where taskid in(";
-	for (int i=0; i < tasksToHide.GetCount(); i++) {
+	// 1000 limit :)
+	
+	controlScript = "update tasks set hidden = ";
+	controlScript << (showHiddenTasks ? "false" : "true"); // flip to invert what we know is currently listed
+	controlScript << " where taskid in(";
+	
+	for (int i=0; i < tasksToToggleHidden.GetCount(); i++) {
 		if (i) controlScript << ",";
-		controlScript << tasksToHide.At(i);
+		controlScript << tasksToToggleHidden.At(i);
 	}
 	controlScript << ")";
 	
