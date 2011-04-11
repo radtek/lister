@@ -41,6 +41,7 @@
 #include "Connection.h"
 #include "shared_db.h"
 #include "ContactGrid.h"
+#include "Script.h"
 
 //==============================================================================================
 // The new BoolOption widget must convert to a displayable value, otherwise we get a "1" or "0"
@@ -135,17 +136,38 @@ TestGrid::TestGrid() : UrpGrid() {
 }
 
 //==============================================================================================
+void TestGrid::ViewScriptText() {
+	Script sob;
+
+	// Fetch all script attributes as single object to reduce points of attribute listing
+	
+	if (!sob.LoadFromDb(connection, Get(RELID))) {
+		Exclamation("Can't load script detail");
+		return;
+	}
+	//Format("Error: #=%d, [* \1%s\1].", myerrno, DeQtf(GetLastError())
+	Exclamation(Format("[* \1%s\1]", sob.scriptPlainText));
+}
+
+//==============================================================================================
+void TestGrid::TestGridContextMenu(Bar &bar) {
+	bar.Add("View Script Text", THISBACK(ViewScriptText));
+	StdMenuBar(bar);
+}
+
+//==============================================================================================
 /*virtual=0*/void TestGrid::Build(Connection *pconnection) {
 	BuildBase(pconnection);
 	WhenNewRow      = THISBACK(NewTest);    // At the creation of a new row; pre-populate fields
 	WhenRemoveRow   = THISBACK(RemoveTest);
 	WhenAcceptedRow = THISBACK(SaveTestPrompt);   // Build/Run SQL to save data
-
+	WhenMenuBar     = THISBACK(TestGridContextMenu);
+	
 	// SizePos(); GRIDCTRL BUG: // Cannot SizePos in TestGrid.Build() or Graphics will cycle onto all cells (see SetImage(CtrlImg::go_forward())
 	// Make the dropgrids of values extend past the width of the column they are for, to improve readability without wasting grid space.
 	
 	connList   .SearchHideRows().Resizeable().Width(200);
-	scriptList .SearchHideRows().Resizeable().Width(200);
+	scriptList .SearchHideRows().Resizeable().Width(450);
 	testTypList.SearchHideRows().Resizeable().Width(200);
 	compTypList.SearchHideRows().Resizeable().Width(200);
 	

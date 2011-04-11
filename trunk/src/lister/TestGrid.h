@@ -81,6 +81,8 @@ public:
 	                  // Added manually from appending a row.
 	virtual void      Build(Connection *pconnection);
 	virtual void      Load();
+	void              ViewScriptText();
+	void              TestGridContextMenu(Bar &bar);
 	void              NewTest();
 	                  // GridCtrl will remove the row if we do not cancel the remove.
 	void              RemoveTest();
