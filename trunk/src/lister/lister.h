@@ -105,7 +105,7 @@ public:
 	void              SelectedAvailableMacro(); // User selected a task macro and wants to insert it into his script
 	void              SelectedTaskToCopyMacrosFrom();
 	void              CopyMacrosFromTask();
-	void              HideSelectedTasks();
+	void              ToggleHiddenSelectedTasks();
 	void              OpenTaskDefWin();
 	void              SaveTaskViaTaskGrid(Task &task); // All writing is done in taskgrid
 	void              ClickedConnect(); // User clicked Connect! on the ConnGrid.
