@@ -538,7 +538,8 @@ bool ODBCConnection::Execute()
 	for(int i = 0; i < info.GetCount(); i++) {
 		if (rowdata.Find(info[i].name) >= 0) {
 			byte *b = rowdata.Get(info[i].name);
-			delete b;
+			if (b)
+				delete b;
 		}
 	}
 	info.Clear();
