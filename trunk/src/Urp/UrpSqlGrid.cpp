@@ -329,14 +329,17 @@ void UrpSqlGrid::Xmlize(XmlIO xml) {
 		// Restore last known row selection
 		xml("rowselected", rowselected);
 		// Trap if no such attribute
+		lastKnownRow = -1;
 		if (IfNull(rowselected, NOSELECTION) != NOSELECTION) {
 			// An empty grid sets this to -1
 			if (rowselected == -1) { // Correct to be NOSELECTION
 				rowselected = NOSELECTION;
 			} else {
-				SetCursor(rowselected);
-				CenterCursor();
-				Select(rowselected, true /*sel*/); // Trigger click?
+				// the application can determine whether to repos on last row.
+				lastKnownRow = rowselected;
+//				SetCursor(rowselected);
+//				CenterCursor();
+//				Select(rowselected, true /*sel*/); // Trigger click?
 			}
 		}
 		
