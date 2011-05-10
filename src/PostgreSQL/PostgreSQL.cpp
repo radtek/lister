@@ -521,7 +521,12 @@ bool PostgreSQLConnection::Execute()
 			s = PostgreSQLReadStringComm(s, query);
 		else {
 			if(*s == '?')
-				query.Cat(param[pi++]);
+				// Sometimes there are question marks after a --, too.
+				if (param.GetCount() > pi) {
+					query.Cat(param[pi++]);
+				} else {
+					query.Cat(*s);
+				}
 			else
 				query.Cat(*s);
 			s++;
