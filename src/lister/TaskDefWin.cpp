@@ -55,6 +55,11 @@ TaskDefWin::TaskDefWin() {
 }
 
 //==============================================================================================
+/*virtual*/ void TaskDefWin::Close() {
+	UrpWindow::Close();
+}
+
+//==============================================================================================
 void TaskDefWin::Build(Connection *pconnection) {
 	connection = pconnection;
 	ok.WhenPush = THISBACK(SaveTask);
