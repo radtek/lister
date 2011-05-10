@@ -30,8 +30,6 @@ file
 	CursorHandler.cpp,
 	JobSpec.h,
 	JobSpec.cpp,
-	MacroHandler.h,
-	MacroHandler.cpp,
 	ContextMacros.h,
 	ContextMacros.cpp,
 	MyRichEdit.h,
