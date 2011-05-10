@@ -63,7 +63,8 @@
 #include <lister/Urp/UrpConfigWindow.h>
 
 #include "OutputStat.h" // Our panel
-#include "MacroHandler.h"
+//#include "MacroHandler.h"
+#include "ContextMacros.h"
 
 #include "KeyHandler.h"
 #include "JobSpec.h"
@@ -314,7 +315,7 @@ void Lister::ViewMappings() {
 
 //==============================================================================================	
 void Lister::ExpandScript() {
-	String msg = Format("[* \1%s\1].", ExpandMacros(scriptEditor.GetScriptPlainText(), &activeContextMacros));
+	String msg = Format("[* \1%s\1].", activeContextMacros.ExpandMacros(scriptEditor.GetScriptPlainText(), &activeContextMacros));
 	Exclamation(msg);
 }
 
