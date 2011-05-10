@@ -19,10 +19,13 @@ class Connection;
 class ContextMacros {
 public:
 	MacMap envMacros;
+	MacMap teamMacros;
 	MacMap taskMacros;
 	String envLetter;
-	bool rebuildTaskMacros;
-	int taskId;
+	bool   rebuildTaskMacros
+	,      rebuildTeamMacros
+	;
+	int    taskId;
 	
 	//User
 	//Machine
@@ -40,6 +43,10 @@ public:
 	void RebuildMacros(int connId, int driverId, ContextMacros *activeContextMacros, 
 		Connection *controlConnection, Connection *lastActiveConnection, 
 		DropGrid *macrosAvailableList = NULL);
+		void UpdateMacroListBuildLine(DropGrid &macrosAvailableList, const String &macroName);
+		void UpdateMacroList(DropGrid &macrosAvailableList);
+		// Pass null context
+		String ExpandMacros(String inputText, ContextMacros *contextMacros = NULL);
 };
 
 
