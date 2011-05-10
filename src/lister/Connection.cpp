@@ -34,7 +34,7 @@
 #include "CursorHandler.h"
 #include "Script.h"
 #include "LogWin.h"
-#include "MacroHandler.h"
+//#include "MacroHandler.h"
 #include "ContextMacros.h" // ExpandMacros
 
 #include <lister/Oracle/Oracle7.h>
@@ -559,7 +559,7 @@ bool Connection::SendQueryDataScript(const char *scriptText, ContextMacros *cont
 	String expandedScript;
 	
 	if (expandMacros) {
-		expandedScript = ExpandMacros(scriptText, contextMacros);
+		expandedScript = contextMacros->ExpandMacros(scriptText, contextMacros);
 		if (log) {
 			if (scriptText != expandedScript) {
 				LogLine("Script altered by macros");
