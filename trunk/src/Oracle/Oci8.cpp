@@ -911,10 +911,14 @@ bool OCI8Connection::GetColumnInfo() {
 			AddColumn(SQLT_STR, 32); 
 			break;
 		case SQLT_TIMESTAMP_TZ: // TODO: Customize
-			ASSERT_(1==0, "SQLT_TIMESTAMP_TZ in GetColumnInfo not supported yet.  Please code.");
+			//ASSERT_(1==0, "SQLT_TIMESTAMP_TZ in GetColumnInfo not supported yet.  Please code.");
+			Exclamation("SQLT_TIMESTAMP_TZ in GetColumnInfo not supported yet.  Please code.");
+			return false;
 			break;
 		case SQLT_TIMESTAMP_LTZ: // TODO: Customize
-			ASSERT_(1==0, "SQLT_TIMESTAMP_LTZ in GetColumnInfo not supported yet.  Please code.");
+			//ASSERT_(1==0, "SQLT_TIMESTAMP_LTZ in GetColumnInfo not supported yet.  Please code.");
+			Exclamation("SQLT_TIMESTAMP_LTZ in GetColumnInfo not supported yet.  Please code.");
+			return false;
 			break;
 		default:
 			ii.valuetype = STRING_V;
