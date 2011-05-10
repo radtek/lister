@@ -26,6 +26,8 @@ public:
     void                 Open              ();
     virtual 
     void                 Open              (Ctrl       *owner);
+    virtual
+	void                 Close             ();
 	void                 Build             (Connection *pconnection);
 	void                 Load              (Task       &ptask);
 	void                 SaveTask          ();
