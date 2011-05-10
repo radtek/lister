@@ -22,7 +22,7 @@
 #include "OutputGrid.h"
 #include "OutputStat.h"
 #include "SQLTypes.h"
-#include "MacroHandler.h"
+//#include "MacroHandler.h"
 #include <lister/Sql/Sql.h>
 
 //==============================================================================================
@@ -123,7 +123,7 @@ bool CursorHandler::Run(Script &sob, JobSpec &jobSpec, ContextMacros *contextMac
 	
 	//__________________________________________________________________________________________
 	if (sob.scriptTarget == Script::SO_TABLE) {
-		String expandedOutputTable = ExpandMacros(outputTable, contextMacros);
+		String expandedOutputTable = contextMacros->ExpandMacros(outputTable, contextMacros);
 
 		if (jobSpec.log) {
 			if (expandedOutputTable != outputTable) {
