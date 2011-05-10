@@ -17,8 +17,10 @@ bool In(int i, int in1, int in2, int in3, int in4, int in5, int in6, int in7, in
 bool In(String i, const char *in1, const char *in2, const char *in3, const char *in4, const char *in5, const char *in6, const char *in7, const char *in8) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8) return true; return false; }
 
 bool In(int i, int in1, int in2, int in3, int in4, int in5, int in6, int in7, int in8, int in9) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8 || i == in9) return true; return false; }
+bool In(String i, const char *in1, const char *in2, const char *in3, const char *in4, const char *in5, const char *in6, const char *in7, const char *in8, const char *in9) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8 || i == in9) return true; return false; }
 
 bool In(int i, int in1, int in2, int in3, int in4, int in5, int in6, int in7, int in8, int in9, int in10) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8 || i == in9 || i == in10) return true; return false; }
+bool In(String i, const char *in1, const char *in2, const char *in3, const char *in4, const char *in5, const char *in6, const char *in7, const char *in8, const char *in9, const char *in10) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8 || i == in9 || i == in10) return true; return false; }
 
 bool In(int i, int in1, int in2, int in3, int in4, int in5, int in6, int in7, int in8, int in9, int in10, int in11) { if (i == in1 || i == in2 || i == in3 || i == in4 || i == in5 || i == in6 || i == in7 || i == in8 || i == in9 || i == in10 || i == in11) return true; return false; }
 
