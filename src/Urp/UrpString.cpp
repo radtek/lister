@@ -207,21 +207,21 @@
 //==============================================================================================
 /*static*/ String UrpString::ToString(int64 i) {
 	String s;
-	s << i;
+	s = Format("%ld", i);
 	return s;
 }
 
 //==============================================================================================
 /*static*/ String UrpString::ToString(int i) {
 	String s;
-	s << i;
+	s = Format("%d", i);
 	return s;
 }
 
 //==============================================================================================
 /*static*/ String UrpString::ToString(byte i) {
 	String s;
-	s << i;
+	s = Format("%d", (int)i);
 	return s;
 }
 
