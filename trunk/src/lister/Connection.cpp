@@ -351,7 +351,8 @@ SqlSession &Connection::GetSession() {
 String Connection::PrepTextDataForSend(const String &textData) {
 	switch (instanceType) {
 		case INSTTYP_POSTGRESQL:
-			return CAT << "E'" << UrpString::ReplaceInWhatWith(UrpString::ReplaceInWhatWith(textData, "\\", "\\\\'"), "'", "\\'") << "'";
+			// Replace a single backslash with 2 backslashes
+			return CAT << "E'" << UrpString::ReplaceInWhatWith(UrpString::ReplaceInWhatWith(textData, "\\", "\\\\"), "'", "\\'") << "'";
 			break;
 		case INSTTYP_ORACLE:
 			return CAT << "'" << UrpString::ReplaceInWhatWith(textData, "'", "''") << "'";
