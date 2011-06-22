@@ -30,6 +30,8 @@ NewInstanceWin::NewInstanceWin() {
 	CtrlLayout(*this, "Create new instance (database)");
 	CtrlLayoutOKCancel(*this, "Enter");
 	Sizeable().Zoomable();
+	envList.SearchHideRows().Searching();
+	instTypList.SearchHideRows().Searching();
 }
 
 //==============================================================================================

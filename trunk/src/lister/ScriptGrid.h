@@ -11,7 +11,8 @@ class ScriptGrid : public UrpSqlGrid {
 public:
 	typedef ScriptGrid CLASSNAME;
 
-	EditString           taskName, scriptName, taskNote, scriptNote, scriptBody, why, targetName;
+	EditString           taskName, scriptName, taskNote, scriptNote, scriptBody, why, targetName
+	,                    outputToMacro, scriptToMacro;
 	EditInt              rowLimit;
 	DropGrid             connectionList, scriptTargetList, fastFlushTargetList;
 	Connection          *connection;
@@ -35,6 +36,8 @@ public:
 	String               GetTargetName               (int row = -1);
 	int                  GetRelId                    (int row = -1);
 	String               GetWhy                      (int row = -1);
+	String               GetOutputToMacro            (int row = -1);
+	String               GetScriptToMacro            (int row = -1);
 	bool                 GetFastFlushTarget(int row);
 	void                 UpdateTaskScriptGrid(int pscriptId, String pscript);
 };

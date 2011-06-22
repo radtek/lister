@@ -22,6 +22,8 @@ public:
 	int                     taskScriptId;           // If taken from taskscript grid, remember for updating.
 	ScriptTarget            scriptTarget;           // Screen or table?
 	String                  targetName;             // Table name if target is a table
+	String                  outputToMacro;          // Name of macro a script run will be assigned to
+	String                  scriptToMacro;          // The macro this expanded script will be assigned to (no run)
 	String                  scriptPlainText;        // text
 	String                  scriptQTFText;          // Pre-RichText, which includes font information
 	RichText                scriptRichText;         // display with RichText embedded
@@ -45,6 +47,8 @@ public:
 	,   RichText                  pscriptRichText
 	,	int                       prowLimit
 	,	String                    ptargetName
+	,	String                    poutputToMacro
+	,	String                    pscriptToMacro
 	,	bool                      paddSepToOutput
 	,	String                    pfldSepWhenChange
 	,	int                       psepRowCount
