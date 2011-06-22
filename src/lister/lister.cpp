@@ -1629,6 +1629,19 @@ void Lister::ScriptExecutionHandler(Script::ScriptTarget pscriptTarget) {
 		BeepExclamation();
 		return;
 	}
+
+	String scriptToMacro;
+	
+	if (scriptGrid.IsCursor() || scriptGrid.IsSelection()) {
+		scriptToMacro = Trim(scriptGrid.GetScriptToMacro());
+	}
+	
+	// Check if a string name for a macro was assigned to this task script.  If so, then we won't
+	// execute it
+	if (scriptToMacro.IsEmpty()) {
+		String expandedScript = activeContextMacros.ExpandMacros(lplainText, &activeContextMacros);
+		
+	}
 	
 	if (!activeConnection) {
 		Exclamation("No connection");
@@ -1670,6 +1683,8 @@ void Lister::ScriptExecutionHandler(Script::ScriptTarget pscriptTarget) {
 		,	scriptEditor.GetScriptRichText()
 		,	GetFieldInt(fldRowLimit)
 		,	targetNameList.GetData()
+		,	scriptGrid.GetOutputToMacro()
+		,	scriptToMacro
 		,	chkAddSepToOutput.Get()
 		,	outFldSepWhenValChange.GetData()
 		,	AsInt(fldSepRowCount.GetData(), 1) // Default to 1 row sep (if separating)

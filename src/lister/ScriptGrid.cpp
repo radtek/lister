@@ -81,7 +81,8 @@ void ScriptGrid::Build(Connection *pconnection) {
 	AddColumn(FASTFLUSHTARGET, "truncate target", 10 ).Edit(fastFlushTargetList).SetConvert(fastFlushTargetList);
 	AddColumn(ROWLIMIT       , "rowlimit"       , 20 ).Edit(rowLimit);
 	AddColumn(PROCESSORDER   , "order"          , 25 );HideColumn(PROCESSORDER);
-//	AddColumn(OUTPUTTOMACRO  , "macro"               ).Edit(fldOutputToMacro);
+	AddColumn(OUTPUTTOMACRO  , "macro"               ).Edit(outputToMacro);
+	AddColumn(SCRIPTTOMACRO  , "macro"               ).Edit(scriptToMacro);
 
 	connectionList.SearchHideRows().Resizeable().Width(200);
 	connectionList.NotNull(); //.AddPlus(THISBACK(NewConnection));
@@ -184,6 +185,7 @@ void ScriptGrid::GetScriptOb(int row, Script *psob) {
 
 //==============================================================================================
 Script::ScriptTarget ScriptGrid::GetScriptTarget(int row) {
+	if (row == -1) return Script::SO_UNDEF;
 	int intScriptTarget = Get(CalcCorrectRow(row), SCRIPTTARGET);
 	Script::ScriptTarget scriptTarget = (Script::ScriptTarget)intScriptTarget;
 	return Upp::max(scriptTarget, Script::SO_UNDEF); // Put a 0 if big negative returned for a null.
@@ -191,23 +193,39 @@ Script::ScriptTarget ScriptGrid::GetScriptTarget(int row) {
 
 //==============================================================================================
 String ScriptGrid::GetTargetName(int row) {
+	if (row == -1) return "";
 	return Get(CalcCorrectRow(row), TARGETNAME);
 }
 
 //==============================================================================================
 int ScriptGrid::GetRelId(int row) {
+	if (row == -1) return -1;
 	return Get(CalcCorrectRow(row), RELID);
 }
 
 //==============================================================================================
 String ScriptGrid::GetWhy(int row) {
+	if (row == -1) return "";
 	return Get(CalcCorrectRow(row), WHY);
+}
+
+//==============================================================================================
+String ScriptGrid::GetOutputToMacro(int row) {
+	if (row == -1) return "";
+	return Get(CalcCorrectRow(row), OUTPUTTOMACRO);
+}
+
+//==============================================================================================
+String ScriptGrid::GetScriptToMacro(int row) {
+	if (row == -1) return "";
+	return Get(CalcCorrectRow(row), SCRIPTTOMACRO);
 }
 
 //==============================================================================================
 // Case for dealing with PostgreSQL booleans as strings "1" and "0" (Bug in U++ driver)
 // Convert them from strings to boolean
 bool ScriptGrid::GetFastFlushTarget(int row) {
+	if (row == -1) return false;
 	return Get(CalcCorrectRow(row), FASTFLUSHTARGET);
 }
 

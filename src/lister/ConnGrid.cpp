@@ -103,8 +103,9 @@ void ConnGrid::NewConn() {
 	WhenNewRow = THISBACK(NewConn);
 	
 	instanceList.SearchHideRows().Resizeable().Width(200);
+	instanceList.Searching();
 	instanceList.NotNull().AddPlus(THISBACK(NewInstance));
-	
+
 	// F3 moves the cursor to the next matched row. 
 	// Hidden rows currently managed by serialization
 	// Multi selecting works in the same way as in ArrayCtrl. One can select a row by holding CTRL and pressing LMB

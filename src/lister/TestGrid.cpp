@@ -205,6 +205,10 @@ void TestGrid::TestGridContextMenu(Bar &bar) {
 //==============================================================================================
 // Hope someone set the taskId, or all tests will be fetched.
 /*virtual=0*/ void TestGrid::Load() {
+	if (taskId == UNKNOWN || taskId == INT_NULL) {
+		PromptOK("taskId must currently be assigned to use a test grid");
+		return;
+	}
 	ASSERT_(taskId != UNKNOWN && taskId != INT_NULL, "taskId must currently be assigned to use a test grid.");
 	LoadBase();
 	

@@ -34,10 +34,11 @@ MyRichEdit::MyRichEdit() {
 	tablelist.Normal();
 	columnlist.AddColumn("Column", 100);
 	columnlist.Normal();
-	NoRuler();
+	NoRuler();    
 	ShowCodes(Null);
 	ViewBorder(0);
 	zoomlevel = 8.0; // default zoom is about 9 pt on my screen
+	SpellCheck(false); // WTF! Defaults to true
 }
 
 //==============================================================================================
@@ -930,10 +931,10 @@ bool MyRichEdit::Key(dword key, int count) {
 	
 	bool didWeProcessKey = RichEdit::Key(key, count);
 
-	if (IsModified()) {
-		// Flush out scriptId if any changes are made, ignore control keys
-		ScriptContentChanged(key);
-	}
+//	if (IsModified()) {
+//		// Flush out scriptId if any changes are made, ignore control keys
+//		ScriptContentChanged(key);
+//	}
 
 	switch (keyProcessorResponse) {
 		case SIGNALWEPROCESSEDKEY:
@@ -943,7 +944,7 @@ bool MyRichEdit::Key(dword key, int count) {
 		case ALLOWDEFAULTKEYPROCESSORTORUN:
 			break;
 		default:
-			throw Exc("Unrecognized keyProcessorResponse in MyRichEdit: " + keyProcessorResponse);
+			LOG("Error reading key");
 	}
 
 	return didWeProcessKey;

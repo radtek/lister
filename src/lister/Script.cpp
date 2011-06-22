@@ -40,6 +40,8 @@ Script::Script(
 	,	RichText                  pscriptRichText
 	,	int                       prowLimit
 	,	String                    ptargetName
+	,	String                    poutputToMacro
+	,	String                    pscriptToMacro
 	,	bool                      paddSepToOutput
 	,	String                    poutFldSepWhenValChange
 	,	int                       psepRowCount
@@ -54,6 +56,8 @@ Script::Script(
 	scriptPlainText             = pscriptPlainText; // No QTF codes present
 	rowLimit                    = prowLimit;
 	targetName                  = ptargetName;
+	outputToMacro               = poutputToMacro;
+	scriptToMacro               = pscriptToMacro;
 	addSepToOutput              = paddSepToOutput;
 	outFldSepWhenValChange      = poutFldSepWhenValChange;
 	sepRowCount                 = psepRowCount;
@@ -77,7 +81,8 @@ Script::Script(OutputGrid *poutputGrid) {
 //==============================================================================================
 bool Script::LoadFromDb(Connection *connection, int relationid) {
 	// Fetch all detail from task_r view
-	String script = Format("SELECT SCRIPTPLAINTEXT, SCRIPTRICHTEXT, SCRIPTID, SCRIPTTARGET, TARGETNAME, FASTFLUSHTARGET, ROWLIMIT, PROCESSORDER, RELCONNID"
+	String script = Format("SELECT SCRIPTPLAINTEXT, SCRIPTRICHTEXT, SCRIPTID, SCRIPTTARGET, TARGETNAME, "
+	              " FASTFLUSHTARGET, ROWLIMIT, PROCESSORDER, RELCONNID, OUTPUTTOMACRO, SCRIPTTOMACRO "
 	              " FROM TASKS_R WHERE RELID = %d", relationid);
 
 	if (!connection->Execute(script)) {
@@ -95,6 +100,8 @@ bool Script::LoadFromDb(Connection *connection, int relationid) {
 	scriptId        = connection->Get(SCRIPTID);
 	scriptTarget    = (ScriptTarget)IfNull((int)connection->Get(SCRIPTTARGET), Script::SO_SCREEN);
 	targetName      = connection->Get(TARGETNAME);
+	outputToMacro   = connection->Get(OUTPUTTOMACRO);
+	scriptToMacro   = connection->Get(SCRIPTTOMACRO);
 	fastFlushTarget = connection->Get(FASTFLUSHTARGET);
 	rowLimit        = connection->Get(ROWLIMIT);
 	processOrder    = connection->Get(PROCESSORDER);
