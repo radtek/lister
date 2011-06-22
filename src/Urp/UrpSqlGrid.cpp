@@ -273,7 +273,9 @@ int UrpSqlGrid::CalcCorrectRow(int row) {
 				if (IsSelected(i)) {
 					return i; // Can't force visible since this may be part of an informational lookup
 				}
+
 			}
+			
 			// Error if here
 			ASSERT(1==0);
 			return -2;
